@@ -1,0 +1,89 @@
+/* =========================================================
+   1. THE MAIN BOARD (Simple CSS Grid)
+   ========================================================= */
+.o_kanban_view.o_hotel_rooming_board .o_kanban_renderer {
+    display: grid !important;
+    /* 1st column is 260px, the rest are 240px wide */
+    grid-template-columns: 260px repeat(auto-fill, 240px) !important;
+    grid-auto-rows: min-content !important;
+    gap: 15px !important;
+    padding: 15px !important;
+    align-items: start !important;
+}
+
+/* =========================================================
+   2. THE GUEST LIST (Locked strictly to the left)
+   ========================================================= */
+.o_kanban_view.o_hotel_rooming_board .o_kanban_group[data-id="false"] {
+    grid-column: 1 / 2 !important;       /* Lock to column 1 */
+    grid-row: 1 / span 999 !important;   /* Push everything else away */
+    height: calc(100vh - 120px) !important; /* Tall screen height */
+    position: sticky !important;
+    top: 15px !important;
+    overflow-y: auto !important;         /* Let the column scroll naturally */ 
+    overflow-x: hidden !important;
+    background-color: #f8f9fa !important;
+    border: 2px solid #17a2b8 !important;
+    border-radius: 6px !important;
+    margin: 0 !important;
+}
+
+/* =========================================================
+   3. THE ROOMS (Compact sizes!)
+   ========================================================= */
+.o_kanban_view.o_hotel_rooming_board .o_kanban_group:not([data-id="false"]) {
+    height: 220px !important;            /* FIXED: Much smaller and more compact! */
+    overflow-y: auto !important;         /* Let the room scroll naturally if full */
+    overflow-x: hidden !important;
+    background-color: #ffffff !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 6px !important;
+    margin: 0 !important;
+}
+
+/* =========================================================
+   4. THE HEADERS (Keep them at the top when scrolling)
+   ========================================================= */
+.o_kanban_view.o_hotel_rooming_board .o_kanban_header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background-color: #ffffff !important;
+    padding: 10px !important;
+    border-bottom: 3px solid #17a2b8 !important;
+    border-radius: 6px 6px 0 0 !important;
+}
+
+.o_kanban_view.o_hotel_rooming_board .o_kanban_header_title {
+    white-space: pre-wrap !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+}
+
+.o_kanban_view.o_hotel_rooming_board .o_kanban_header .o_kanban_quick_add {
+    display: none !important;            /* Kill the native Odoo (+) button */
+}
+
+/* =========================================================
+   5. THE GUEST CARDS (Fixed: No more weird scrollbars!)
+   ========================================================= */
+.o_kanban_view.o_hotel_rooming_board .o_kanban_record {
+    display: block !important;
+    margin: 8px 10px !important;
+}
+
+.o_kanban_view.o_hotel_rooming_board .oe_kanban_global_click {
+    display: block !important;           /* FIXED: Let the card size naturally */
+    padding: 10px 12px !important;
+    background-color: #ffffff !important;
+    border-left: 4px solid #17a2b8 !important;
+    border-radius: 4px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+}
+
+.o_kanban_view.o_hotel_rooming_board .oe_kanban_global_click strong {
+    display: block !important;
+    font-size: 13px !important;
+    white-space: normal !important;      /* Let long names wrap neatly */
+    color: #333333 !important;
+}

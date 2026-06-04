@@ -1,0 +1,9 @@
+.o_web_client .o_form_view.o_hotel_reservation_form {
+    .o_form_statusbar .o_statusbar_buttons {
+        column-gap: 0.125rem !important;
+    }
+
+    .o_form_statusbar .o_statusbar_buttons .btn {
+        padding-inline: 0.5rem;
+    }
+}

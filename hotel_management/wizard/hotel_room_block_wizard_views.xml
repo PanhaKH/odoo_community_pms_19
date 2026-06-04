@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hotel_room_block_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.room.block.wizard.form</field>
+        <field name="model">hotel.room.block.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Block Room for Maintenance">
+                <sheet>
+                    <group>
+                        <field name="room_id" readonly="1"/>
+                        <field name="reason" placeholder="e.g., Leaking sink, Broken AC..."/>
+                        <field name="need_maintenance" widget="boolean_toggle"/>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="date_start"/>
+                        </group>
+                        <group>
+                            <field name="date_end"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm_block" type="object" string="Confirm Block" class="btn-danger"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_room_block_wizard" model="ir.actions.act_window">
+        <field name="name">Block Room</field>
+        <field name="res_model">hotel.room.block.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="supervisor_inspection_page" name="Housekeeping Supervisor Inspection">
+        <t t-call="website.layout">
+            <style>
+                .hk-inspection-page { background: #f4f6f8; min-height: 100vh; padding-bottom: 3rem; }
+                .hk-card { border: 0; border-radius: 18px; box-shadow: 0 8px 24px rgba(20, 34, 64, 0.08); }
+                .hk-room-number { font-size: 2.4rem; line-height: 1; font-weight: 800; color: #213547; }
+                .hk-tap-btn { min-height: 58px; border-radius: 14px; font-size: 1.08rem; font-weight: 800; }
+                .hk-label { color: #6c757d; font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; }
+                .hk-value { color: #233142; font-weight: 700; }
+                textarea.hk-note { min-height: 76px; border-radius: 12px; }
+                .hk-file-input { min-height: 54px; border-radius: 12px; padding: .9rem; }
+            </style>
+            <div class="hk-inspection-page">
+                <div class="container py-3" style="max-width: 860px;">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <h2 class="mb-0 fw-bold">Supervisor Inspection</h2>
+                            <div class="text-muted">Rooms waiting for supervisor approval</div>
+                        </div>
+                        <span class="badge text-bg-primary fs-6"><t t-out="len(tasks)"/> Ready</span>
+                    </div>
+
+                    <div t-if="error" class="alert alert-danger" role="alert"><t t-out="error"/></div>
+                    <div t-if="success" class="alert alert-success" role="status"><t t-out="success"/></div>
+
+                    <t t-if="not tasks">
+                        <div class="card hk-card p-4 text-center">
+                            <i class="fa fa-check-circle text-success" style="font-size: 64px;"></i>
+                            <h4 class="mt-3 mb-1">No rooms waiting for inspection</h4>
+                            <p class="text-muted mb-0">The queue is clear.</p>
+                        </div>
+                    </t>
+
+                    <t t-foreach="tasks" t-as="task">
+                        <div class="card hk-card mb-3">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <div class="hk-label">Room</div>
+                                        <div class="hk-room-number"><t t-out="task.room_id.name"/></div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge text-bg-warning fs-6">Ready</span>
+                                        <div class="small text-muted mt-1"><t t-out="task.floor_id.display_name or task.room_id.floor_id.display_name"/></div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <div class="hk-label">Room Type</div>
+                                        <div class="hk-value"><t t-out="task.room_type_id.name or '-'"/></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="hk-label">Current Status</div>
+                                        <div class="hk-value"><t t-out="task.room_id.housekeeping_status"/> / <t t-out="task.room_id.occupancy_status"/></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="hk-label">Cleaned By</div>
+                                        <div class="hk-value"><t t-out="task.cleaning_completed_by_id.name or task.maid_id.name or '-'"/></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="hk-label">Completed Time</div>
+                                        <div class="hk-value"><t t-out="task.cleaning_completed_datetime or '-'"/></div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="hk-label">Last Guest</div>
+                                        <div class="hk-value"><t t-out="task.last_guest_id.name or '-'"/></div>
+                                    </div>
+                                </div>
+
+                                <form t-att-action="'/housekeeping/inspection/pass/%s' % task.id" method="post" class="mb-2">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <textarea name="supervisor_note" class="form-control hk-note mb-2" placeholder="Optional supervisor note"></textarea>
+                                    <button type="submit" class="btn btn-success hk-tap-btn w-100">
+                                        <i class="fa fa-check-circle me-2"></i> Inspection Passed
+                                    </button>
+                                </form>
+
+                                <form t-att-action="'/housekeeping/inspection/fail/%s' % task.id" method="post" enctype="multipart/form-data">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <textarea name="failure_reason" class="form-control hk-note mb-2" required="required" placeholder="Failure reason required, e.g. bathroom mirror not clean"></textarea>
+                                    <label class="hk-label mb-1" t-attf-for="inspection_photos_#{task.id}">Evidence Photo Required</label>
+                                    <input type="file"
+                                           t-attf-id="inspection_photos_#{task.id}"
+                                           name="inspection_photos"
+                                           class="form-control hk-file-input mb-2"
+                                           accept="image/*"
+                                           capture="environment"
+                                           multiple="multiple"
+                                           required="required"/>
+                                    <textarea name="supervisor_note" class="form-control hk-note mb-2" placeholder="Optional internal note"></textarea>
+                                    <button type="submit" class="btn btn-danger hk-tap-btn w-100">
+                                        <i class="fa fa-undo me-2"></i> Failed / Reclean
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </t>
+
+                    <t t-if="failed_tasks">
+                        <h5 class="mt-4 mb-2 fw-bold">Recent Reclean Queue</h5>
+                        <t t-foreach="failed_tasks" t-as="task">
+                            <div class="card hk-card mb-2">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>Room <t t-out="task.room_id.name"/></strong>
+                                        <span class="badge text-bg-danger">Reclean</span>
+                                    </div>
+                                    <div class="small text-muted mt-1"><t t-out="task.failure_reason"/></div>
+                                </div>
+                            </div>
+                        </t>
+                    </t>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

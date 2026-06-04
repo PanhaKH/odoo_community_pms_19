@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hotel_guest_duplicate_review_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.guest.duplicate.review.wizard.form</field>
+        <field name="model">hotel.guest.duplicate.review.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Review Possible Duplicate Guest Profiles">
+                <sheet>
+                    <group>
+                        <field name="duplicate_count" readonly="1"/>
+                    </group>
+                    <p class="text-muted">
+                        This tool only lists possible duplicate contacts. It does not merge,
+                        delete, or change any guest profile.
+                    </p>
+                    <field name="duplicate_partner_ids" readonly="1">
+                        <list>
+                            <field name="name"/>
+                            <field name="email"/>
+                            <field name="phone"/>
+                            <field name="passport_number"/>
+                        </list>
+                    </field>
+                </sheet>
+                <footer>
+                    <button name="action_open_duplicate_guests"
+                            type="object"
+                            string="Review Possible Duplicates"
+                            class="btn-primary"/>
+                    <button string="Close" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_guest_duplicate_review" model="ir.actions.act_window">
+        <field name="name">Review Duplicate Guests</field>
+        <field name="res_model">hotel.guest.duplicate.review.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_hotel_guest_duplicate_review"
+              name="Review Duplicate Guests"
+              parent="hotel_management.menu_hotel_config"
+              action="action_hotel_guest_duplicate_review"
+              sequence="30"
+              groups="base.group_system"/>
+</odoo>

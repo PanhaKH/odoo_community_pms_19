@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_hotel_duty_clean_kanban" model="ir.ui.view">
+        <field name="name">hotel.duty.clean.mobile.kanban</field>
+        <field name="model">hotel.room</field>
+        <field name="arch" type="xml">
+            <kanban create="false" class="o_kanban_mobile align-content-start">
+                <field name="name"/>
+                <field name="floor_id"/>
+                <field name="state"/>
+                <field name="occupancy_status"/>
+                <field name="housekeeping_status"/>
+                <field name="availability_status"/>
+                <field name="service_workflow"/>
+                <field name="arrival_priority_level"/>
+                <field name="release_ready"/>
+                <field name="do_not_disturb"/>
+                <field name="floor_plan_color"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click shadow-sm rounded mb-3 p-3 bg-white" style="border-left: 8px solid #{record.floor_plan_color.raw_value};">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h2 class="mb-0 fw-bold text-dark"><field name="name"/></h2>
+                                <span class="badge bg-secondary fs-6"><field name="floor_id"/></span>
+                            </div>
+                            <div class="mb-3">
+                                <span class="text-muted fw-bold">Current Status: </span>
+                                <span t-attf-style="color: #{record.floor_plan_color.raw_value};" class="fw-bolder fs-5 text-uppercase">
+                                    <field name="state"/>
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <span t-if="record.arrival_priority_level.raw_value == 'rush_arrival'" class="badge text-bg-danger me-1">Rush Arrival</span>
+                                <span t-if="record.arrival_priority_level.raw_value == 'arrival_today'" class="badge text-bg-warning me-1">Arrival Today</span>
+                                <span t-if="record.release_ready.raw_value" class="badge text-bg-success me-1">Release Ready</span>
+                                <span t-if="record.do_not_disturb.raw_value" class="badge text-bg-dark">DND</span>
+                            </div>
+                            <button type="object" name="action_mark_room_clean" class="btn btn-success btn-lg w-100 py-3 shadow-sm fw-bold fs-4">
+                                <i class="fa fa-check-circle me-2"/> CLEANED
+                            </button>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_hotel_housekeeping_mobile" model="ir.actions.act_window">
+        <field name="name">Duty Clean</field>
+        <field name="res_model">hotel.room</field>
+        <field name="view_mode">kanban</field>
+        <field name="view_id" ref="hotel_management.view_hotel_duty_clean_kanban"/>
+        <field name="domain">[('housekeeping_status', '=', 'dirty'), ('availability_status', '=', 'available')]</field>
+    </record>
+
+
+    <record id="view_hotel_minibar_post_kanban" model="ir.ui.view">
+        <field name="name">hotel.minibar.post.mobile.kanban</field>
+        <field name="model">hotel.room</field>
+        <field name="arch" type="xml">
+            <kanban create="false" class="o_kanban_mobile align-content-start">
+                <field name="name"/>
+                <field name="floor_id"/>
+                <field name="state"/>
+                <field name="occupancy_status"/>
+                <field name="housekeeping_status"/>
+                <field name="availability_status"/>
+                <field name="service_workflow"/>
+                <field name="minibar_check_required"/>
+                <field name="minibar_checked"/>
+                <field name="floor_plan_color"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click shadow-sm rounded mb-3 p-3 bg-white" style="border-left: 8px solid #{record.floor_plan_color.raw_value};">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h2 class="mb-0 fw-bold text-dark"><field name="name"/></h2>
+                                <span class="badge bg-secondary fs-6"><field name="floor_id"/></span>
+                            </div>
+                            <div class="mb-3">
+                                <span class="text-muted fw-bold">Current Status: </span>
+                                <span t-attf-style="color: #{record.floor_plan_color.raw_value};" class="fw-bolder fs-5 text-uppercase">
+                                    <field name="state"/>
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <span t-if="record.minibar_check_required.raw_value and !record.minibar_checked.raw_value" class="badge text-bg-warning">Minibar Check Pending</span>
+                                <span t-if="record.minibar_checked.raw_value" class="badge text-bg-success">Minibar Checked</span>
+                            </div>
+                            <button type="action" name="%(hotel_management.action_open_minibar_wizard)d" context="{'default_room_id': id}" class="btn btn-outline-warning btn-lg w-100 py-3 mb-2 shadow-sm fw-bold fs-5 text-dark">
+                                <i class="fa fa-glass me-2"/> POST MINIBAR
+                            </button>
+                            <button type="object" name="action_mark_minibar_checked" class="btn btn-outline-success btn-lg w-100 py-3 shadow-sm fw-bold fs-5" invisible="minibar_checked">
+                                <i class="fa fa-check me-2"/> NO CHARGE / CHECKED
+                            </button>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_hotel_minibar_mobile" model="ir.actions.act_window">
+        <field name="name">Minibar Posting</field>
+        <field name="res_model">hotel.room</field>
+        <field name="view_mode">kanban</field>
+        <field name="view_id" ref="hotel_management.view_hotel_minibar_post_kanban"/>
+        <field name="domain">[('occupancy_status', '=', 'occupied'), ('availability_status', '=', 'available')]</field>
+    </record>
+
+</odoo>

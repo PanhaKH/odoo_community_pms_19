@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="hotel_management.TapeChartTemplateFull" owl="1">
+        <div class="o_tape_chart_container h-100 d-flex flex-column">
+            
+            <style>
+                /* Remove borders between AM and PM of the same day to make it look like one block */
+                .chart-table td { padding: 0 !important; height: 100%; vertical-align: middle; }
+                
+                /* The Arrow Tip (Applied to AM Cell on Checkout Day) */
+                .arrow-end {
+                    clip-path: polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%);
+                    /* Ensure background color fills the shape */
+                    position: relative;
+                    z-index: 10;
+                }
+
+                /* The Arrow Start (Applied to PM Cell on Checkin Day) */
+                .arrow-start {
+                    border-left: 2px solid rgba(0,0,0,0.1) !important;
+                }
+
+                /* Guest Name Label - Enhanced for readability */
+                .guest-name-label {
+                    font-size: 0.85rem;
+                    font-weight: bold;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    padding-left: 8px;
+                    line-height: 25px; /* Vertically center */
+                    text-shadow: 0px 1px 2px rgba(0,0,0,0.3);
+                }
+
+                /* Hide borders on continuous stays for a seamless look */
+                .no-right-border { border-right: none !important; }
+                .no-left-border { border-left: none !important; }
+            </style>
+
+            <div class="d-flex justify-content-between align-items-center p-2 shadow-sm" style="z-index: 100; background: #fff; border-bottom: 1px solid #ddd;">
+                <div class="d-flex align-items-center">
+                    <h3 class="m-0 text-primary me-4">Room Chart</h3>
+                    <div class="tape-legend ms-4 d-flex align-items-center">
+                        <span class="me-2 text-muted small font-weight-bold">STATUS:</span>
+                        <div class="legend-item"><i class="fa fa-diamond text-success"/> VC</div>
+                        <div class="legend-item"><i class="fa fa-diamond text-warning"/> VD</div>
+                        <div class="legend-item"><i class="fa fa-suitcase text-info"/> OC</div>
+                        <div class="legend-item"><i class="fa fa-suitcase text-warning"/> OD</div>
+                        <div class="legend-item"><i class="fa fa-diamond text-danger"/> OOO</div>
+                    </div>
+                    <div class="ms-4 btn-group btn-group-sm">
+                        <input type="radio" class="btn-check" id="btn_ooo_ignore" t-att-checked="state.oooMode === 'ignore'" t-on-change="() => this.setOOOMode('ignore')"/>
+                        <label class="btn btn-outline-secondary" for="btn_ooo_ignore">Ignore OOO</label>
+                        <input type="radio" class="btn-check" id="btn_ooo_include" t-att-checked="state.oooMode === 'include'" t-on-change="() => this.setOOOMode('include')"/>
+                        <label class="btn btn-outline-secondary" for="btn_ooo_include">Include OOO</label>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary" t-on-click="() => this.moveDate(-7)"> &lt; Prev </button>
+                    <button class="btn btn-primary" t-on-click="loadData"> Today / Refresh </button>
+                    <button class="btn btn-outline-secondary" t-on-click="() => this.moveDate(7)"> Next &gt; </button>
+                </div>
+            </div>
+
+            <div style="flex: 1; overflow: auto; position: relative;">
+                <t t-if="state.loading">
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <i class="fa fa-circle-o-notch fa-spin fa-3x text-primary"></i>
+                    </div>
+                </t>
+                <t t-else="">
+                    <table class="table table-sm text-center chart-table mb-0">
+                        <thead>
+                            <tr>
+                                <th class="sticky-corner bg-light">ROOM</th>
+                                <t t-foreach="state.months || []" t-as="month" t-key="month.name">
+                                    <th t-att-colspan="month.colspan" class="text-center font-weight-bold border-left"><t t-esc="month.name"/></th>
+                                </t>
+                            </tr>
+                            <tr>
+                                <th class="sticky-room-col" style="top: 40px; z-index: 20;"></th>
+                                <t t-foreach="state.dates || []" t-as="date" t-key="date.full">
+                                    <th colspan="2" t-att-class="'day-header border-left ' + (date.isToday ? 'today-header' : (date.isWeekend ? 'weekend' : ''))" style="top: 40px;">
+                                        <div class="small"><t t-esc="date.weekday"/></div><div><t t-esc="date.day"/></div>
+                                    </th>
+                                </t>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="state.rooms || []" t-as="room" t-key="room.id">
+                                <tr>
+                                    <td class="sticky-room-col">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <i t-attf-class="fa #{room.status_icon} #{room.status_color} me-2" style="font-size: 1.2em;"/>
+                                                <span class="font-weight-bold"><t t-esc="room.name"/></span>
+                                            </div>
+                                            <span class="badge bg-light text-dark border ms-1" style="font-size: 0.7em;"><t t-esc="room.type_code"/></span>
+                                        </div>
+                                    </td>
+                                    
+                                    <t t-foreach="state.dates || []" t-as="date" t-key="date.full">
+                                        <t t-set="bookingAM" t-value="this.getBookingAM(room.id, date.full)"/>
+                                        <t t-set="bookingPM" t-value="this.getBookingPM(room.id, date.full)"/>
+                                        
+                                        <td t-att-class="this.getBookingClass(bookingAM, true, date.full) + (bookingAM &amp;&amp; bookingAM.checkout_date === date.full ? ' arrow-end' : '') + ' no-right-border'" 
+                                            t-on-click="() => bookingAM ? this.onCellClick(bookingAM) : this.onEmptyCellClick(room.id, date.full)">
+                                            </td>
+
+                                        <td t-att-class="this.getBookingClass(bookingPM, false, date.full) + (bookingPM &amp;&amp; bookingPM.checkin_date === date.full ? ' arrow-start' : '') + ' no-left-border'" 
+                                            t-on-click="() => bookingPM ? this.onCellClick(bookingPM) : this.onEmptyCellClick(room.id, date.full)">
+                                            
+                                            <t t-if="bookingPM and bookingPM.checkin_date === date.full">
+                                                <div class="guest-name-label text-white pl-1" t-att-title="bookingPM.partner_id ? bookingPM.partner_id[1] : 'Maintenance Block'">
+                                                    <t t-if="bookingPM.state === 'blocked'">
+                                                        <i class="fa fa-ban me-1"/> BLOCK
+                                                    </t>
+                                                    <t t-else="">
+                                                        <t t-esc="bookingPM.partner_id ? bookingPM.partner_id[1] : 'Reserved'"/>
+                                                    </t>
+                                                </div>
+                                            </t>
+                                        </td>
+                                    </t>
+                                </tr>
+                            </t>
+                        </tbody>
+                        
+                        <tfoot class="bg-light font-weight-bold">
+                            <tr>
+                                <td class="sticky-room-col border-top">Total Available</td>
+                                <t t-foreach="state.availableRow || []" t-as="avail" t-key="avail_index">
+                                    <td colspan="2" class="border-top border-left text-center small text-primary"><t t-esc="avail"/></td>
+                                </t>
+                            </tr>
+                            
+                            <tr>
+                                <td class="sticky-room-col border-top">Total Booked</td>
+                                <t t-foreach="state.bookedRow || []" t-as="booked" t-key="booked_index">
+                                    <td colspan="2" class="border-top border-left text-center small text-danger"><t t-esc="booked"/></td>
+                                </t>
+                            </tr>
+
+                            <tr>
+                                <td class="sticky-room-col border-top">Total Capacity</td>
+                                <t t-foreach="state.capacityRow || []" t-as="cap" t-key="cap_index">
+                                    <td colspan="2" class="border-top border-left text-center small text-secondary"><t t-esc="cap"/></td>
+                                </t>
+                            </tr>
+
+                            <tr>
+                                <td class="sticky-room-col border-top">Occupancy %</td>
+                                <t t-foreach="state.currentOccupancyRow || []" t-as="occ" t-key="occ_index">
+                                    <td colspan="2" class="border-top border-left text-center small text-success"><t t-esc="occ"/></td>
+                                </t>
+                            </tr>
+                        </tfoot>
+                        
+                    </table>
+                </t>
+            </div>
+        </div>
+    </t>
+</templates>

@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hotel_split_line_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.split.line.wizard.form</field>
+        <field name="model">hotel.split.line.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Dynamic Split Charge">
+                <sheet>
+                    <div class="alert alert-info text-center" role="alert">
+                        <h2>
+                            <strong>Original Total: </strong> 
+                            <field name="original_total" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_inline"/>
+                        </h2>
+                        <h3 invisible="remaining_amount == 0">
+                            <strong>Remaining to Split: </strong> 
+                            <span style="color:red;"><field name="remaining_amount" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_inline"/></span>
+                        </h3>
+                        <h3 invisible="remaining_amount != 0">
+                            <span style="color:green;"><i class="fa fa-check"/> Perfectly Balanced</span>
+                        </h3>
+                    </div>
+                    
+                    <field name="currency_id" invisible="1"/>
+                    
+                    <field name="split_line_ids">
+                        <list editable="bottom">
+                            
+                            <field name="partner_id" 
+                                   domain="[('id', 'in', context.get('allowed_split_partner_ids', []))]" 
+                                   options="{'no_create': True, 'no_open': True}"
+                                   placeholder="Select Guest or Company..."/>
+                                   
+                            <field name="amount" sum="Total Allocated"/>
+                            <field name="currency_id" column_invisible="1"/>
+                        </list>
+                    </field>
+                    
+                    <p class="text-muted mt-2">
+                        <em>* Click 'Add a line' for each person paying a portion of this charge. The remaining amount must be exactly zero before confirming.</em>
+                    </p>
+                </sheet>
+                <footer>
+                    <button string="Confirm Split" name="action_split_line" type="object" class="btn-primary" icon="fa-scissors"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

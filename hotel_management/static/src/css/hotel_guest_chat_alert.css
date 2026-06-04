@@ -1,0 +1,34 @@
+.o_hotel_guest_chat_card {
+    border: 2px solid transparent;
+    position: relative;
+    transition: border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.o_hotel_guest_chat_card.guest-chat-alert-pulse {
+    border-color: rgba(255, 220, 132, 0.95);
+    animation: hotel_guest_chat_alert_pulse 2.4s ease-in-out infinite;
+}
+
+.o_hotel_guest_chat_badge {
+    font-size: 0.78rem;
+    padding: 0.45rem 0.75rem;
+    letter-spacing: 0.01rem;
+}
+
+@keyframes hotel_guest_chat_alert_pulse {
+    0%,
+    100% {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    50% {
+        box-shadow: 0 0 0 0.25rem rgba(255, 220, 132, 0.34),
+            0 0.45rem 1.1rem rgba(85, 72, 175, 0.32);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .o_hotel_guest_chat_card.guest-chat-alert-pulse {
+        animation: none;
+        box-shadow: 0 0 0 0.25rem rgba(255, 220, 132, 0.34);
+    }
+}

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <record id="view_hotel_group_master_routing_inherit" model="ir.ui.view">
+        <field name="name">hotel.group.master.routing.inherit</field>
+        <field name="model">hotel.group.master</field>
+        
+        <field name="inherit_id" ref="hotel_management.view_hotel_group_master_form"/> 
+        
+        <field name="arch" type="xml">
+            
+            <xpath expr="//header" position="inside">
+                <button name="action_mass_group_checkin" 
+                        string="Group Check-In" 
+                        type="object" 
+                        class="oe_highlight" 
+                        confirm="Are you sure you want to check in all pending rooms for this group?"/>
+            </xpath>
+            
+            <xpath expr="//sheet" position="inside">
+                <group>
+                    <field name="billing_routing" widget="radio"/>
+                </group>
+            </xpath>
+            
+        </field>
+    </record>
+
+</odoo>

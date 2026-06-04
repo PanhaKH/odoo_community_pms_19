@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <record id="cat_direct" model="hotel.booking.source.category">
+            <field name="name">Direct Booking</field>
+        </record>
+        <record id="cat_ota" model="hotel.booking.source.category">
+            <field name="name">OTA (Online Travel Agency)</field>
+        </record>
+        <record id="cat_corporate" model="hotel.booking.source.category">
+            <field name="name">Corporate / Company</field>
+        </record>
+        <record id="cat_agent" model="hotel.booking.source.category">
+            <field name="name">Travel Agent / Tour Operator</field>
+        </record>
+        <record id="cat_social" model="hotel.booking.source.category">
+            <field name="name">Social Media</field>
+        </record>
+        <record id="cat_internal" model="hotel.booking.source.category">
+            <field name="name">Internal / Complimentary</field>
+        </record>
+
+        <record id="source_walk_in" model="hotel.booking.source">
+            <field name="name">Walk-In</field>
+            <field name="category_id" ref="cat_direct"/>
+        </record>
+        <record id="source_phone" model="hotel.booking.source">
+            <field name="name">Phone Call</field>
+            <field name="category_id" ref="cat_direct"/>
+        </record>
+        <record id="source_website" model="hotel.booking.source">
+            <field name="name">Hotel Website</field>
+            <field name="category_id" ref="cat_direct"/>
+        </record>
+        <record id="source_whatsapp" model="hotel.booking.source">
+            <field name="name">WhatsApp</field>
+            <field name="category_id" ref="cat_direct"/>
+        </record>
+        <record id="source_email" model="hotel.booking.source">
+            <field name="name">Email</field>
+            <field name="category_id" ref="cat_direct"/>
+        </record>
+
+        <record id="source_booking_com" model="hotel.booking.source">
+            <field name="name">Booking.com</field>
+            <field name="category_id" ref="cat_ota"/>
+            <field name="commission_percent">15.0</field>
+        </record>
+        <record id="source_agoda" model="hotel.booking.source">
+            <field name="name">Agoda</field>
+            <field name="category_id" ref="cat_ota"/>
+            <field name="commission_percent">12.0</field>
+        </record>
+        <record id="source_expedia" model="hotel.booking.source">
+            <field name="name">Expedia</field>
+            <field name="category_id" ref="cat_ota"/>
+            <field name="commission_percent">18.0</field>
+        </record>
+        <record id="source_airbnb" model="hotel.booking.source">
+            <field name="name">Airbnb</field>
+            <field name="category_id" ref="cat_ota"/>
+            <field name="commission_percent">3.0</field>
+        </record>
+        <record id="source_trip_com" model="hotel.booking.source">
+            <field name="name">Trip.com</field>
+            <field name="category_id" ref="cat_ota"/>
+        </record>
+
+        <record id="source_company_contract" model="hotel.booking.source">
+            <field name="name">Company Contract</field>
+            <field name="category_id" ref="cat_corporate"/>
+        </record>
+        <record id="source_ngo_contract" model="hotel.booking.source">
+            <field name="name">NGO Contract</field>
+            <field name="category_id" ref="cat_corporate"/>
+        </record>
+        <record id="source_embassy" model="hotel.booking.source">
+            <field name="name">Embassy</field>
+            <field name="category_id" ref="cat_corporate"/>
+        </record>
+        <record id="source_tour_agency" model="hotel.booking.source">
+            <field name="name">Tour Agency</field>
+            <field name="category_id" ref="cat_agent"/>
+        </record>
+
+        <record id="source_facebook" model="hotel.booking.source">
+            <field name="name">Facebook</field>
+            <field name="category_id" ref="cat_social"/>
+        </record>
+        <record id="source_complimentary" model="hotel.booking.source">
+            <field name="name">Complimentary</field>
+            <field name="category_id" ref="cat_internal"/>
+        </record>
+        <record id="source_staff_stay" model="hotel.booking.source">
+            <field name="name">Staff Stay</field>
+            <field name="category_id" ref="cat_internal"/>
+        </record>
+        <record id="source_house_use" model="hotel.booking.source">
+            <field name="name">House Use</field>
+            <field name="category_id" ref="cat_internal"/>
+        </record>
+
+        <record id="seg_leisure" model="hotel.market.segment">
+            <field name="name">Leisure</field>
+            <field name="code">LEIS</field>
+        </record>
+        <record id="seg_business" model="hotel.market.segment">
+            <field name="name">Corporate / Business</field>
+            <field name="code">CORP</field>
+        </record>
+        <record id="seg_government" model="hotel.market.segment">
+            <field name="name">Government</field>
+            <field name="code">GOV</field>
+        </record>
+        <record id="seg_house_use" model="hotel.market.segment">
+            <field name="name">House Use</field>
+            <field name="code">HUSE</field>
+            <field name="is_revenue_generating" eval="False"/>
+        </record>
+
+        <record id="guest_normal" model="hotel.guest.classification">
+            <field name="name">Normal</field>
+            <field name="priority">1</field>
+        </record>
+        <record id="guest_vip" model="hotel.guest.classification">
+            <field name="name">VIP</field>
+            <field name="priority">10</field>
+        </record>
+        <record id="guest_blacklisted" model="hotel.guest.classification">
+            <field name="name">Blacklisted</field>
+            <field name="priority">0</field>
+            <field name="discount_allowed">0.0</field>
+        </record>
+        
+    </data>
+</odoo>

@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="hotel_management.AvailabilityGridTemplate" owl="1">
+        
+        <div class="o_hotel_availability_grid h-100 d-flex flex-column bg-view overflow-hidden">
+             
+            <div class="o_hotel_availability_toolbar p-3 border-bottom d-flex flex-wrap gap-3 justify-content-between align-items-center bg-white shadow-sm">
+                <h3 class="h4 m-0 text-primary fw-bold">Availability by Room Type</h3>
+                 
+                <div class="o_hotel_availability_controls d-flex flex-wrap gap-3 align-items-center justify-content-end">
+                     
+                    <div class="btn-group shadow-sm" role="group">
+                        <button class="btn" t-att-class="state.viewMode === 'availability' ? 'btn-primary fw-bold' : 'btn-outline-primary fw-bold'" t-on-click="() => this.toggleView('availability')">
+                            <i class="fa fa-bed"/> Availability
+                        </button>
+                        
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn dropdown-toggle" t-att-class="state.viewMode === 'rates' ? 'btn-success fw-bold' : 'btn-outline-success fw-bold'" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fa fa-tags"/> <t t-esc="state.selectedRateName"/>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <t t-foreach="state.ratesList" t-as="rateName" t-key="rateName">
+                                    <li>
+                                        <a class="dropdown-item cursor-pointer" t-on-click="() => this.toggleView('rates', rateName)">
+                                            <t t-esc="rateName"/>
+                                        </a>
+                                    </li>
+                                </t>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="o_hotel_availability_date_nav btn-group flex-nowrap shadow-sm align-items-center" role="group">
+                     <button class="btn btn-outline-primary" title="Back 14 days" t-on-click="() => this.moveDate(-14)">
+                          <i class="fa fa-angle-double-left"/>
+                      </button>
+                      <button class="btn btn-outline-secondary" t-on-click="() => this.moveDate(-1)">
+                         <i class="fa fa-angle-left"/> Prev
+                     </button>
+                     <button class="btn btn-primary fw-bold" t-on-click="() => this.moveDate(0)">
+                         Today
+                     </button>
+
+                     <input type="date" class="o_hotel_availability_date form-control text-center fw-bold" 
+                             t-att-value="state.startDate" 
+                             t-on-change="(ev) => this.onDateChange(ev)"/>
+
+                     <button class="btn btn-outline-secondary" t-on-click="() => this.moveDate(1)">
+                         Next <i class="fa fa-angle-right"/>
+                     </button>
+                     <button class="btn btn-outline-primary" title="Forward 14 days" t-on-click="() => this.moveDate(14)">
+                          <i class="fa fa-angle-double-right"/>
+                      </button>
+                  </div>
+                </div>
+            </div>
+
+            <div class="o_hotel_availability_scroll flex-grow-1 overflow-auto">
+                <t t-if="state.loading">
+                    <div class="d-flex justify-content-center align-items-center h-100 text-muted">
+                        <div class="spinner-border text-primary me-2" role="status"/>
+                        <span>Loading Availability...</span>
+                    </div>
+                </t>
+                
+                <t t-elif="state.data">
+                    <table class="o_hotel_availability_table table table-bordered table-hover m-0 bg-white">
+                        <thead class="bg-light sticky-top" style="z-index: 100; top: 0;">
+                            <tr>
+                                <th class="o_hotel_availability_room_type p-3 align-middle bg-light border-bottom">
+                                    Room Type
+                                </th>
+                                <t t-foreach="state.data.dates" t-as="date" t-key="date.full">
+                                    <th t-att-class="'text-center p-2 align-middle ' + (date.is_weekend ? 'bg-warning bg-opacity-10' : 'bg-light')" 
+                                        style="min-width: 90px;">
+                                        <div class="small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">
+                                            <t t-esc="date.weekday"/>
+                                        </div>
+                                        <div class="small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">
+                                         <t t-esc="date.month"/>
+                                        </div>
+                                        <div class="fw-bold fs-5">
+                                            <t t-esc="date.day"/>
+                                        </div>
+                                    </th>
+                                </t>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr t-foreach="state.data.room_types" t-as="row" t-key="row.id">
+                                <td class="o_hotel_availability_room_type p-3 align-middle fw-bold bg-white border-end">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span><t t-esc="row.name"/></span>
+                                        <span class="badge bg-light text-dark border">
+                                            Cap: <t t-esc="row.capacity"/>
+                                        </span>
+                                    </div>
+                                </td>
+                                
+                                <t t-foreach="row.counts" t-as="count" t-key="count_index">
+                                    <td t-att-class="'text-center align-middle p-1 position-relative cursor-pointer ' + (state.data.dates[count_index].is_weekend ? 'bg-light' : '')"
+                                        style="cursor: pointer; transition: background-color 0.2s;"
+                                        title="Click to Book"
+                                        t-on-click="() => this.onCellClick(row.id, state.data.dates[count_index].full)">
+                                        
+                                        <div t-att-class="'o_hotel_availability_cell w-100 h-100 d-flex flex-column align-items-center justify-content-center rounded ' + (state.viewMode === 'availability' ? (count.value > 0 ? 'fw-bold' : 'text-muted') : 'fw-bold')"
+                                             t-att-style="state.viewMode === 'availability' ? (count.value > 0 ? (count.value > 2 ? 'background-color: #d1e7dd; color: #0f5132;' : 'background-color: #fff3cd; color: #664d03;') : 'background-color: #f8d7da; color: #842029;') : 'background-color: #f8f9fa; color: #198754; border: 1px solid #dee2e6;'">
+                                            
+                                            <t t-if="state.viewMode === 'availability'">
+                                                <t t-if="count.value > 0">
+                                                    <t t-esc="count.value"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <span class="small">0</span>
+                                                </t>
+                                            </t>
+
+                                            <t t-if="state.viewMode === 'rates'">
+                                             <t t-set="matching_rate" t-value="row.rates.find(r => r.name === state.selectedRateName)"/>
+                                             <t t-if="matching_rate">
+                                                 <span class="fw-bold"><t t-esc="matching_rate.prices[count_index]"/></span>
+                                             </t>
+                                             <t t-else="">
+                                                 <span class="text-muted small fw-normal">N/A</span>
+                                             </t>
+                                            </t>
+
+                                        </div>
+                                    </td>
+                                </t>
+                            </tr>
+                            
+                            <tr class="bg-light fw-bold border-top border-2">
+                                <td class="o_hotel_availability_room_type o_hotel_availability_total_label p-3 text-end">
+                                    Total Available:
+                                </td>
+                                <t t-foreach="state.data.totals" t-as="total" t-key="total_index">
+                                    <td class="text-center p-3 text-primary">
+                                        <t t-esc="total"/>
+                                    </td>
+                                </t>
+                            </tr>
+
+                            <tr class="bg-light fw-bold border-top">
+                                <td class="o_hotel_availability_room_type o_hotel_availability_total_label p-3 text-end">
+                                    Total Booked:
+                                </td>
+                                <t t-foreach="state.data.booked_totals" t-as="booked" t-key="booked_index">
+                                    <td class="text-center p-3 text-danger">
+                                        <t t-esc="booked"/>
+                                    </td>
+                                </t>
+                            </tr>
+
+                            <tr class="bg-light fw-bold border-top">
+                                <td class="o_hotel_availability_room_type o_hotel_availability_total_label p-3 text-end">
+                                    Total Capacity:
+                                </td>
+                                <t t-foreach="state.data.capacity_totals" t-as="cap" t-key="cap_index">
+                                    <td class="text-center p-3 text-secondary">
+                                        <t t-esc="cap"/>
+                                    </td>
+                                </t>
+                            </tr>
+
+                            <tr class="bg-light fw-bold border-top">
+                                <td class="o_hotel_availability_room_type o_hotel_availability_total_label p-3 text-end">
+                                    Occupancy %:
+                                </td>
+                                <t t-foreach="state.data.occ_include" t-as="occ" t-key="occ_index">
+                                    <td class="text-center p-3 text-success">
+                                        <t t-esc="occ"/>
+                                    </td>
+                                </t>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </t>
+                <t t-else="">
+                    <div class="d-flex justify-content-center align-items-center h-100 p-4 text-muted">
+                        Availability data could not be loaded.
+                    </div>
+                </t>
+            </div>
+        </div>
+    </t>
+</templates>

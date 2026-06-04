@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="hotel_management.OccupancyComparisonTemplate" owl="1">
+        <div class="h-100 d-flex flex-column bg-white o_occupancy_comparison">
+            
+            <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <h3 class="m-0 text-primary me-3">Performance Comparison</h3>
+                    <select class="form-select w-auto fw-bold shadow-sm" t-model="state.metric" t-on-change="loadAllData">
+                        <option value="occupancy_pc">Occupancy %</option>
+                        <option value="adr">ADR (Average Rate)</option>
+                        <option value="revpar">RevPAR</option>
+                        <option value="total_revenue">Total Revenue</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" t-on-click="loadAllData"><i class="fa fa-refresh"/> Refresh</button>
+            </div>
+
+            <div class="flex-grow-1 d-flex overflow-auto">
+                
+                <div class="w-50 p-3 border-end">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.changeDate('left', -1)">
+                            <i class="fa fa-chevron-left"/>
+                        </button>
+                        <h4 class="m-0 fw-bold"><t t-esc="state.left.title"/></h4>
+                        <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.changeDate('left', 1)">
+                            <i class="fa fa-chevron-right"/>
+                        </button>
+                    </div>
+                    
+                    <t t-call="hotel_management.CalendarGrid">
+                        <t t-set="calendar" t-value="state.left"/>
+                    </t>
+                </div>
+
+                <div class="w-50 p-3 bg-light-50">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.changeDate('right', -1)">
+                            <i class="fa fa-chevron-left"/>
+                        </button>
+                        <h4 class="m-0 fw-bold"><t t-esc="state.right.title"/></h4>
+                        <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.changeDate('right', 1)">
+                            <i class="fa fa-chevron-right"/>
+                        </button>
+                    </div>
+
+                    <t t-call="hotel_management.CalendarGrid">
+                        <t t-set="calendar" t-value="state.right"/>
+                    </t>
+                </div>
+
+            </div>
+        </div>
+    </t>
+
+    <t t-name="hotel_management.CalendarGrid" owl="1">
+        <div class="hotel-cal-grid">
+            <div class="d-flex text-center fw-bold text-muted border-bottom pb-2 mb-2">
+                <div style="width:14%">Sun</div><div style="width:14%">Mon</div><div style="width:14%">Tue</div>
+                <div style="width:14%">Wed</div><div style="width:14%">Thu</div><div style="width:14%">Fri</div><div style="width:14%">Sat</div>
+            </div>
+            
+            <div class="d-flex flex-wrap">
+                <t t-foreach="calendar.padding" t-as="pad" t-key="pad_index">
+                    <div style="width: 14%; height: 80px;" class="border-bottom border-end bg-light"></div>
+                </t>
+
+                <t t-foreach="calendar.days" t-as="day" t-key="day.date">
+                    <div t-att-class="'hotel-cell p-1 d-flex flex-column justify-content-between border-bottom border-end ' + day.colorClass"
+                         style="width: 14%; height: 80px; position: relative;">
+                        
+                        <div class="small fw-bold opacity-50 text-end"><t t-esc="day.dayNum"/></div>
+                        
+                        <div class="text-center fw-bold fs-5">
+                            <t t-esc="day.valueDisplay"/>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </div>
+    </t>
+</templates>

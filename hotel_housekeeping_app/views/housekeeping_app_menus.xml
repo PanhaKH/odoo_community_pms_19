@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <menuitem id="menu_housekeeping_app_root"
+              name="Housekeeping"
+              sequence="5"/>
+
+    <menuitem id="menu_duty_clean"
+              name="Duty Clean"
+              parent="menu_housekeeping_app_root"
+              sequence="10"
+              action="hotel_management.action_hotel_housekeeping_mobile"/>
+
+    <menuitem id="menu_supervisor_inspection_mobile"
+              name="Supervisor Inspection Mobile"
+              parent="menu_housekeeping_app_root"
+              sequence="30"
+              action="hotel_housekeeping_app.action_housekeeping_supervisor_inspection_mobile"
+              groups="hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+
+    <menuitem id="menu_supervisor_inspection_backend"
+              name="Supervisor Inspection"
+              parent="menu_housekeeping_app_root"
+              sequence="20"
+              action="hotel_housekeeping_app.action_housekeeping_supervisor_inspection"
+              groups="hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+
+    <menuitem id="menu_minibar_post"
+              name="Minibar Post"
+              parent="menu_housekeeping_app_root"
+              sequence="20"
+              action="hotel_management.action_hotel_minibar_mobile"/>
+
+</odoo>

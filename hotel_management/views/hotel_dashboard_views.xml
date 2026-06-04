@@ -1,0 +1,417 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_hotel_dashboard_form" model="ir.ui.view">
+        <field name="name">hotel.dashboard.form</field>
+        <field name="model">hotel.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="Dashboard" create="false" edit="false" delete="false" class="o_hotel_dashboard_full_width">
+                <header>
+                    <button string="Refresh Data" name="action_refresh" type="object" class="btn-primary"/>
+                    <button string="Walk-In Check-In" name="action_walk_in_checkin" type="object" class="btn-secondary" icon="fa-user-plus"/>
+                    <button string="Process No-Show Review" name="action_process_noshow_review" type="object" class="btn-secondary" icon="fa-eye"/>
+                </header>
+
+                <sheet>
+                    <field name="audit_warning" invisible="1"/>
+                    <field name="system_date" invisible="1"/>
+                    <field name="business_date" invisible="1"/>
+
+                    <div class="alert alert-info text-center d-flex justify-content-center align-items-center mb-3" role="alert" style="gap: 20px; padding: 15px; border-radius: 5px;">
+                        <span style="font-size: 18px; color: #0c5460;">
+                            <i class="fa fa-calendar"/> Hotel Business Date: <strong class="ms-1"><field name="business_date" readonly="1" class="oe_inline"/></strong>
+                        </span>
+                        <span style="font-size: 14px; opacity: 0.8; border-left: 2px solid #0c5460; padding-left: 20px; color: #0c5460;">
+                            Physical System Date: <field name="system_date" readonly="1" class="oe_inline"/>
+                        </span>
+                    </div>
+
+                    <div class="alert alert-danger text-center mb-4" role="alert" invisible="system_date &lt;= business_date">
+                        <h3 style="margin: 0; font-weight: bold; text-transform: uppercase;">
+                            <i class="fa fa-exclamation-triangle fa-fade"/> Warning: Night Audit Pending!
+                        </h3>
+                        <p style="margin-top: 10px; font-size: 16px;">
+                            The Physical System Date is ahead of the Hotel Business Date. 
+                            <br/>Please execute the Night Audit immediately to close the day, post charges, and roll the system forward.
+                        </p>
+                        <button name="%(hotel_management.action_open_night_audit_wizard)d" 
+                                string="Run Night Audit Now" type="action" 
+                                class="btn btn-danger mt-2" icon="fa-cogs"/>
+                    </div>
+
+                    <div class="alert alert-warning text-center mb-4" role="alert" invisible="business_date &lt;= system_date" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;">
+                        <h3 style="margin: 0; font-weight: bold; text-transform: uppercase;">
+                            <i class="fa fa-fast-forward"/> Notice: Operating in a Future Date
+                        </h3>
+                        <p style="margin-top: 10px; font-size: 16px;">
+                            The Hotel Business Date is currently ahead of the Physical System Date. 
+                            <br/>This means the Night Audit was already run for today. All new actions are currently being recorded for tomorrow.
+                        </p>
+                    </div>
+
+                    <div class="container-fluid">
+                        <notebook>
+                            <page string="Front Desk Operations">
+                                <div class="pt-3">
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-3 mb-3">
+                                            <button name="action_view_arrivals" type="object" class="btn p-0 w-100 border-0 h-100">
+                                                <div class="card text-white text-center shadow-sm h-100" style="background-color: #28a745;">
+                                                    <div class="card-header fw-bold py-1">Arrivals</div>
+                                                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                                        <h1 class="m-0"><field name="arrivals_display"/></h1>
+                                                        <small class="opacity-75">Remaining / Total</small>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="col-md-3 mb-3">
+                                            <button name="action_view_departures" type="object" class="btn p-0 w-100 border-0 h-100">
+                                                <div class="card text-white text-center shadow-sm h-100" style="background-color: #dc3545;">
+                                                    <div class="card-header fw-bold py-1">Departures</div>
+                                                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                                        <h1 class="m-0"><field name="departures_display"/></h1>
+                                                        <small class="opacity-75">Remaining / Total</small>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="col-md-3 mb-3">
+                                            <button name="action_view_stayovers" type="object" class="btn p-0 w-100 border-0 h-100">
+                                                <div class="card text-white text-center shadow-sm h-100" style="background-color: #A0522D;">
+                                                    <div class="card-header fw-bold py-1">Guests Tonight</div>
+                                                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                                        <h1 class="m-0"><field name="stayovers_display"/></h1>
+                                                        <small class="opacity-75">Occupancy Tonight</small>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="col-md-3 mb-3">
+                                            <div class="card text-dark text-center shadow-sm h-100" style="background-color: #ffd700;">
+                                                <div class="card-header fw-bold py-1"><i class="fa fa-star"></i> Repeat Guests</div>
+                                                <div class="card-body d-flex flex-column justify-content-center p-2">
+                                                    <div class="d-flex w-100 text-center o_hotel_repeat_guest_counters">
+                                                        <button type="object" name="action_view_repeat_arriving_today" class="btn p-1 w-100 border-0 bg-transparent text-dark o_hotel_repeat_guest_counter">
+                                                            <h2 class="m-0 fw-bold"><field name="repeat_arriving_today_count"/></h2>
+                                                            <small class="fw-bold" style="font-size: 11px;">Arriving Today</small>
+                                                        </button>
+                                                        <button type="object" name="action_view_repeat_inhouse" class="btn p-1 w-100 border-0 bg-transparent text-dark o_hotel_repeat_guest_counter">
+                                                            <h2 class="m-0 fw-bold"><field name="repeat_inhouse_count"/></h2>
+                                                            <small class="fw-bold" style="font-size: 11px;">In-House Stay</small>
+                                                        </button>
+                                                        <button type="object" name="action_view_repeat_future_booking" class="btn p-1 w-100 border-0 bg-transparent text-dark o_hotel_repeat_guest_counter">
+                                                            <h2 class="m-0 fw-bold"><field name="repeat_future_booking_count"/></h2>
+                                                            <small class="fw-bold" style="font-size: 11px;">Future Booking</small>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-3 mb-3">
+                                            <button name="action_view_req_upcoming" type="object" class="btn p-0 w-100 border-0 h-100">
+                                                <div class="card text-white text-center shadow-sm h-100" style="background-color: #F08080;">
+                                                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                                        <h1 class="m-0 fw-bold"><field name="req_upcoming"/></h1>
+                                                        <span class="fw-bold mt-1"><i class="fa fa-envelope"/> Upcoming Alerts</span>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="col-md-3 mb-3">
+                                            <button name="action_view_req_inhouse" type="object" class="btn p-0 w-100 border-0 h-100">
+                                                <div class="card text-white text-center shadow-sm h-100" style="background-color: #00BFFF;">
+                                                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                                        <h1 class="m-0 fw-bold"><field name="req_inhouse"/></h1>
+                                                        <span class="fw-bold mt-1"><i class="fa fa-bell"/> In-House Alerts</span>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="col-md-3 mb-3">
+                                            <button name="action_view_req_history" type="object" class="btn p-0 w-100 border-0 h-100">
+                                                <div class="card text-white text-center shadow-sm h-100" style="background-color: #FF8C00;">
+                                                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                                        <h1 class="m-0 fw-bold"><field name="req_history"/></h1>
+                                                        <span class="fw-bold mt-1"><i class="fa fa-history"/> Past Alerts</span>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="col-md-3 mb-3" groups="hotel_management.group_hotel_front_office">
+                                            <button name="action_view_chat_logs" type="object" class="btn p-0 w-100 border-0 h-100 o_hotel_guest_chat_button">
+                                                <div class="card text-white text-center shadow-sm h-100 o_hotel_guest_chat_card" style="background-color: #7B68EE;">
+                                                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                                        <i class="fa fa-comments fa-2x mb-2"></i>
+                                                        <span class="h5 fw-bold mb-1">Guest Chat Logs</span>
+                                                        <small class="text-white-50 o_hotel_guest_chat_idle_label">Audit Messages</small>
+                                                        <span class="badge rounded-pill bg-light text-primary mt-2 d-none o_hotel_guest_chat_badge">
+                                                            <span class="o_hotel_guest_chat_unread_count">0</span> New Messages
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </page>
+
+                            <page string="Rooms &amp; Performance">
+                                <div class="pt-3">
+                                    <div class="row mb-4">
+                                        <div class="col-md-4">
+                                            <div class="card text-white shadow-sm h-100" style="background-color: #C69C3A;">
+                                                <div class="card-header text-center fw-bold" style="font-size: 1.4em; border-bottom: 1px solid rgba(255,255,255,0.3);">Today's Stats</div>
+                                                <div class="card-body">
+                                                    <div class="row mb-1"><div class="col-6 fw-bold">Total Rooms</div><div class="col-6 text-end fw-bold"><field name="total_rooms"/></div></div>
+                                                    <div class="row mb-1"><div class="col-6 fw-bold">Occupancy</div><div class="col-6 text-end fw-bold"><field name="occupancy_rate" widget="percentage"/></div></div>
+                                                    <div class="row mb-1"><div class="col-6 fw-bold">Room Rev.</div><div class="col-6 text-end fw-bold"><field name="total_revenue" widget="monetary"/></div></div>
+                                                    <div class="row mb-1"><div class="col-6 fw-bold">ADR</div><div class="col-6 text-end fw-bold"><field name="adr" widget="monetary"/></div></div>
+                                                    <div class="row mb-1"><div class="col-6 fw-bold">RevPAR</div><div class="col-6 text-end fw-bold"><field name="revpar" widget="monetary"/></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <div class="card shadow-sm h-100">
+                                                <div class="card-body p-2">
+                                                    <div class="p-2 text-white text-start rounded h-100" style="background-color: #7B68EE;">
+                                                        <div class="fw-bold border-bottom pb-1 mb-2 text-center" style="font-size: 1.1em;">7-Day Occupancy Forecast</div>
+                                                        <div class="d-flex justify-content-between mb-1 px-2 border-bottom border-light pb-1">
+                                                            <span><field name="label_day_1"/></span> <span class="fw-bold"><field name="occ_day_1" widget="percentage"/></span>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between mb-1 px-2 border-bottom border-light pb-1">
+                                                            <span><field name="label_day_2"/></span> <span class="fw-bold"><field name="occ_day_2" widget="percentage"/></span>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between mb-1 px-2 border-bottom border-light pb-1">
+                                                            <span><field name="label_day_3"/></span> <span class="fw-bold"><field name="occ_day_3" widget="percentage"/></span>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between mb-1 px-2 border-bottom border-light pb-1">
+                                                            <span><field name="label_day_4"/></span> <span class="fw-bold"><field name="occ_day_4" widget="percentage"/></span>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between mb-1 px-2 border-bottom border-light pb-1">
+                                                            <span><field name="label_day_5"/></span> <span class="fw-bold"><field name="occ_day_5" widget="percentage"/></span>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between mb-1 px-2 border-bottom border-light pb-1">
+                                                            <span><field name="label_day_6"/></span> <span class="fw-bold"><field name="occ_day_6" widget="percentage"/></span>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between px-2 pt-1">
+                                                            <span><field name="label_day_7"/></span> <span class="fw-bold"><field name="occ_day_7" widget="percentage"/></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <div class="card shadow-sm h-100">
+                                                <div class="card-header text-center bg-secondary text-white fw-bold">Live Room Status</div>
+                                                <div class="card-body p-3">
+                                                    <button name="action_view_vacant_clean" type="object" class="btn p-0 w-100 border-0 text-start mb-3">
+                                                        <div class="d-flex justify-content-between text-dark fw-bold mb-1">
+                                                            <span>Vacant (Clean)</span> <span><field name="rooms_available"/></span>
+                                                        </div>
+                                                        <div class="progress shadow-sm" style="height: 18px;">
+                                                            <div class="progress-bar bg-success" style="width: 100%;"></div>
+                                                        </div>
+                                                    </button>
+                                                    <button name="action_view_dirty_rooms" type="object" class="btn p-0 w-100 border-0 text-start mb-3">
+                                                        <div class="d-flex justify-content-between text-dark fw-bold mb-1">
+                                                            <span>Vacant (Dirty)</span> <span><field name="rooms_dirty"/></span>
+                                                        </div>
+                                                        <div class="progress shadow-sm" style="height: 18px;">
+                                                            <div class="progress-bar bg-warning text-dark" style="width: 100%;">Click to Assign Cleaners</div>
+                                                        </div>
+                                                    </button>
+                                                    <button name="action_view_occupied_rooms" type="object" class="btn p-0 w-100 border-0 text-start mb-3">
+                                                        <div class="d-flex justify-content-between text-dark fw-bold mb-1">
+                                                            <span>Occupied (In-House)</span> <span><field name="rooms_occupied"/></span>
+                                                        </div>
+                                                        <div class="progress shadow-sm" style="height: 18px;">
+                                                            <div class="progress-bar" style="background-color: #A0522D; width: 100%;"></div>
+                                                        </div>
+                                                    </button>
+                                                    <button name="action_view_maintenance_rooms" type="object" class="btn p-0 w-100 border-0 text-start">
+                                                        <div class="d-flex justify-content-between text-dark fw-bold mb-1">
+                                                            <span>Maintenance (Blocked)</span> <span><field name="rooms_blocked"/></span>
+                                                        </div>
+                                                        <div class="progress shadow-sm" style="height: 18px;">
+                                                            <div class="progress-bar bg-dark" style="width: 100%;"></div>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </page>
+
+                            <page string="Accounting &amp; Finance">
+                                <div class="pt-3">
+                                    <div class="row mb-4">
+                                        <div class="col-md-3">
+                                            <button name="action_view_deposit_ledger" type="object" class="btn p-0 w-100 border-0 h-100">
+                                                <div class="card text-white text-center shadow-sm h-100" style="background-color: #17a2b8;">
+                                                    <div class="card-header fw-bold border-0 pb-0 pt-3">Deposit Ledger</div>
+                                                    <div class="card-body d-flex flex-column align-items-center justify-content-center pt-1">
+                                                        <h2 class="m-0"><field name="deposit_ledger" widget="monetary"/></h2>
+                                                        <small class="opacity-75">Advance Payments (Unarrived)</small>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card text-white text-center shadow-sm h-100" style="background-color: #6f42c1;">
+                                                <div class="card-header fw-bold border-0 pb-0 pt-3">Guest Ledger</div>
+                                                <div class="card-body d-flex flex-column align-items-center justify-content-center pt-1">
+                                                    <button name="action_view_guest_ledger" type="object" class="btn p-0 w-100 border-0 text-dark">
+                                                        <h2 class="m-0"><field name="guest_ledger_display_amount" widget="monetary"/></h2>
+                                                        <small class="opacity-100 fw-bold mb-2 d-block"><field name="guest_ledger_display_label"/></small>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <button name="action_view_company_pending_billing" type="object" class="btn p-0 w-100 border-0 h-100">
+                                                <div class="card text-white text-center shadow-sm h-100" style="background-color: #fd7e14;">
+                                                    <div class="card-header fw-bold border-0 pb-0 pt-3">Company Pending Billing</div>
+                                                    <div class="card-body d-flex flex-column align-items-center justify-content-center pt-1">
+                                                        <h2 class="m-0"><field name="company_pending_billing" widget="monetary"/></h2>
+                                                        <small class="opacity-75">Uninvoiced + Draft Company Charges</small>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <button name="action_view_city_ledger" type="object" class="btn p-0 w-100 border-0 h-100">
+                                                <div class="card text-white text-center shadow-sm h-100" style="background-color: #e83e8c;">
+                                                    <div class="card-header fw-bold border-0 pb-0 pt-3">City Ledger (A/R)</div>
+                                                    <div class="card-body d-flex flex-column align-items-center justify-content-center pt-1">
+                                                        <h2 class="m-0"><field name="city_ledger" widget="monetary"/></h2>
+                                                        <small class="opacity-75">Posted Company Receivables</small>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-4">
+                                        <div class="col-md-6">
+                                            <button name="action_view_today_invoices" type="object" class="btn p-0 w-100 border-0 h-100">
+                                                <div class="card text-white text-center shadow-sm h-100" style="background-color: #34495e;">
+                                                    <div class="card-header fw-bold border-0 pb-0 pt-3">Today's Invoices (Issued)</div>
+                                                    <div class="card-body d-flex flex-column align-items-center justify-content-center pt-1">
+                                                        <h2 class="m-0"><field name="today_invoiced" widget="monetary"/></h2>
+                                                        <small class="opacity-75">Click to view &amp; print Accounting list</small>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <button name="action_view_today_receipts" type="object" class="btn p-0 w-100 border-0 h-100">
+                                                <div class="card text-white text-center shadow-sm h-100" style="background-color: #20c997;">
+                                                    <div class="card-header fw-bold border-0 pb-0 pt-3">Today's Receipts (Collected)</div>
+                                                    <div class="card-body d-flex flex-column align-items-center justify-content-center pt-1">
+                                                        <h2 class="m-0"><field name="today_collected" widget="monetary"/></h2>
+                                                        <small class="opacity-75">Click to view &amp; print Cashier Shift Report</small>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </page>
+                        </notebook>
+
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_open_hotel_dashboard" model="ir.actions.server">
+        <field name="name">Hotel Dashboard</field>
+        <field name="model_id" ref="model_hotel_dashboard"/>
+        <field name="state">code</field>
+        <field name="code">
+            action = {
+                'type': 'ir.actions.act_window',
+                'view_mode': 'form',
+                'res_model': 'hotel.dashboard',
+                'res_id': model.get_main_dashboard(),
+                'target': 'current',
+                'view_id': env.ref('hotel_management.view_hotel_dashboard_form').id,
+            }
+        </field>
+    </record>
+
+    <record id="view_hotel_room_status_graph" model="ir.ui.view">
+        <field name="name">hotel.room.status.graph</field>
+        <field name="model">hotel.room</field>
+        <field name="arch" type="xml">
+            <graph string="Current Room Status" type="pie" sample="1">
+                <field name="state"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_hotel_room_status_dashboard" model="ir.actions.act_window">
+        <field name="name">Room Status (Live)</field>
+        <field name="res_model">hotel.room</field>
+        <field name="view_mode">graph,list,kanban</field>
+        <field name="view_id" ref="view_hotel_room_status_graph"/>
+    </record>
+
+    <record id="view_hotel_revenue_graph" model="ir.ui.view">
+        <field name="name">hotel.revenue.graph</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <graph string="Revenue Forecast by Date" type="bar" sample="1">
+                <field name="checkin_date" interval="day"/>
+                <field name="folio_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_hotel_revenue_dashboard" model="ir.actions.act_window">
+        <field name="name">Revenue Forecast</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">graph,pivot,list</field>
+        <field name="view_id" ref="view_hotel_revenue_graph"/>
+        <field name="domain">[('state', 'not in', ['draft', 'cancel', 'noshow'])]</field>
+    </record>
+
+    <record id="view_hotel_manager_daily_pivot" model="ir.ui.view">
+        <field name="name">hotel.manager.daily.pivot</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <pivot string="Manager Daily Report" disable_linking="True" sample="1">
+                <field name="checkin_date" type="row" interval="day"/>
+                <field name="room_type_id" type="col"/>
+                <field name="duration" string="Room Nights" type="measure"/>
+                <field name="folio_paid" string="Collected Revenue" type="measure"/>
+                <field name="folio_total" string="Total Billed" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_hotel_manager_daily_report" model="ir.actions.act_window">
+        <field name="name">Manager Daily Report (MDR)</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="view_id" ref="view_hotel_manager_daily_pivot"/>
+        <field name="domain">[('state', 'in', ['checkin', 'checkout'])]</field>
+    </record>
+    
+</odoo>
+

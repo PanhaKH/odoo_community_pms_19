@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <record id="group_housekeeping_user" model="res.groups">
+            <field name="name">Housekeeping User</field>
+            <field name="privilege_id" ref="hotel_management.res_groups_privilege_hotel"/>
+            <field name="implied_ids" eval="[(4, ref('hotel_management.group_hotel_housekeeper'))]"/>
+        </record>
+
+        <record id="group_housekeeping_supervisor" model="res.groups">
+            <field name="name">Housekeeping Supervisor</field>
+            <field name="privilege_id" ref="hotel_management.res_groups_privilege_hotel"/>
+            <field name="implied_ids" eval="[(4, ref('hotel_housekeeping_app.group_housekeeping_user'))]"/>
+        </record>
+
+        <record id="group_housekeeping_manager" model="res.groups">
+            <field name="name">Housekeeping Manager</field>
+            <field name="privilege_id" ref="hotel_management.res_groups_privilege_hotel"/>
+            <field name="implied_ids" eval="[(4, ref('hotel_housekeeping_app.group_housekeeping_supervisor')), (4, ref('hotel_management.group_hotel_manager'))]"/>
+        </record>
+
+        <record id="rule_housekeeping_user_own_tasks" model="ir.rule">
+            <field name="name">Housekeeping Users: Own or Unassigned Tasks</field>
+            <field name="model_id" ref="hotel_management.model_hotel_housekeeping"/>
+            <field name="groups" eval="[(4, ref('hotel_housekeeping_app.group_housekeeping_user'))]"/>
+            <field name="domain_force">['|', ('maid_id', '=', user.id), ('maid_id', '=', False)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_housekeeping_supervisor_all_tasks" model="ir.rule">
+            <field name="name">Housekeeping Supervisors: All Tasks</field>
+            <field name="model_id" ref="hotel_management.model_hotel_housekeeping"/>
+            <field name="groups" eval="[(4, ref('hotel_housekeeping_app.group_housekeeping_supervisor')), (4, ref('hotel_housekeeping_app.group_housekeeping_manager'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+    </data>
+</odoo>

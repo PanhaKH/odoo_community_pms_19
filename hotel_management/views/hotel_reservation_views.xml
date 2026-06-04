@@ -1,0 +1,2143 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <delete model="ir.ui.view" search="[('model', '=', 'hotel.early.checkin.override.wizard')]"/>
+    <delete model="ir.actions.act_window" search="[('res_model', '=', 'hotel.early.checkin.override.wizard')]"/>
+    <delete model="ir.model.access" search="[('model_id.model', '=', 'hotel.early.checkin.override.wizard')]"/>
+    
+    <record id="view_hotel_group_rooming_kanban" model="ir.ui.view">
+        <field name="name">hotel.group.rooming.kanban</field>
+        <field name="model">hotel.group.rooming.list</field>
+        <field name="arch" type="xml">
+            
+            <kanban default_group_by="reservation_id" class="o_hotel_rooming_board" records_draggable="1" group_create="0" group_edit="0" group_delete="0" create="0" quick_create="0">
+                <field name="partner_id"/>
+                <field name="reservation_id"/>
+                <field name="state_color_class"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click" style="border-radius: 4px; padding: 10px; margin-bottom: 8px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #17a2b8;">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong style="font-size: 13px;"><i class="fa fa-user me-2 text-muted"/> <field name="partner_id"/></strong>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+            
+        </field>
+    </record>
+
+    <record id="action_open_rooming_board" model="ir.actions.act_window">
+        <field name="name">Drag &amp; Drop Rooming Board</field>
+        <field name="res_model">hotel.group.rooming.list</field>
+        <field name="view_mode">kanban</field>
+        <field name="domain">[('group_id', '=', active_id)]</field>
+        <field name="context">{'default_group_id': active_id, 'search_default_group_by': 'reservation_id'}</field>
+    </record>
+
+    <record id="seq_hotel_group_master" model="ir.sequence">
+        <field name="name">Hotel Group Master</field>
+        <field name="code">hotel.group.master</field>
+        <field name="prefix">GRP-%(year)s-</field>
+        <field name="padding">3</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <record id="action_hotel_floor_plan" model="ir.actions.client">
+        <field name="name">Floor Plan Map</field>
+        <field name="tag">hotel_management.floor_plan_view</field>
+    </record>
+
+    <record id="action_hotel_tape_chart_client" model="ir.actions.client">
+        <field name="name">Room Tape Chart</field>
+        <field name="tag">hotel_management.tape_chart_view</field>
+    </record>
+
+    <record id="action_hotel_availability_grid_client" model="ir.actions.client">
+        <field name="name">Availability Grid</field>
+        <field name="tag">hotel_management.availability_grid_view</field>
+    </record>
+
+    <record id="view_hotel_revenue_report_search" model="ir.ui.view">
+        <field name="name">hotel.revenue.report.search</field>
+        <field name="model">hotel.revenue.report</field>
+        <field name="arch" type="xml">
+            <search string="Daily Forecast Search">
+                <field name="date"/>
+                <field name="room_type_id"/>
+                <field name="revenue_type"/>
+                <field name="state"/>
+                <filter string="This Month" name="this_month" domain="[('date', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <filter string="Forecast" name="forecast" domain="[('revenue_type', '=', 'forecast')]"/>
+                <filter string="Actual" name="actual" domain="[('revenue_type', '=', 'actual')]"/>
+
+                <group>
+                    <filter string="Transaction Date (By Day)" name="group_date_day" context="{'group_by':'date:day'}"/>
+                    <filter string="Transaction Date (By Month)" name="group_date_month" context="{'group_by':'date:month'}"/>
+                    <filter string="Room Type" name="group_room_type" context="{'group_by':'room_type_id'}"/>
+                    <filter string="Revenue Type" name="group_revenue_type" context="{'group_by':'revenue_type'}"/>
+                    <filter string="Reservation Status" name="group_state" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_revenue_analysis_daily" model="ir.actions.act_window">
+        <field name="name">Revenue Analysis</field>
+        <field name="res_model">hotel.revenue.report</field>
+        <field name="view_mode">graph,pivot</field>
+        <field name="context">{'search_default_this_month': 1, 'search_default_group_date_day': 1, 'search_default_actual': 1, 'graph_measure': 'folio_total'}</field>
+    </record>
+
+    <record id="action_occupancy_analysis_daily" model="ir.actions.act_window">
+        <field name="name">Occupancy Analysis</field>
+        <field name="res_model">hotel.revenue.report</field>
+        <field name="view_mode">graph,pivot</field>
+        <field name="context">{'search_default_this_month': 1, 'search_default_group_date_day': 1, 'search_default_actual': 1, 'graph_measure': 'occupied_count'}</field>
+    </record>
+
+    <record id="action_combined_forecast_daily" model="ir.actions.act_window">
+        <field name="name">Daily Occupancy &amp; Revenue</field>
+        <field name="res_model">hotel.revenue.report</field>
+        <field name="view_mode">graph,pivot</field>
+        <field name="context">{'search_default_this_month': 1, 'search_default_group_date_day': 1, 'graph_measure': 'folio_total'}</field>
+    </record>
+
+    <record id="action_placeholder_dashboard" model="ir.actions.act_window">
+        <field name="name">Main Dashboard (Coming Soon)</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    
+    <record id="action_hotel_product_setup" model="ir.actions.act_window">
+        <field name="name">Products &amp; Services</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'default_detailed_type': 'service'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first hotel product or service!
+            </p>
+            <p>
+                Add items like Room Charges, Minibar drinks, Airport Transfers, or Spa treatments here so they can be billed to the guest Folio.
+            </p>
+        </field>
+    </record>
+
+    <record id="action_placeholder_maintenance" model="ir.actions.act_window">
+        <field name="name">Maintenance Requests (Coming Soon)</field>
+        <field name="res_model">hotel.room</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_hotel_arrival_report_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.arrival.report.wizard.form</field>
+        <field name="model">hotel.arrival.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Select Arrival Dates">
+                <div class="alert alert-info" role="alert">
+                    Select a date range to view upcoming guest arrivals.
+                </div>
+                <group>
+                    <group>
+                        <field name="start_date"/>
+                    </group>
+                    <group>
+                        <field name="end_date"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_view_report" string="View on Screen" type="object" class="btn-primary" icon="fa-desktop"/>
+                    <button name="action_print_report" string="Print PDF" type="object" class="btn-success" icon="fa-print"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_arrival_wizard" model="ir.actions.act_window">
+        <field name="name">Expected Arrivals</field>
+        <field name="res_model">hotel.arrival.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_hotel_departure_report_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.departure.report.wizard.form</field>
+        <field name="model">hotel.departure.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Select Departure Dates">
+                <div class="alert alert-info" role="alert">
+                    Select a date range to view upcoming guest departures.
+                </div>
+                <group>
+                    <group>
+                        <field name="start_date"/>
+                    </group>
+                    <group>
+                        <field name="end_date"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_view_report" string="View on Screen" type="object" class="btn-primary" icon="fa-desktop"/>
+                    <button name="action_print_report" string="Print PDF" type="object" class="btn-success" icon="fa-print"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_departure_wizard" model="ir.actions.act_window">
+        <field name="name">Expected Departures</field>
+        <field name="res_model">hotel.departure.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_hotel_night_audit_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.night.audit.wizard.form</field>
+        <field name="model">hotel.night.audit.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Run Night Audit">
+                <field name="state" invisible="1"/>
+                
+                <div invisible="state == 'done'">
+                    <div class="alert alert-warning text-center" role="alert" style="font-size: 1.1em;">
+                        You are about to close the business day for <b><field name="audit_date" readonly="1" class="oe_inline"/></b>.
+                        <br/><br/>
+                        <b><i class="fa fa-spinner fa-spin"/> PLEASE BE PATIENT:</b> When you click Execute, the system will pause to compress and save a full <b>Before Audit Backup</b>, process all room charges, and then save a final <b>After Audit Backup</b> to your server folder. This may take 1 to 2 minutes. Do not close the window.
+                    </div>
+                </div>
+                
+                <div invisible="state == 'draft'">
+                    <field name="result_log" widget="html" readonly="1" nolabel="1"/>
+                </div>
+                <footer>
+                    <button name="action_run_audit" string="Execute Night Audit" type="object" class="btn-danger btn-lg" invisible="state == 'done'" icon="fa-check-circle"/>
+                    <button string="Cancel" class="btn-secondary btn-lg" special="cancel" invisible="state == 'done'"/>
+                    <button string="Close" class="btn-primary btn-lg" special="cancel" invisible="state == 'draft'"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_open_night_audit_wizard" model="ir.actions.act_window">
+        <field name="name">Run Night Audit</field>
+        <field name="res_model">hotel.night.audit.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_hotel_reservation_search" model="ir.ui.view">
+        <field name="name">hotel.reservation.search</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="partner_id"/>
+                <field name="accompanying_guest_ids" string="Accompanying Guest"/>
+                <field name="room_id"/>
+                <field name="name"/>
+                <field name="partner_passport" string="Passport / ID Number" filter_domain="[('partner_passport', 'ilike', self)]"/>
+                <filter string="Confirmed" name="confirmed" domain="[('state', '=', 'confirm')]"/>
+                <filter string="Repeat Guest" name="repeat_guest" domain="[('is_repeat_guest', '=', True)]"/>
+                
+                <filter string="In-House / Due Out" name="in_house" domain="[('state', 'in', ['checkin', 'checkout_hold'])]"/>
+                
+                <filter string="Maintenance Blocks" name="blocked" domain="[('state', '=', 'blocked')]"/>
+                <separator/>
+                <filter string="Exclude Maintenance" name="no_maintenance" domain="[('state', '!=', 'blocked')]"/>
+                <separator/>
+                <filter string="Check-in Today" name="today" domain="[('checkin_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <group>
+                    <filter string="Room" name="group_room" context="{'group_by':'room_id'}"/>
+                    <filter string="Status" name="group_status" context="{'group_by':'state'}"/>
+                    <filter string="Main Guest" name="group_main_guest" context="{'group_by':'partner_id'}"/>
+                    <filter string="Guest Classification" name="group_guest_classification" context="{'group_by':'guest_classification_id'}"/>
+                </group>
+                <searchpanel>
+                    <field name="state" string="Status" enable_counters="1"/>
+                    <field name="room_type_id" string="Room Type" enable_counters="1"/>
+                    
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+    <record id="action_hotel_split_line_wizard" model="ir.actions.act_window">
+        <field name="name">Split Charge</field>
+        <field name="res_model">hotel.split.line.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_line_id': active_id}</field>
+    </record>
+    <record id="view_sale_order_folio_inherit" model="ir.ui.view">
+        <field name="name">sale.order.folio.hotel.inherit</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <field name="is_hotel_folio" invisible="1"/>
+                <div class="alert alert-info d-flex align-items-center justify-content-between flex-wrap gap-3" role="alert" invisible="not is_hotel_folio">
+                    <div>
+                        <strong>Folio Total:</strong>
+                        <field name="hotel_total_folio_charges" widget="monetary" class="oe_inline"/>
+                    </div>
+                    <div>
+                        <strong>Deposit / Paid:</strong>
+                        <field name="hotel_deposit_paid_total" widget="monetary" class="oe_inline"/>
+                    </div>
+                    <div invisible="hotel_guest_credit_balance &gt; 0.01 and hotel_guest_balance_due &lt;= 0.01">
+                        <strong>Current Balance Due:</strong>
+                        <field name="hotel_guest_balance_due" widget="monetary" class="oe_inline"/>
+                    </div>
+                    <div invisible="hotel_guest_credit_balance &lt;= 0.01 or hotel_guest_balance_due &gt; 0.01">
+                        <strong>Guest Credit Balance:</strong>
+                        <field name="hotel_guest_credit_balance" widget="monetary" class="oe_inline"/>
+                    </div>
+                    <div>
+                        <button name="action_view_hotel_operational_folio" type="object" class="btn btn-sm btn-outline-primary" string="Operational Guest Folio"/>
+                    </div>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='name']" position="before">
+                <field name="hotel_business_date" string="Biz Date" optional="show" decoration-bf="1"/>
+                <field name="billing_target_display" column_invisible="True"/>
+                <field name="billing_target" string="Bill To" widget="hotel_billing_target"
+                       options="{'display_field': 'billing_target_display'}" optional="show"
+                       decoration-info="billing_target == 'guest'"
+                       decoration-primary="billing_target == 'company'"/>
+                
+                <button name="action_open_split_wizard" 
+                        type="object" 
+                        icon="fa-scissors" 
+                        title="Split Charge" 
+                        invisible="state in ('done', 'cancel') or qty_to_invoice == 0"/>
+            </xpath>
+        </field>
+    </record>   
+
+    <record id="view_hotel_unified_ledger_tree" model="ir.ui.view">
+        <field name="name">hotel.unified.ledger.tree</field>
+        <field name="model">hotel.unified.ledger</field>
+        <field name="arch" type="xml">
+            <list string="Unified Folio Ledger" create="false" edit="false" delete="false" default_order="date asc">
+                <field name="date"/>
+                <field name="name"/>
+                <field name="reference" decoration-info="reference == 'Charge'" decoration-success="reference == 'Payment'"/>
+                
+                <field name="hotel_payment_activity_type" string="Activity" optional="show"/>
+                <field name="partner_id" string="Guest/Account" optional="show"/>
+                <field name="journal_id" string="Payment Method" optional="show"/>
+                
+                <field name="debit" sum="Total Charges" decoration-danger="debit &gt; 0"/>
+                <field name="credit" sum="Total Payments" decoration-success="credit &gt; 0"/>
+                
+                <field name="running_balance" decoration-bf="1" decoration-danger="running_balance &gt; 0" decoration-success="running_balance &lt;= 0"/>
+                
+                <field name="currency_id" invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hotel_unified_ledger" model="ir.actions.act_window">
+        <field name="name">Unified Guest Folio</field>
+        <field name="res_model">hotel.unified.ledger</field>
+        <field name="view_mode">list</field>
+        <field name="domain">[('reservation_id', '=', active_id)]</field>
+        <field name="context">{}</field>
+    </record>
+
+    <record id="view_hotel_invoice_tree" model="ir.ui.view">
+        <field name="name">hotel.account.move.tree</field>
+        <field name="model">account.move</field>
+        <field name="arch" type="xml">
+            <list string="Invoices" create="0" edit="0">
+                <field name="name" optional="show"/>
+                <field name="partner_id" string="Customer" optional="show"/>
+                <field name="hotel_billing_target" string="Bill To" widget="badge" optional="show"
+                       decoration-info="hotel_billing_target == 'guest'"
+                       decoration-primary="hotel_billing_target == 'company'"/>
+                <field name="invoice_date" string="Physical Date" optional="show"/>
+                <field name="hotel_business_date" string="Biz Date" decoration-bf="1" optional="show"/>
+                <field name="amount_total_signed" string="Total" widget="monetary" optional="show"/>
+                <field name="state" widget="badge" decoration-success="state == 'posted'" optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_receipt_tree" model="ir.ui.view">
+        <field name="name">hotel.account.payment.tree</field>
+        <field name="model">account.payment</field>
+        <field name="arch" type="xml">
+            <list string="Receipts" create="0" edit="0">
+                <field name="date" string="Physical Date" optional="show"/>
+                <field name="hotel_business_date" string="Biz Date" decoration-bf="1" optional="show"/>
+                <field name="hotel_payment_activity_type" string="Activity" widget="badge" optional="show"
+                       decoration-info="hotel_payment_activity_type == 'advance_deposit'"
+                       decoration-success="hotel_payment_activity_type == 'invoice_payment'"
+                       decoration-warning="hotel_payment_activity_type == 'deposit_void'"/>
+                <field name="name" optional="show"/>
+                <field name="partner_id" string="Guest / Account" optional="show"/>
+                <field name="hotel_invoice_ref" string="Invoice No." optional="show"/>
+                <field name="journal_id" string="Payment Method" optional="show"/>
+                <field name="amount" widget="monetary" optional="show"/>
+                <field name="state" widget="badge" decoration-success="state in ('in_process', 'paid')" optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_reservation_form" model="ir.ui.view">
+        <field name="name">hotel.reservation.form</field>
+        
+        <field name="model">hotel.reservation</field>
+        <field name="priority">1</field> 
+        <field name="arch" type="xml">
+            <form class="o_hotel_reservation_form">
+                <header>
+                    <button name="action_view_invoices" type="object" string="View Invoices" class="btn-outline-primary fw-bold" icon="fa-file-text" invisible="invoice_count == 0"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirm,checkin,checkout_hold,checkout" invisible="is_desk_folio"/>
+                    <field name="desk_folio_status" widget="statusbar" statusbar_visible="draft,open,fully_invoiced,paid" invisible="not is_desk_folio"/>
+                </header>
+                <sheet>
+                    <field name="pre_arrival_sent" invisible="1"/>
+                    
+                    <field name="folio_type" invisible="1"/>
+                     <field name="can_register_deposit" invisible="1"/>
+                     <field name="can_void_deposit" invisible="1"/>
+                     <field name="folio_count" invisible="1"/>
+                     <field name="is_repeat_guest" invisible="1"/>
+                     <field name="is_vip" invisible="1"/>
+                     
+                     <field name="passport_image" widget="image" class="oe_avatar" options="{'size': [128, 128]}"/>
+                    <widget name="web_ribbon" title="VIP GUEST" bg_color="bg-warning" invisible="not is_vip"/>
+                    <div class="border rounded bg-white p-3 mb-3">
+                        <div class="text-muted fw-bold small mb-2">Financial &amp; Activity</div>
+                        <div class="d-flex flex-wrap gap-2">
+                             <field name="sale_order_id" invisible="1"/>
+                             <field name="payment_count" invisible="1"/>
+                             <field name="payment_registered_total" invisible="1"/>
+
+                            <button name="%(hotel_management.action_hotel_unified_ledger)d" type="action" class="oe_stat_button border rounded bg-white px-3 py-2" icon="fa-list-alt" invisible="not sale_order_id">
+                                <div class="o_stat_info">
+                                    <span class="o_stat_text">Unified Folio</span>
+                                </div>
+                            </button>
+
+                            <button name="action_open_folio_invoicing" type="object" class="oe_stat_button border rounded bg-white px-3 py-2" icon="fa-file-text-o" invisible="not sale_order_id">
+                                <div class="o_stat_info">
+                                    <span class="o_stat_text">Manage Folio</span>
+                                </div>
+                            </button>
+
+                            <button name="action_view_receipts" type="object" class="oe_stat_button border rounded bg-white px-3 py-2" icon="fa-money" invisible="payment_count == 0">
+                                <div class="o_stat_info">
+                                    <span class="o_stat_value"><field name="payment_registered_total" widget="monetary"/></span>
+                                    <span class="o_stat_text">Payment Registered</span>
+                                </div>
+                            </button>
+                            <button name="action_view_change_logs" type="object" class="oe_stat_button border rounded bg-white px-3 py-2" icon="fa-file-text-o">
+                                <div class="o_stat_info">
+                                    <field name="change_log_count" class="o_stat_value"/>
+                                    <span class="o_stat_text">Exchange Journal</span>
+                                </div>
+                            </button>
+                            <button name="action_view_guest_history" type="object" class="oe_stat_button border rounded bg-white px-3 py-2" icon="fa-history">
+                                <div class="o_stat_info">
+                                    <field name="guest_visit_count" class="o_stat_value"/>
+                                    <span class="o_stat_text">Visits</span>
+                                </div>
+                            </button>
+                            <span invisible="not is_repeat_guest" class="badge rounded-pill text-bg-warning align-self-center px-3 py-2">
+                                <i class="fa fa-star me-1"/> Repeat Guest
+                            </span>
+                            <span invisible="not is_vip" class="badge rounded-pill text-bg-info align-self-center px-3 py-2">
+                                <i class="fa fa-diamond me-1"/> VIP
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+
+                    <div class="alert alert-warning d-flex align-items-center justify-content-between flex-wrap gap-4" role="alert" invisible="state not in ['checkin', 'checkout_hold', 'checkout']">
+                        <div>
+                            <div class="text-muted small">Folio Total</div>
+                            <strong class="fw-bold fs-4"><field name="folio_total" widget="monetary" options="{'currency_field': 'currency_id'}"/></strong>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Deposit / Paid</div>
+                            <strong class="fw-bold fs-4"><field name="guest_deposit_paid_total" widget="monetary" options="{'currency_field': 'currency_id'}"/></strong>
+                        </div>
+                        <div class="text-end" invisible="guest_credit_balance &gt; 0.01 and guest_balance_due &lt;= 0.01">
+                            <div class="text-muted small">Current Balance Due</div>
+                            <strong class="fw-bold fs-4"><field name="guest_balance_due" widget="monetary" options="{'currency_field': 'currency_id'}"/></strong>
+                        </div>
+                        <div class="text-end" invisible="guest_credit_balance &lt;= 0.01 or guest_balance_due &gt; 0.01">
+                            <div class="text-muted small">Guest Credit Balance</div>
+                            <strong class="fw-bold fs-4"><field name="guest_credit_balance" widget="monetary" options="{'currency_field': 'currency_id'}"/></strong>
+                        </div>
+                    </div>
+
+                    <group>
+                        <group string="Guest Info" name="guest_info">
+                            <field name="is_desk_folio" widget="boolean_toggle" string="Is a House Account / Desk Folio"/>
+                            <field name="partner_id" string="Guest" widget="res_partner_many2one" context="{'show_address': 1}" options='{"always_reload": True}' readonly="is_desk_folio and id" invisible="folio_type != 'guest'"/>
+                            <field name="partner_id" string="Account Name" widget="res_partner_many2one" context="{'show_address': 1}" options='{"always_reload": True}' readonly="is_desk_folio and id" invisible="folio_type == 'guest'"/>
+                            <field name="partner_passport"/>
+                            
+                            <field name="guest_nationality_id" options="{'no_create': True}"/>
+                            <field name="guest_country_id" options="{'no_create': True}"/>
+                            
+                            <field name="accompanying_guest_ids" widget="many2many_tags" placeholder="Add shared guests..."/>
+                            <field name="partner_phone" force_save="1"/>
+                            <field name="partner_email" force_save="1"/>
+                            <field name="reference"/>
+                            
+                        </group>
+                        <group string="Stay Details" name="stay_details" invisible="is_desk_folio">
+                            <field name="room_type_id" options="{'no_create': True, 'no_open': True}"/>
+
+                            <field name="available_room_ids" invisible="1"/>
+                            <field name="room_id" domain="[('id', 'in', available_room_ids)]" options="{'no_create': True}"/>
+
+                            <label for="checkin_date" string="Dates"/>
+                            <div class="o_row">
+                                <field name="checkin_date" widget="daterange" options="{'related_end_date': 'checkout_date'}"/>
+                                <i class="fa fa-long-arrow-right mx-2"/>
+                                <field name="checkout_date" widget="daterange" options="{'related_start_date': 'checkin_date'}"/>
+                            </div>
+                            <field name="duration"/>
+                            
+                            <label for="adults" string="Guests"/>
+                            <div class="o_row">
+                                <field name="adults" class="oe_inline text-center" style="width: 3rem;"/> Adults 
+                                <i class="fa fa-user ms-3 me-1 text-muted"/>
+                                <field name="children" class="oe_inline text-center" style="width: 3rem;"/> Children
+                            </div>
+                        </group>
+                    </group>
+
+                    <group string="Commercial &amp; Billing" name="commercial_billing">
+                        <group>
+                            <field name="booking_source_category_id" options="{'no_create': True}"/>
+        
+                            <field name="booking_sub_source_id" 
+                                domain="[('category_id', '=', booking_source_category_id)]" 
+                                options="{'no_create': True, 'no_open': True}"/>
+                            
+                            <field name="market_segment_id" options="{'no_create': True}"/>
+                            <field name="guest_classification_id" options="{'no_create': True}"/>
+                            
+                            <field name="rate_plan_id" string="Master Rate Plan" options="{'no_create': True}" invisible="is_desk_folio"/>
+                            <field name="is_manual_rate" widget="boolean_toggle" string="Override Room Rate" invisible="is_desk_folio"/>
+                            
+                            <field name="manual_rate" 
+                                string="Custom Room Rate" 
+                                widget="monetary"
+                                invisible="is_desk_folio or not is_manual_rate" 
+                                required="is_manual_rate"
+                                force_save="1"/>
+                                
+                            <field name="total_amount" widget="monetary" string="Estimated Cost" invisible="is_desk_folio"/>
+                        </group>
+                        <group>
+                            <field name="city_ledger_id" options="{'no_create': True, 'no_open': True}" placeholder="Select Corporate Account..."/>
+                            <field name="billing_routing"/>
+                            <field name="company_pending_billing" widget="monetary" readonly="1" invisible="not city_ledger_id"/>
+                            <field name="company_city_ledger_ar" string="City Ledger A/R" widget="monetary" readonly="1" invisible="not city_ledger_id"/>
+                        </group>
+                    </group>
+
+                    <group string="Additional Financial Snapshot" invisible="not sale_order_id">
+                        <group>
+                            <field name="folio_total" widget="monetary" readonly="1" string="Folio Total"/>
+                            <field name="guest_deposit_paid_total" widget="monetary" readonly="1" string="Deposit / Paid"/>
+                        </group>
+                        <group>
+                            <field name="guest_net_position" widget="monetary" readonly="1" string="Current Balance"/>
+                            <field name="folio_invoice_status" readonly="1" string="Invoice Status"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Stay Guests" name="stay_guests">
+                            <div class="alert alert-info" role="alert">
+                                Register every person staying in the room. These records drive repeat-guest history for main and accompanying guests.
+                            </div>
+                            <field name="stay_guest_ids" context="{'default_reservation_id': id}">
+                                <list editable="bottom">
+                                    <field name="is_primary"/>
+                                    <field name="guest_type"/>
+                                    <field name="partner_id"/>
+                                    <field name="visit_count" readonly="1"/>
+                                    <field name="is_repeat_guest" widget="badge" readonly="1"/>
+                                    <field name="name"/>
+                                    <field name="passport_no"/>
+                                    <field name="phone"/>
+                                    <field name="email"/>
+                                    <field name="nationality_id"/>
+                                    <field name="country_id"/>
+                                    <field name="gender"/>
+                                    <field name="date_of_birth"/>
+                                    <field name="id_document_image" widget="image" optional="show"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Pre-Arrival &amp; Preferences">
+                            <group>
+                                <group string="Arrival Details">
+                                    <field name="estimated_arrival"/>
+                                    <field name="is_vip" invisible="1"/> 
+                                </group>
+                                <group string="Room Configuration">
+                                    <field name="smoking_preference" widget="radio" options="{'horizontal': true}"/>
+                                    <field name="bed_preference" widget="radio" options="{'horizontal': true}"/>
+                                </group>
+                                <group>
+                                    <field name="passport_image" widget="image" class="oe_avatar" options="{'size': [256, 256]}"/>
+                                </group>
+                                <group string="Guest Documents">
+                                    <field name="stay_guest_ids" nolabel="1" readonly="1">
+                                        <list create="0" edit="0" delete="0">
+                                            <field name="is_primary"/>
+                                            <field name="name"/>
+                                            <field name="visit_count"/>
+                                            <field name="is_repeat_guest" widget="badge"/>
+                                            <field name="passport_no"/>
+                                            <field name="id_document_image" widget="image"/>
+                                        </list>
+                                    </field>
+                                </group>
+                                
+                                <group string="Check-In Documents">
+                                    <field name="guest_signature" widget="signature"/>
+                                </group>
+                            </group>
+                        </page>
+                        
+                        <page string="Billing &amp; Routing" name="billing_routing">
+                            <group>
+                                <group string="Master Folio Setup">
+                                    <field name="master_reservation_id" 
+                                        domain="[('state', 'in', ['confirm', 'checkin']), ('id', '!=', id)]"
+                                        options="{'no_create': True}"/>
+                                    <field name="routing_relationship" 
+                                        invisible="not master_reservation_id" 
+                                        required="master_reservation_id"/>
+                                </group>
+                                <group string="Accompanying Rooms" invisible="not sub_reservation_ids">
+                                    <field name="sub_reservation_ids" readonly="1" nolabel="1">
+                                        <list>
+                                            <field name="name" string="Res #"/>
+                                            <field name="room_id"/>
+                                            <field name="partner_id" string="Guest Name"/>
+                                            <field name="routing_relationship"/>
+                                            <field name="state" widget="badge"/>
+                                        </list>
+                                    </field>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Transactions &amp; Invoicing" name="folio_page" invisible="not sale_order_id">
+                            <div class="text-center p-3 border-bottom mb-3 bg-light">
+                                <p class="text-muted mb-2">Manage all charges (Room, Food, Spa) and Create Invoices directly in the Folio.</p>
+                                <button name="action_open_folio_invoicing" string="Manage Folio Items / Create Invoice" type="object" class="btn-secondary" icon="fa-external-link"/>
+                                <button name="action_create_invoice_from_reservation" string="Invoices" type="object" class="btn-primary ms-2"/>
+                            </div>
+                            <group>
+                                <field name="sale_order_id" readonly="1" string="Linked Folio Reference"/>
+                                <field name="currency_id" invisible="1"/>
+                            </group>
+                        </page>
+
+                        <page string="Notes" name="notes_page">
+                            <field name="guest_note" placeholder="Guest requests, preferences, etc."/>
+                        </page>
+                        <page string="Daily Rates &amp; Posting" name="other_details" invisible="is_desk_folio">
+                            <div class="alert alert-info" role="alert">
+                                Daily room rate lines are generated per business date from the stay dates. Unposted nightly rates can be adjusted here before night audit; posted lines become read-only and show their linked folio charge.
+                            </div>
+                            <field name="daily_transaction_ids" context="{'default_reservation_id': id}">
+                                <list string="Daily Rates" create="0" delete="0" editable="bottom">
+                                    <field name="is_posted" invisible="1"/>
+                                    <field name="currency_id" invisible="1"/>
+                                    <field name="date" string="Business Date" readonly="1"/>
+                                    <field name="description" readonly="1"/>
+                                    <field name="room_type_id" string="Room Type" readonly="1"/>
+                                    <field name="room_id" string="Room" readonly="1"/>
+                                    <field name="rate_plan_id" string="Rate Plan" readonly="1"/>
+                                    <field name="revenue" string="Nightly Rate" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="is_posted"/>
+                                    <field name="is_manual_rate_override" string="Manual Override" readonly="1"/>
+                                    <field name="tax_amount" string="Tax" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                                    <field name="line_total" string="Total" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                                    <field name="is_posted" string="Posted?" readonly="1"/>
+                                    <field name="posted_sale_line_id" string="Posted Folio Line" readonly="1"/>
+                                    <field name="rate_override_reason" string="Override Reason" optional="hide" readonly="is_posted"/>
+                                </list>
+                            </field>
+                        </page>
+                        
+                        <page string="Guest Analysis &amp; Preferences" name="guest_analysis">
+                            <div class="alert alert-info" role="alert">
+                                <i class="fa fa-info-circle"/> These fields are fully customizable. The Hotel Administrator can rename these labels in the Company settings and add new dropdown options in the Configuration menu.
+                            </div>
+                            <group>
+                                <group>
+                                    <field name="udf_label_1" nolabel="1" readonly="1" class="text-end pe-2 fw-bold text-dark"/>
+                                    <field name="udf_value_1" nolabel="1" options="{'no_create': True}" placeholder="Select option..."/>
+
+                                    <field name="udf_label_2" nolabel="1" readonly="1" class="text-end pe-2 fw-bold text-dark"/>
+                                    <field name="udf_value_2" nolabel="1" options="{'no_create': True}" placeholder="Select option..."/>
+
+                                    <field name="udf_label_3" nolabel="1" readonly="1" class="text-end pe-2 fw-bold text-dark"/>
+                                    <field name="udf_value_3" nolabel="1" options="{'no_create': True}" placeholder="Select option..."/>
+
+                                    <field name="udf_label_4" nolabel="1" readonly="1" class="text-end pe-2 fw-bold text-dark"/>
+                                    <field name="udf_value_4" nolabel="1" options="{'no_create': True}" placeholder="Select option..."/>
+
+                                    <field name="udf_label_5" nolabel="1" readonly="1" class="text-end pe-2 fw-bold text-dark"/>
+                                    <field name="udf_value_5" nolabel="1" options="{'no_create': True}" placeholder="Select option..."/>
+                                </group>
+                                <group>
+                                    <field name="udf_label_6" nolabel="1" readonly="1" class="text-end pe-2 fw-bold text-dark"/>
+                                    <field name="udf_value_6" nolabel="1" options="{'no_create': True}" placeholder="Select option..."/>
+
+                                    <field name="udf_label_7" nolabel="1" readonly="1" class="text-end pe-2 fw-bold text-dark"/>
+                                    <field name="udf_value_7" nolabel="1" options="{'no_create': True}" placeholder="Select option..."/>
+
+                                    <field name="udf_label_8" nolabel="1" readonly="1" class="text-end pe-2 fw-bold text-dark"/>
+                                    <field name="udf_value_8" nolabel="1" options="{'no_create': True}" placeholder="Select option..."/>
+
+                                    <field name="udf_label_9" nolabel="1" readonly="1" class="text-end pe-2 fw-bold text-dark"/>
+                                    <field name="udf_value_9" nolabel="1" options="{'no_create': True}" placeholder="Select option..."/>
+
+                                    <field name="udf_label_10" nolabel="1" readonly="1" class="text-end pe-2 fw-bold text-dark"/>
+                                    <field name="udf_value_10" nolabel="1" options="{'no_create': True}" placeholder="Select option..."/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Maintenance" invisible="state != 'blocked'">
+                            <group>
+                                <field name="block_reason"/>
+                            </group>
+                        </page>
+                    </notebook>
+                    <div class="d-flex flex-wrap gap-2 pt-3 pb-3 border-top w-100" style="position: sticky; bottom: 0; z-index: 1000; background-color: #ffffff; box-shadow: 0px -5px 15px rgba(0, 0, 0, 0.05); padding-left: 10px; padding-right: 10px;">
+                        <button name="action_send_pre_arrival_link" type="object" string="Send Pre-Arrival Link" class="btn-primary" invisible="pre_arrival_sent == True"/>
+                        <button name="action_preview_guest_portal" string="Guest Portal Link" type="object" class="btn-info text-white" icon="fa-globe" invisible="state == 'draft' or is_desk_folio"/>
+                        <button name="action_print_reservation_confirmation" string="Print Reservation Confirmation" type="object" class="btn-secondary" icon="fa-print" invisible="state in ['cancel', 'blocked']"/>
+                        
+                        <button name="action_confirm" string="Confirm" type="object" class="btn-primary" invisible="state != 'draft' or is_desk_folio"/>
+                        <button name="action_checkin" string="Check-In" type="object" class="btn-success" invisible="state != 'confirm' or is_desk_folio"/>
+                        <button name="action_open_move_room_wizard" string="Move Room" type="object" class="btn-info text-white" invisible="state != 'checkin' or is_desk_folio"/>
+                        <button name="action_reinstate" string="Extend / Reinstate" type="object" class="btn-success" invisible="state != 'checkout_hold' or is_desk_folio"/>
+                        
+                        <button name="action_checkout" string="Check-Out" type="object" class="btn-warning" invisible="state not in ['checkin', 'checkout_hold'] or is_desk_folio"/>
+                        <button name="action_re_checkin" string="Re-Book / Clone" type="object" class="btn-secondary" invisible="state not in ['checkout', 'cancel', 'noshow'] or is_desk_folio"/>
+                        
+                        <button name="action_create_deposit" string="Register Deposit" class="btn-secondary" type="object" invisible="not can_register_deposit"/>
+                        <button name="action_open_void_deposit_wizard" string="Void Deposit" type="object" class="btn-danger" groups="hotel_management.group_hotel_manager,account.group_account_manager" invisible="not can_void_deposit"/>
+                        <button name="action_create_invoice_from_reservation" string="Create Invoice" type="object" class="btn-warning" invisible="not sale_order_id"/>
+                        <button name="action_create_folio" string="Create Folio" type="object" class="btn-primary" invisible="sale_order_id"/>
+                        <button name="action_view_folio" string="Add Charges" type="object" class="btn-info text-white" invisible="not is_desk_folio or not sale_order_id"/>
+                        
+                        <button name="action_cancel" string="Cancel" type="object" class="btn-secondary" invisible="state not in ['draft', 'confirm'] or is_desk_folio"/>
+                        <button name="action_noshow" string="No-Show" type="object" class="btn-secondary" invisible="state != 'confirm' or is_desk_folio"/>
+                    </div>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_reservation_form_block" model="ir.ui.view">
+        <field name="name">hotel.reservation.form.block</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,blocked"/>
+                    <button name="action_release_block"
+                            string="Release Block"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'blocked'"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Block Information">
+                            <field name="partner_id" string="Block Owner" options="{'no_create': True}"/>
+                            <field name="room_type_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="room_id" options="{'no_create': True}"/>
+                            <field name="checkin_date"/>
+                            <field name="checkout_date"/>
+                            <field name="block_reason"/>
+                            <field name="state" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Notes">
+                            <field name="guest_note" placeholder="Internal note..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_reservation_inhouse_tree" model="ir.ui.view">
+        <field name="name">hotel.reservation.inhouse.tree</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <list string="In-House Guests" decoration-info="state == 'checkin'" decoration-danger="state == 'checkout_hold'" create="0" edit="0">
+                <field name="name" optional="show"/>
+                <field name="partner_id" string="Guest Name" optional="show"/>
+                <field name="room_type_id" optional="hide"/>
+                <field name="room_id" optional="show"/>
+                <field name="checkin_date" optional="show"/>
+                <field name="checkout_date" optional="show"/>
+                                    
+                <field name="folio_total" string="Folio Total" widget="monetary" sum="Folio Total" optional="show"/>
+                <field name="guest_deposit_paid_total" string="Deposit / Paid" widget="monetary" decoration-success="guest_deposit_paid_total > 0" sum="Deposit / Paid" optional="show"/>
+                <field name="guest_net_position" string="Current Balance" widget="monetary" decoration-danger="guest_net_position > 0" decoration-info="guest_net_position &lt; 0" decoration-bf="guest_net_position != 0" sum="Current Balance" optional="show"/>
+                <field name="folio_invoice_status" string="Invoice Status" widget="badge" decoration-danger="folio_invoice_status == 'to_invoice'" decoration-warning="folio_invoice_status == 'draft'" decoration-success="folio_invoice_status == 'posted'" optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+                
+                <field name="sale_order_id" string="Folio" widget="many2one_clickable" optional="hide"/>
+                <field name="state" widget="badge" decoration-warning="state == 'checkin'" decoration-danger="state == 'checkout_hold'" optional="show"/>
+
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_maintenance_block_form" model="ir.ui.view">
+        <field name="name">hotel.maintenance.block.form</field>
+        <field name="model">hotel.reservation</field>
+        <field name="priority">1000</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="alert alert-danger" role="alert"><strong>Maintenance Block / Out of Order</strong></div>
+                    <group>
+                        <group>
+                            <field name="room_id" required="0" domain="[('room_type_id', '=', room_type_id)]"/>
+                            <field name="block_reason" placeholder="Reason (e.g. Broken AC)"/>
+                        </group>
+                        <group>
+                            <field name="checkin_date" string="From"/>
+                            <field name="checkout_date" string="To"/>
+                            
+                            <field name="state" invisible="1"/>
+                            <field name="room_type_id" invisible="1"/>
+                            
+                            
+                        </group>
+                    </group>
+                    <footer>
+                        <button string="Confirm Block" special="save" class="btn-primary"/>
+                        <button string="Discard" special="cancel" class="btn-secondary"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_reservation_tree" model="ir.ui.view">
+    <field name="name">hotel.reservation.tree</field>
+    <field name="model">hotel.reservation</field>
+    <field name="arch" type="xml">
+        <list decoration-info="state == 'draft'" decoration-success="state == 'confirm'" decoration-warning="state == 'checkin'" decoration-danger="state in ['blocked', 'checkout_hold']">
+            <field name="name" optional="show"/>
+            <field name="partner_id" string="Guest Name" optional="show"/>
+            <field name="room_type_id" optional="show"/>
+            <field name="room_id" optional="show"/>
+            <field name="checkin_date" optional="show"/>
+            <field name="checkout_date" optional="show"/>
+                
+                <field name="folio_total" string="Folio Total" widget="monetary" sum="Folio Total" optional="show"/>
+                <field name="guest_deposit_paid_total" string="Deposit / Paid" widget="monetary" decoration-success="guest_deposit_paid_total > 0" sum="Deposit / Paid" optional="show"/>
+                <field name="guest_net_position" string="Current Balance" widget="monetary" decoration-danger="guest_net_position > 0" decoration-info="guest_net_position &lt; 0" sum="Current Balance" optional="show"/>
+                <field name="folio_invoice_status" 
+                        string="Invoice Status"
+                        widget="badge" 
+                        decoration-danger="folio_invoice_status == 'to_invoice'" 
+                        decoration-warning="folio_invoice_status == 'draft'" 
+                        decoration-success="folio_invoice_status == 'posted'" 
+                        optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+                
+                <field name="state" widget="badge" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_reservation_tree_block" model="ir.ui.view">
+        <field name="name">hotel.reservation.tree.block</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="1">
+                <field name="name" string="Block No" optional="show"/>
+                <field name="block_reason" string="Reason" optional="show"/>
+                <field name="room_type_id" optional="show"/>
+                <field name="room_id" optional="show"/>
+                <field name="checkin_date" optional="show"/>
+                <field name="checkout_date" optional="show"/>
+                <field name="state" widget="badge" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hotel_room_blocks" model="ir.actions.act_window">
+        <field name="name">Room Blocks</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state','=','blocked')]</field>
+        <field name="context">{'default_state': 'blocked'}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_hotel_reservation_tree_block')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_hotel_reservation_form_block')})]"/>
+    </record>
+
+    <record id="view_hotel_front_desk_report_tree" model="ir.ui.view">
+        <field name="name">hotel.front.desk.report.tree</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" decoration-info="state == 'draft'" decoration-success="state == 'confirm'" decoration-warning="state == 'checkin'" decoration-danger="state == 'checkout_hold'">
+                <field name="name" optional="show"/>
+                <field name="partner_id" string="Guest Name" optional="show"/>
+                <field name="checkin_date" optional="show"/>
+                <field name="checkout_date" optional="show"/>
+                
+                <field name="room_type_id" optional="show"/>
+                <field name="room_id" optional="show"/>
+                <field name="state" widget="badge" optional="show"/>
+                <field name="folio_invoice_status" string="Invoice Status" widget="badge" decoration-danger="folio_invoice_status == 'to_invoice'" decoration-warning="folio_invoice_status == 'draft'" decoration-success="folio_invoice_status == 'posted'" optional="show"/>
+                <field name="folio_total" string="Folio Total" widget="monetary" sum="Folio Total" optional="show"/>
+                <field name="guest_deposit_paid_total" string="Deposit / Paid" widget="monetary" decoration-success="guest_deposit_paid_total > 0" sum="Deposit / Paid" optional="show"/>
+                <field name="guest_net_position" string="Current Balance" widget="monetary" decoration-danger="guest_net_position > 0" decoration-info="guest_net_position &lt; 0" sum="Current Balance" optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_reservation_calendar" model="ir.ui.view">
+        <field name="name">hotel.reservation.calendar</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <calendar string="Tape Chart" date_start="checkin_date" date_stop="checkout_date" color="state" mode="month" quick_create="0" event_open_popup="true" scales="day,week,month">
+                <field name="room_id" filters="1"/> 
+                <field name="partner_id"/>
+                <field name="total_amount"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_hotel_reservation_graph" model="ir.ui.view">
+        <field name="name">hotel.reservation.graph</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <graph string="Occupancy (Basic)" type="bar" sample="1" stacked="1">
+                <field name="checkin_date" interval="day"/>
+                <field name="room_id"/>
+                <field name="total_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_hotel_reservation_pivot" model="ir.ui.view">
+        <field name="name">hotel.reservation.pivot</field>
+        <field name="model">hotel.reservation</field> 
+        <field name="arch" type="xml">
+            <pivot string="Revenue (Basic)">
+                <field name="checkin_date" type="row" interval="month"/>
+                <field name="total_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_hotel_reservation" model="ir.actions.act_window">
+        <field name="name">Reservations</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">list,form,calendar,graph,pivot</field>
+        <field name="domain">[('state','!=','blocked')]</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_hotel_reservation_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_hotel_reservation_form')})]"/>
+    </record>
+
+    <record id="view_hotel_revenue_report_graph" model="ir.ui.view">
+        <field name="name">hotel.revenue.report.graph</field>
+        <field name="model">hotel.revenue.report</field>
+        <field name="arch" type="xml">
+            <graph string="Occupancy Forecast" type="bar" sample="1" stacked="1">
+                <field name="date" interval="day"/>
+                <field name="revenue_type"/>
+                <field name="state" invisible="1"/>
+                <field name="daily_revenue" type="measure"/>
+                <field name="folio_total" type="measure"/>
+                <field name="occupied_count" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_hotel_revenue_report_pivot" model="ir.ui.view">
+        <field name="name">hotel.revenue.report.pivot</field>
+        <field name="model">hotel.revenue.report</field>
+        <field name="arch" type="xml">
+            <pivot string="Occupancy Analysis" sample="1">
+                <field name="date" type="row" interval="day"/>
+                <field name="revenue_type" type="row"/>
+                <field name="room_type_id" type="col"/>
+                <field name="occupied_count" type="measure"/>
+                <field name="daily_revenue" type="measure"/>
+                <field name="folio_total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+    
+    <record id="action_hotel_inhouse_guests" model="ir.actions.act_window">
+        <field name="name">In-House Guests</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', '=', 'checkin'), ('is_desk_folio', '=', False)]</field>
+        <field name="view_id" ref="view_hotel_reservation_inhouse_tree"/>
+    </record>
+
+    <record id="action_run_night_audit_manual" model="ir.actions.server">
+        <field name="name">Run Night Audit (Manual)</field>
+        <field name="model_id" ref="model_hotel_reservation"/>
+        <field name="binding_model_id" ref="model_hotel_reservation"/>
+        <field name="state">code</field>
+        <field name="code">
+action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
+        </field>
+    </record>
+
+    <record id="action_booking_source" model="ir.actions.act_window">
+        <field name="name">Booking Sources</field>
+        <field name="res_model">hotel.booking.source</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="action_market_segment" model="ir.actions.act_window">
+        <field name="name">Market Segments</field>
+        <field name="res_model">hotel.market.segment</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="action_guest_classify" model="ir.actions.act_window">
+        <field name="name">Guest Classifications</field>
+        <field name="res_model">hotel.guest.classify</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    
+    <record id="view_hotel_deposit_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.deposit.wizard.form</field>
+        <field name="model">hotel.deposit.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Register Deposit">
+                <div class="alert alert-success text-center" role="alert">
+                    Enter the amount and payment method below. The system will automatically process the accounting and generate a Customer Receipt PDF for you to print!
+                </div>
+                    <group>
+                        <group>
+                            <field name="reservation_id" invisible="1"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="processed" invisible="1"/>
+                            <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="journal_id" widget="selection" domain="[('active', '=', True), ('type', 'in', ['bank', 'cash'])]"/>
+                        </group>
+                    </group>
+                <footer>
+                    <button string="Process Payment &amp; Print Receipt" name="action_confirm_deposit" type="object" class="btn-success btn-lg" icon="fa-print" invisible="processed"/>
+                    <button string="Cancel" class="btn-secondary btn-lg" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_deposit_void_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.deposit.void.wizard.form</field>
+        <field name="model">hotel.deposit.void.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Void Deposit">
+                <div class="alert alert-warning text-center" role="alert">
+                    Void the selected advance deposit using an audit-safe correction. Payment-only deposits are reversed with a refund payment, while legacy deposit invoices use a credit note flow.
+                </div>
+                <group>
+                    <group>
+                        <field name="reservation_id" invisible="1"/>
+                        <field name="available_invoice_ids" invisible="1"/>
+                        <field name="available_payment_ids" invisible="1"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="business_date"/>
+                        <field name="deposit_source_type"/>
+                        <field name="deposit_payment_id" options="{'no_create': True, 'no_open': True}" invisible="deposit_source_type != 'payment'" required="deposit_source_type == 'payment'"/>
+                        <field name="deposit_invoice_id" options="{'no_create': True, 'no_open': True}" invisible="deposit_source_type != 'invoice'" required="deposit_source_type == 'invoice'"/>
+                        <field name="document_state" readonly="1"/>
+                        <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                    </group>
+                    <group>
+                        <field name="deposit_payment_ids" widget="many2many_tags" readonly="1"/>
+                        <field name="payment_journal_names" readonly="1"/>
+                        <field name="reason" placeholder="Explain why this deposit is being voided..."/>
+                    </group>
+                </group>
+                <footer>
+                    <button string="Confirm Void Deposit" name="action_confirm_void" type="object" class="btn-danger btn-lg" icon="fa-undo"/>
+                    <button string="Cancel" class="btn-secondary btn-lg" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_room_move_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.room.move.wizard.form</field>
+        <field name="model">hotel.room.move.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Move Room">
+                <div class="alert alert-info" role="alert">
+                    The current room will automatically be released to Housekeeping as Vacant/Dirty.
+                </div>
+                <group>
+                    <group>
+                        <field name="reservation_id" invisible="1"/>
+                        <field name="current_room_id" readonly="1"/>
+                        <field name="reason" placeholder="e.g. Broken AC, water leak..."/>
+                    </group>
+                    <group>
+                        <field name="new_room_type_id" options="{'no_create': True}"/>
+                        <field name="new_room_id" domain="[('room_type_id', '=', new_room_type_id), ('state', '=', 'vacant_clean')]" options="{'no_create': True}"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_confirm_move" string="Confirm Move" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_accounting_report_wizard" model="ir.ui.view">
+        <field name="name">hotel.accounting.report.wizard.form</field>
+        <field name="model">hotel.accounting.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Accounting Reports">
+                <div class="alert alert-info text-center" role="alert">
+                    Select a date range to generate the Invoice or Receipt summary PDF for your Accounting Department.
+                </div>
+                <group>
+                    <group>
+                        <field name="start_date"/>
+                        <field name="end_date"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="print_invoices" string="Print Invoice Report" type="object" class="btn-primary" icon="fa-file-pdf-o"/>
+                    <button name="print_receipts" string="Print Receipt Report" type="object" class="btn-success" icon="fa-file-pdf-o"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_accounting_report_wizard" model="ir.actions.act_window">
+        <field name="name">Print Accounting Reports</field>
+        <field name="res_model">hotel.accounting.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="action_report_hotel_invoice_list" model="ir.actions.report">
+        <field name="name">Invoice List Report</field>
+        <field name="model">hotel.accounting.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management.report_hotel_invoice_list</field>
+        <field name="report_file">hotel_management.report_hotel_invoice_list</field>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_hotel_receipt_list" model="ir.actions.report">
+        <field name="name">Receipt List Report</field>
+        <field name="model">hotel.accounting.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management.report_hotel_receipt_list</field>
+        <field name="report_file">hotel_management.report_hotel_receipt_list</field>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_hotel_invoice_list">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <t t-foreach="docs" t-as="doc">
+                    <div class="page">
+                        <style>
+                            /* Server note: install Noto Sans Khmer or Khmer OS fonts on the Windows/Odoo server, then restart the Odoo service before printing Khmer PDFs. No font files are bundled in this module. */
+                            body,
+                            .page,
+                            .page table,
+                            .page td,
+                            .page th,
+                            .page div,
+                            .page span,
+                            .page p,
+                            .page h1,
+                            .page h2,
+                            .page h3,
+                            .page h4,
+                            .page h5,
+                            .page h6,
+                            .header,
+                            .header table,
+                            .header td,
+                            .header th,
+                            .header div,
+                            .header span,
+                            .header p,
+                            .footer,
+                            .footer div,
+                            .footer span,
+                            .footer p,
+                            .article,
+                            .article table,
+                            .article td,
+                            .article th,
+                            .article div,
+                            .article span,
+                            .article p,
+                            [class*="o_company_"],
+                            [class*="o_company_"] table,
+                            [class*="o_company_"] td,
+                            [class*="o_company_"] th,
+                            [class*="o_company_"] div,
+                            [class*="o_company_"] span,
+                            [class*="o_company_"] p {
+                                font-family: "Noto Sans Khmer", "Khmer OS Battambang", "Khmer OS Siemreap", Arial, sans-serif !important;
+                            }
+                        </style>
+                        <div class="text-center mb-4">
+                            <h2>Billed Invoices Report</h2>
+                            <h4>From <t t-esc="doc.start_date"/> to <t t-esc="doc.end_date"/></h4>
+                        </div>
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr class="bg-light">
+                                    <th>Date</th>
+                                    <th>Invoice No.</th>
+                                    <th>Customer / Guest</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-set="grand_total" t-value="0.0"/>
+                                <tr t-foreach="doc.invoice_ids" t-as="inv">
+                                    <td><t t-esc="inv.invoice_date"/></td>
+                                    <td><span class="fw-bold"><t t-esc="inv.name"/></span></td>
+                                    <td><t t-esc="inv.partner_id.name"/></td>
+                                    <td>Posted</td>
+                                    <td class="text-end"><t t-esc="inv.amount_total" t-options='{"widget": "monetary", "display_currency": inv.currency_id}'/></td>
+                                    <t t-set="grand_total" t-value="grand_total + inv.amount_total"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="row mt-3">
+                            <div class="col-8"></div>
+                            <div class="col-4">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Total Billed:</strong></td>
+                                        <td class="text-end"><strong><t t-esc="grand_total" t-options='{"widget": "monetary", "display_currency": doc.env.company.currency_id}'/></strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_hotel_receipt_list">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <t t-foreach="docs" t-as="doc">
+                    <div class="page">
+                        <style>
+                            /* Server note: install Noto Sans Khmer or Khmer OS fonts on the Windows/Odoo server, then restart the Odoo service before printing Khmer PDFs. No font files are bundled in this module. */
+                            body,
+                            .page,
+                            .page table,
+                            .page td,
+                            .page th,
+                            .page div,
+                            .page span,
+                            .page p,
+                            .page h1,
+                            .page h2,
+                            .page h3,
+                            .page h4,
+                            .page h5,
+                            .page h6,
+                            .header,
+                            .header table,
+                            .header td,
+                            .header th,
+                            .header div,
+                            .header span,
+                            .header p,
+                            .footer,
+                            .footer div,
+                            .footer span,
+                            .footer p,
+                            .article,
+                            .article table,
+                            .article td,
+                            .article th,
+                            .article div,
+                            .article span,
+                            .article p,
+                            [class*="o_company_"],
+                            [class*="o_company_"] table,
+                            [class*="o_company_"] td,
+                            [class*="o_company_"] th,
+                            [class*="o_company_"] div,
+                            [class*="o_company_"] span,
+                            [class*="o_company_"] p {
+                                font-family: "Noto Sans Khmer", "Khmer OS Battambang", "Khmer OS Siemreap", Arial, sans-serif !important;
+                            }
+                        </style>
+                        <div class="text-center mb-4">
+                            <h2>Cashier Receipts Report</h2>
+                            <h4>From <t t-esc="doc.start_date"/> to <t t-esc="doc.end_date"/></h4>
+                        </div>
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr class="bg-light">
+                                    <th>Date</th>
+                                    <th>Receipt No.</th>
+                                    <th>Customer / Guest</th>
+                                    <th>Payment Method</th>
+                                    <th class="text-end">Amount Paid</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-set="grand_total" t-value="0.0"/>
+                                <tr t-foreach="doc.payment_ids" t-as="pay">
+                                    <td><t t-esc="pay.date"/></td>
+                                    <td><span class="fw-bold"><t t-esc="pay.name"/></span></td>
+                                    <td><t t-esc="pay.partner_id.name"/></td>
+                                    <td><t t-esc="pay.journal_id.name"/></td>
+                                    <td class="text-end"><t t-esc="pay.amount" t-options='{"widget": "monetary", "display_currency": pay.currency_id}'/></td>
+                                    <t t-set="grand_total" t-value="grand_total + pay.amount"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="row mt-3">
+                            <div class="col-8"></div>
+                            <div class="col-4">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Total Collected:</strong></td>
+                                        <td class="text-end"><strong><t t-esc="grand_total" t-options='{"widget": "monetary", "display_currency": doc.env.company.currency_id}'/></strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="view_hotel_posting_journal_tree" model="ir.ui.view">
+        <field name="name">hotel.posting.journal.tree</field>
+        <field name="model">hotel.posting.journal</field>
+        <field name="arch" type="xml">
+            <list string="Posting Journal" create="0" edit="0" delete="0" decoration-info="journal_type == 'system'" decoration-success="journal_type == 'payment'" decoration-warning="journal_type == 'charge'">
+                <field name="date" string="Physical Date" optional="show"/>
+                <field name="business_date" string="Biz Date" decoration-bf="1" optional="show"/>
+                <field name="reservation_id" optional="show"/>
+                <field name="room_id" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="journal_type" optional="show"/>
+                <field name="description" optional="show"/>
+                <field name="user_id" string="User" optional="hide"/>
+                <field name="untaxed_amount" widget="monetary" sum="Total Untaxed" optional="show"/>
+                <field name="tax_amount" widget="monetary" sum="Total Tax" optional="show"/>
+                <field name="total_amount" widget="monetary" sum="Total Amount" optional="show"/>
+                <field name="debit_amount" widget="monetary" sum="Total Debit Charges" optional="show"/>
+                <field name="credit_amount" widget="monetary" sum="Total Credit Deposits/Payments" optional="show"/>
+                <field name="net_position" widget="monetary" sum="Net Position" optional="show"/>
+                <field name="amount" widget="monetary" optional="hide"/>
+                <field name="currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_guest_folio_tree" model="ir.ui.view">
+        <field name="name">hotel.posting.journal.guest.folio.tree</field>
+        <field name="model">hotel.posting.journal</field>
+        <field name="arch" type="xml">
+            <list string="Guest Folio" create="0" edit="0" delete="0" default_order="business_date asc, date asc, id asc"
+                  decoration-success="entry_side == 'credit'"
+                  decoration-danger="entry_side == 'debit' and running_balance &gt; 0"
+                  decoration-info="entry_side == 'info'">
+                <field name="entry_side" column_invisible="True"/>
+                <field name="business_date" string="Date" decoration-bf="1" optional="show"/>
+                <field name="folio_entry_type" string="Type" optional="show"/>
+                <field name="description" optional="show"/>
+                <field name="debit_amount" string="Debit" widget="monetary" sum="Total Debit" optional="show"/>
+                <field name="credit_amount" string="Credit" widget="monetary" sum="Total Credit" optional="show"/>
+                <field name="running_balance" string="Running Balance" widget="monetary" optional="show"/>
+                <field name="source_document_ref" string="Source" optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_posting_journal_search" model="ir.ui.view">
+        <field name="name">hotel.posting.journal.search</field>
+        <field name="model">hotel.posting.journal</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="reservation_id"/>
+                <field name="room_id"/>
+                <field name="partner_id"/>
+                <field name="description"/>
+                <filter string="Today's Activity" name="today" domain="[('date', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00')), ('date', '&lt;=', context_today().strftime('%Y-%m-%d 23:59:59'))]"/>
+                <group>
+                    <filter string="Transaction Type" name="group_type" context="{'group_by':'journal_type'}"/>
+                    <filter string="User (Cashier)" name="group_user" context="{'group_by':'user_id'}"/>
+                    <filter string="Business Date" name="group_business_date" context="{'group_by':'business_date'}"/>
+                    <filter string="Physical Date" name="group_date" context="{'group_by':'date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_hotel_posting_journal_graph" model="ir.ui.view">
+        <field name="name">hotel.posting.journal.graph</field>
+        <field name="model">hotel.posting.journal</field>
+        <field name="arch" type="xml">
+            <graph string="Daily Revenue (Night Audit)" type="bar" sample="1" stacked="1">
+                <field name="business_date" interval="day"/>
+                <field name="journal_type"/>
+                <field name="net_position" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_hotel_posting_journal_pivot" model="ir.ui.view">
+        <field name="name">hotel.posting.journal.pivot</field>
+        <field name="model">hotel.posting.journal</field>
+        <field name="arch" type="xml">
+            <pivot string="Daily Accounting Pivot" sample="1">
+                <field name="business_date" type="row" interval="day"/>
+                <field name="journal_type" type="col"/>
+                <field name="debit_amount" type="measure"/>
+                <field name="credit_amount" type="measure"/>
+                <field name="net_position" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_hotel_posting_journal" model="ir.actions.act_window">
+        <field name="name">Posting Journal (Audit Trail)</field>
+        <field name="res_model">hotel.posting.journal</field>
+        <field name="view_mode">list,graph,pivot</field> 
+        <field name="context">{'search_default_group_business_date': 1}</field>
+    </record>
+
+    <template id="hotel_guest_portal_template" name="Guest Portal">
+        <t t-call="website.layout">
+            <div id="wrap" class="container mt-5 mb-5">
+                <div class="row">
+                    <div class="col-lg-8 offset-lg-2">
+                        
+                        <div class="card shadow-sm border-0">
+                            <div class="card-header text-white text-center" style="background-color: #6f42c1;">
+                                <h2 class="mb-0 pt-2"><i class="fa fa-bed me-2"/> Your Stay Summary</h2>
+                                <p class="mb-2">Booking Ref: <t t-esc="reservation.name"/></p>
+                            </div>
+                            <div class="card-body bg-light">
+                                <div class="row text-center mb-3 border-bottom pb-3">
+                                    <div class="col-6 border-end">
+                                        <span class="text-muted text-uppercase small fw-bold">Check-In</span>
+                                        <h4 class="mt-1 text-success"><t t-esc="reservation.checkin_date"/></h4>
+                                    </div>
+                                    <div class="col-6">
+                                        <span class="text-muted text-uppercase small fw-bold">Check-Out</span>
+                                        <h4 class="mt-1 text-danger"><t t-esc="reservation.checkout_date"/></h4>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Guest:</strong> <span t-esc="reservation.partner_id.name"/></p>
+                                        <p class="mb-1"><strong>Room Type:</strong> <span t-esc="reservation.room_type_id.name"/></p>
+                                    </div>
+                                    <div class="col-md-6 text-md-end">
+                                        <p class="mb-1"><strong>Status:</strong> <span class="badge bg-secondary" t-esc="reservation.state"/></p>
+                                        <p class="mb-1"><strong>Room Number:</strong> <span class="badge bg-primary fs-6" t-esc="reservation.room_id.name or 'Unassigned'"/></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card shadow-sm border-0 mt-4">
+                            <div class="card-body">
+                                <h4 class="border-bottom pb-2 mb-3 text-dark"><i class="fa fa-file-text-o me-2"/> Live Folio Charges</h4>
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Description</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-if="reservation.sale_order_id">
+                                            <tr t-foreach="reservation.sale_order_id.order_line" t-as="line">
+                                                <td><t t-esc="line.hotel_business_date"/></td>
+                                                <td><t t-esc="line.name"/></td>
+                                                <td class="text-end"><t t-esc="line.price_total" t-options='{"widget": "monetary", "display_currency": reservation.currency_id}'/></td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                                <div class="row mt-3">
+                                    <div class="col-6"></div>
+                                    <div class="col-6">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Gross Total:</span> 
+                                            <strong><t t-esc="reservation.folio_total" t-options='{"widget": "monetary", "display_currency": reservation.currency_id}'/></strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1 text-success">
+                                            <span>Payments/Deposits:</span> 
+                                            <strong><t t-esc="reservation.folio_paid" t-options='{"widget": "monetary", "display_currency": reservation.currency_id}'/></strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-2 pt-2 border-top fs-5">
+                                            <span>Balance Due:</span> 
+                                            <strong class="text-danger"><t t-esc="reservation.folio_balance" t-options='{"widget": "monetary", "display_currency": reservation.currency_id}'/></strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-5 bg-white p-4 shadow-sm rounded border">
+                            <h3 class="text-center mb-2 text-primary"><i class="fa fa-bell-o"/> Front Desk Service</h3>
+                            <p class="text-center text-muted border-bottom pb-3">Need Housekeeping or Maintenance? Submit a task here so our team can track it.</p>
+                            
+                            <t t-if="request.params.get('success')">
+                                <div class="alert alert-success text-center fw-bold mt-3">
+                                    <i class="fa fa-check-circle"/> Your request has been sent! Our team is on it.
+                                </div>
+                            </t>
+
+                            <form t-attf-action="/hotel/reservation/#{reservation.id}/request" method="post" class="mt-4">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                <input type="hidden" name="access_token" t-att-value="reservation.access_token"/>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">What do you need?</label>
+                                    <select name="request_type" class="form-select" required="1">
+                                        <option value="housekeeping">Housekeeping (Towels, Cleaning)</option>
+                                        <option value="food">Food &amp; Drink</option>
+                                        <option value="maintenance">Maintenance Issue</option>
+                                        <option value="transport">Transportation / Taxi</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Details</label>
+                                    <textarea name="description" class="form-control" rows="3" placeholder="E.g., Could we please get 2 extra pillows?" required="1"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 btn-lg">
+                                    <i class="fa fa-paper-plane"/> Submit Request
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <div class="mt-5 bg-white p-4 shadow-sm rounded border">
+                            <h3 class="text-center mb-2 text-primary"><i class="fa fa-comments-o"/> Message Board</h3>
+                            <p class="text-center text-muted mb-2">Just have a quick question? Send us a message below and we will reply here.</p>
+                            
+                            <div class="text-center border-bottom pb-3 mb-3">
+                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill fw-bold" onclick="location.reload();">
+                                    <i class="fa fa-refresh me-1"/> Refresh to get new message update
+                                </button>
+                            </div>
+
+                            <t t-call="portal.message_thread">
+                                <t t-set="object" t-value="reservation"/>
+                                <t t-set="token" t-value="reservation.access_token"/>
+                            </t>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <record id="view_hotel_guest_attribute_tree" model="ir.ui.view">
+        <field name="name">hotel.guest.attribute.tree</field>
+        <field name="model">hotel.guest.attribute</field>
+        <field name="arch" type="xml">
+            <list string="Guest Attributes" editable="bottom" multi_edit="1">
+                <field name="sequence" widget="handle"/>
+                <field name="udf_number" string="Target UDF Field"/>
+                <field name="name" string="Dropdown Option Name"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hotel_guest_attribute" model="ir.actions.act_window">
+        <field name="name">Guest Analysis Dropdowns</field>
+        <field name="res_model">hotel.guest.attribute</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_hotel_guest_attribute_tree"/>
+    </record>
+    
+    <record id="view_company_hotel_labels_form" model="ir.ui.view">
+        <field name="name">res.company.hotel.labels.form</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Hotel PMS Labels">
+                    <group string="Rename Guest Analysis Fields">
+                        <group>
+                            <field name="hotel_udf_label_1"/>
+                            <field name="hotel_udf_label_2"/>
+                            <field name="hotel_udf_label_3"/>
+                            <field name="hotel_udf_label_4"/>
+                            <field name="hotel_udf_label_5"/>
+                        </group>
+                        <group>
+                            <field name="hotel_udf_label_6"/>
+                            <field name="hotel_udf_label_7"/>
+                            <field name="hotel_udf_label_8"/>
+                            <field name="hotel_udf_label_9"/>
+                            <field name="hotel_udf_label_10"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_hotel_analytics_search" model="ir.ui.view">
+        <field name="name">hotel.analytics.search</field>
+        <field name="model">hotel.daily.transaction</field>
+        <field name="arch" type="xml">
+            <search>
+                <filter string="Date Slicer" name="date_filter" date="date"/>
+                <separator/>
+                <filter string="Valid Bookings (Confirmed/In-House/Done)" name="active_bookings" domain="[('state', 'in', ['confirm', 'checkin', 'checkout_hold', 'checkout']), ('room_type_id.name', '!=', 'Desk Folio')]"/>
+                
+                <searchpanel>
+                    <field name="state" string="Booking Status" select="multi" icon="fa-tasks"/>
+                    <field name="room_type_id" string="Room Type" select="multi" icon="fa-bed"/>
+                    <field name="source_id" string="Booking Source" select="multi" icon="fa-bullhorn"/>
+                    <field name="market_segment_id" string="Market Segment" select="multi" icon="fa-pie-chart"/>
+                    <field name="guest_classify_id" string="Guest Class" select="multi" icon="fa-star"/>
+                    <field name="udf_value_1" string="Nationality / Region" select="multi" icon="fa-globe"/>
+                    <field name="udf_value_2" string="Primary Language" select="multi" icon="fa-language"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_hotel_analytics_pivot" model="ir.ui.view">
+        <field name="name">hotel.analytics.pivot</field>
+        <field name="model">hotel.daily.transaction</field>
+        <field name="arch" type="xml">
+            <pivot string="Daily Revenue" sample="1">
+                <field name="date" type="row" interval="day"/>
+                <field name="room_type_id" type="col"/>
+                <field name="room_nights" type="measure" string="OCC"/>
+                <field name="revenue" type="measure" string="DailyRev"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_hotel_analytics_graph" model="ir.ui.view">
+        <field name="name">hotel.analytics.graph</field>
+        <field name="model">hotel.daily.transaction</field>
+        <field name="arch" type="xml">
+            <graph string="Daily Revenue Chart" type="line" sample="1">
+                <field name="date" interval="day"/>
+                <field name="revenue" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_hotel_advanced_analytics" model="ir.actions.act_window">
+        <field name="name">Pivot Analytics</field>
+        <field name="res_model">hotel.daily.transaction</field>
+        <field name="view_mode">pivot,graph</field> 
+        <field name="search_view_id" ref="view_hotel_analytics_search"/>
+        <field name="context">{'search_default_active_bookings': 1}</field>
+    </record>
+
+    <record id="action_hotel_advanced_analytics_pivot" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">pivot</field>
+        <field name="view_id" ref="view_hotel_analytics_pivot"/>
+        <field name="act_window_id" ref="action_hotel_advanced_analytics"/>
+    </record>
+    
+    <record id="action_hotel_advanced_analytics_graph" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">graph</field>
+        <field name="view_id" ref="view_hotel_analytics_graph"/>
+        <field name="act_window_id" ref="action_hotel_advanced_analytics"/>
+    </record>
+
+    <record id="action_open_database_manager" model="ir.actions.act_url">
+        <field name="name">Backup &amp; Restore</field>
+        <field name="url">/web/database/manager</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="action_hotel_city_ledger_invoices" model="ir.actions.act_window">
+        <field name="name">Unpaid Folios (A/R)</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('amount_residual', '&gt;', 0), ('partner_id.is_company', '=', True), ('hotel_folio_id', '!=', False)]</field>
+        <field name="context">{'default_move_type': 'out_invoice'}</field>
+    </record>
+
+    <record id="action_hotel_city_ledger_customers" model="ir.actions.act_window">
+        <field name="name">Corporate Accounts</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('is_company', '=', True)]</field>
+        <field name="context">{'default_is_company': True, 'default_customer_rank': 1}</field>
+    </record>
+
+<record id="view_hotel_group_master_tree" model="ir.ui.view">
+        <field name="name">hotel.group.master.tree</field>
+        <field name="model">hotel.group.master</field>
+        <field name="arch" type="xml">
+            <list decoration-info="state == 'draft'" decoration-success="state == 'confirm'" decoration-muted="state == 'cancel'">
+                <field name="name"/>
+                <field name="partner_id" string="Company / Agent"/>
+                <field name="arrival_date"/>
+                <field name="departure_date"/>
+                <field name="rate_plan_id" optional="show"/>
+                <field name="state" widget="badge" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_group_master_form" model="ir.ui.view">
+        <field name="name">hotel.group.master.form</field>
+        <field name="model">hotel.group.master</field>
+        <field name="arch" type="xml">
+            <form string="Group Block">
+                <header>
+                    <button name="action_confirm_and_generate" string="Confirm &amp; Generate Rooms" type="object" class="oe_highlight" invisible="state != 'draft'"/>
+                    
+                    <button name="action_confirm_reservations" string="Confirm All Rooms" type="object" class="oe_highlight" invisible="state != 'generated'"/>
+                    
+                    <button name="action_auto_assign_rooms" string="Auto-Assign Rooms" type="object" class="oe_highlight" invisible="state != 'confirm'"/>
+                    
+                    <button name="action_mass_group_checkin" string="Group Check-In" type="object" class="oe_highlight" confirm="Are you sure you want to check in all pending rooms?" invisible="state != 'assigned'"/>
+                    
+                    <button name="action_mass_group_checkout" string="Mass Checkout" type="object" class="oe_highlight" confirm="This will verify all balances are $0.00 and check out the entire group. Proceed?" invisible="state != 'checkin'"/>
+
+                    <button name="action_checkout_next_room" string="Checkout Next Room" type="object" class="btn-info" invisible="state != 'checkin'" help="Process one room at a time and record visible progress in the chatter."/>
+                    
+                    <button name="action_cancel_group" string="Cancel Group Block" type="object" class="btn-secondary" invisible="state in ('checkin', 'done', 'cancel')"/>
+                    
+                    <field name="state" widget="statusbar" statusbar_visible="draft,generated,confirm,assigned,checkin,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    
+                    <div class="alert alert-info" role="alert" invisible="state != 'draft'">
+                        <i class="fa fa-info-circle"/> <b>Draft Mode:</b> Select dates and a Rate Plan to auto-load the QTels availability grid!
+                    </div>
+                    <div class="alert alert-info" role="alert" invisible="state not in ['checkin', 'done']">
+                        <i class="fa fa-tasks"/> <b>Checkout Progress:</b>
+                        For large groups, use <b>Checkout Next Room</b> to release one room per step and show each completed checkout in the chatter activity log below.
+                        <group>
+                            <field name="checkout_guest_total" readonly="1"/>
+                            <field name="checkout_guest_completed" readonly="1"/>
+                            <field name="checkout_guest_pending" readonly="1"/>
+                            <field name="checkout_progress" widget="progressbar" readonly="1"/>
+                        </group>
+                    </div>
+                    <group>
+                        <field name="billing_routing" widget="radio"/>
+                    </group>
+                    <group>
+                        <group string="Group Details">
+                            <field name="partner_id" readonly="state != 'draft'" placeholder="Select the Company or Agent..."/>
+                            <field name="city_ledger_id" options="{'no_create': True}"/>
+                            <field name="rate_plan_id" readonly="state != 'draft'"/>
+                            <field name="override_rates" readonly="state != 'draft'" widget="boolean_toggle"/>
+                            <field name="folio_id" string="Master Folio" invisible="not folio_id"/>
+                            <field name="paymaster_id" invisible="not paymaster_id" readonly="1"/>
+                        </group>
+                        <group string="Stay Dates">
+                            <field name="arrival_date" readonly="state != 'draft'"/>
+                            <field name="departure_date" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="1. Room Block Setup (QTels Grid)" name="room_blocks">
+                            <div class="mb-3 mt-2">
+                                <button name="action_load_availability_grid" string=" Load / Refresh Grid" type="object" class="btn-info text-white fw-bold" icon="fa-refresh" invisible="state != 'draft'"/>
+                                <span class="text-muted ms-3"><i class="fa fa-arrow-left"/> Click this to fetch live availability!</span>
+                            </div>
+                            <field name="room_line_ids" readonly="state != 'draft'">
+                                <list editable="bottom" create="0" delete="0">
+                                    <field name="room_type_id" readonly="1" force_save="1"/>
+                                    <field name="current_rate" readonly="parent.override_rates == False" force_save="1"/>
+                                    <field name="available_qty" readonly="1" force_save="1"/>
+                                    <field name="qty_blocked"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="2. Generated Reservations" name="reservations" invisible="state == 'draft'">
+                            <p class="text-muted mt-2 mb-2">
+                                <i class="fa fa-hand-pointer-o"/> <b>Room Assignment:</b> Click the 'Unassigned' column below to quickly assign physical rooms to these shell reservations.
+                            </p>
+                            <field name="reservation_ids" domain="[('is_desk_folio', '=', False)]">
+                                <list editable="bottom" decoration-info="state == 'draft'" create="0" delete="0">
+                                    <field name="name" string="Res #" readonly="1"/>
+                                    <field name="room_type_id" readonly="1"/>
+                                    <field name="room_id" placeholder="Click to assign..."/>
+                                    <field name="partner_id" string="Primary Guest" readonly="1"/>
+                                    <field name="checkin_date" readonly="1"/>
+                                    <field name="state" widget="badge" readonly="1"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="3. Rooming List &amp; Board" name="rooming_list" invisible="state == 'draft'">
+                            <div class="alert alert-info mt-3" role="alert">
+                                <i class="fa fa-lightbulb-o"/> <b>Step 1:</b> Paste your guest names from Excel below and click Import. <b>Step 2:</b> Open the Board to drag and drop them into rooms!
+                            </div>
+                            <group>
+                                <field name="import_names_text" placeholder="Paste guest names here (one name per line)..."/>
+                            </group>
+                            <button name="action_import_names" string="1. Import Guests" type="object" class="btn-primary" icon="fa-download"/>
+                            
+                            <hr class="mt-4 mb-4"/>
+                            
+                            <div class="text-center mb-5">
+                                <button name="%(action_open_rooming_board)d" string="2. Open Drag &amp; Drop Board" type="action" class="btn-warning btn-lg fw-bold shadow" icon="fa-trello"/>
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_group_master" model="ir.actions.act_window">
+        <field name="name">Group Blocks (Allotments)</field>
+        <field name="res_model">hotel.group.master</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="view_hotel_desk_folio_tree" model="ir.ui.view">
+        <field name="name">hotel.desk.folio.tree</field>
+        <field name="model">hotel.reservation</field>
+        <field name="priority">99</field> 
+        <field name="arch" type="xml">
+            <list string="Active Desk Folios" create="true">
+                <field name="name" string="Reservation No" decoration-bf="1" optional="show"/>
+                <field name="sale_order_id" string="Folio No." decoration-info="1" optional="show"/>
+                <field name="partner_id" string="Account Name" optional="show"/>
+                <field name="checkin_date" string="From Date" optional="show"/>
+                <field name="checkout_date" string="To Date" optional="show"/>
+                
+                <field name="room_type_id" string="Room Type" optional="show"/>
+                <field name="desk_folio_status" string="Desk Folio Status" widget="badge" decoration-muted="desk_folio_status == 'draft'" decoration-info="desk_folio_status == 'open'" decoration-warning="desk_folio_status == 'fully_invoiced'" decoration-success="desk_folio_status == 'paid'" optional="show"/>
+                
+                <field name="invoice_status" string="Invoice Status" widget="badge" decoration-danger="invoice_status == 'to invoice'" decoration-success="invoice_status == 'invoiced'" optional="show"/>
+                
+                <field name="currency_id" invisible="1"/>
+                <field name="folio_balance" string="Balance Due" sum="Total Due" decoration-danger="folio_balance &gt; 0" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hotel_desk_folios_active" model="ir.actions.act_window">
+        <field name="name">Active Desk Folios</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_desk_folio', '=', True), ('desk_folio_status', 'in', ['draft', 'open', 'fully_invoiced', False]), ('state', 'not in', ['cancel', 'blocked', 'noshow', 'checkout'])]</field>
+        <field name="context">{
+            'default_is_desk_folio': True, 
+            'default_adults': 0,
+            'default_state': 'draft'
+        }</field>
+        <field name="view_id" ref="view_hotel_desk_folio_tree"/>
+    </record>
+    
+    <record id="view_hotel_routing_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.routing.wizard.form</field>
+        <field name="model">hotel.routing.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Transfer Charges">
+                <sheet>
+                    <div class="alert alert-info" role="alert">
+                        Select the Destination Room or Desk Folio, then check the boxes next to the charges you want to move.
+                    </div>
+                    <group>
+                        <field name="source_order_id" invisible="1"/>
+                        <field name="destination_reservation_id" 
+                               options="{'no_create': True}" 
+                               placeholder="Search for Room No or Account Name..."
+                               domain="[
+                                   ('sale_order_id', '!=', source_order_id), 
+                                   '|', 
+                                   '&amp;', '&amp;', 
+                                       ('is_desk_folio', '=', True), 
+                                       ('state', 'not in', ['cancel', 'blocked', 'noshow', 'checkout']), 
+                                       ('desk_folio_status', 'in', ['draft', 'open', 'fully_invoiced', False]), 
+                                   '&amp;', 
+                                       ('is_desk_folio', '=', False), 
+                                       ('state', 'in', ['checkin', 'checkout_hold'])
+                               ]"/>
+                    </group>
+                    
+                    <field name="line_ids" widget="many2many">
+                        <list string="Charges" create="0" delete="0">
+                            <field name="product_id" readonly="1"/>
+                            <field name="name" readonly="1"/>
+                            <field name="price_unit" readonly="1" sum="Total"/>
+                        </list>
+                    </field>
+                </sheet>
+                <footer>
+                    <button name="action_transfer" type="object" string="Confirm Transfer" class="btn-primary" icon="fa-exchange" confirm="Are you sure you want to move these charges?"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_routing_wizard" model="ir.actions.act_window">
+        <field name="name">Transfer Charges</field>
+        <field name="res_model">hotel.routing.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_sale_order_hotel_routing" model="ir.ui.view">
+        <field name="name">sale.order.hotel.routing</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <header position="inside">
+                <button name="%(action_hotel_routing_wizard)d" 
+                        type="action" 
+                        string="Transfer Charges" 
+                        class="btn-warning" 
+                        icon="fa-exchange"
+                        context="{'default_source_order_id': id}"/>
+            </header>
+        </field>
+    </record>
+
+    <record id="view_hotel_tax_audit_invoice_tree" model="ir.ui.view">
+        <field name="name">hotel.tax.audit.invoice.tree.full</field>
+        <field name="model">account.move</field>
+        <field name="arch" type="xml">
+            <list string="Tax Audit Invoices" create="false" edit="false" default_order="invoice_date desc, name desc">
+                
+                <field name="name" string="Number" decoration-bf="1"/>
+                <field name="partner_id" string="Customer"/>
+                <field name="hotel_guest_name" string="Guest Name" optional="show"/>
+                <field name="hotel_folio_id" string="Folio No." optional="show"/>
+                
+                <field name="invoice_date" string="Invoice Date" optional="show"/>
+                <field name="date" string="Accounting Date" optional="hide"/>
+                <field name="invoice_date_due" string="Due Date" optional="show"/>
+                
+                <field name="invoice_origin" string="Source Document" optional="show"/>
+                <field name="ref" string="Reference" optional="hide"/>
+                <field name="invoice_user_id" string="Salesperson" optional="show" widget="many2one_avatar_user"/>
+                <field name="team_id" string="Sales Team" optional="hide"/>
+                
+                <field name="company_currency_id" column_invisible="True"/>
+                
+                <field name="amount_untaxed_signed" string="Tax Excluded" sum="Total Untaxed" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show"/>
+                <field name="amount_tax_signed" string="Tax" sum="Total Tax" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show"/>
+                <field name="amount_total_signed" string="Total" sum="Total" decoration-bf="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show"/>
+                <field name="amount_residual_signed" string="Amount Due" sum="Total Due" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show"/>
+                <field name="currency_id" string="Invoice Currency" optional="hide"/>
+                
+                <field name="payment_state" string="Payment" widget="badge" decoration-success="payment_state in ('paid', 'in_payment')" decoration-danger="payment_state == 'not_paid'" optional="show"/>
+                <field name="state" string="Status" widget="badge" decoration-success="state == 'posted'" decoration-info="state == 'draft'" optional="show"/>
+                
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hotel_tax_audit_invoices" model="ir.actions.act_window">
+        <field name="name">Invoice Tax Audit</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('move_type', '=', 'out_invoice')]</field>
+        <field name="context">{'create': False, 'edit': False}</field>
+        <field name="view_id" ref="view_hotel_tax_audit_invoice_tree"/>
+    </record>
+
+    <record id="action_hotel_document_sequences" model="ir.actions.act_window">
+        <field name="name">Document Sequences</field>
+        <field name="res_model">ir.sequence</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('code', 'in', ['hotel.reservation', 'hotel.group.master', 'sale.order'])]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Set up your document prefixes and starting numbers!
+            </p>
+        </field>
+    </record>
+
+    <record id="action_hotel_tax_journals" model="ir.actions.act_window">
+        <field name="name">Invoice &amp; Receipt Setup</field>
+        <field name="res_model">account.journal</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('type', 'in', ['sale', 'cash', 'bank'])]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Manage your Tax Invoices and Payment Receipt Journals here!
+            </p>
+        </field>
+    </record>
+
+    <record id="email_template_pre_arrival" model="mail.template">
+        <field name="name">Hotel: Pre-Arrival Check-In</field>
+        <field name="model_id" ref="hotel_management.model_hotel_reservation"/>
+        <field name="subject">Prepare for your stay at our Hotel, {{ object.partner_id.name }}!</field>
+        <field name="email_to">{{ object.partner_id.email }}</field>
+        <field name="body_html" type="html">
+            <div style="margin: 0px; padding: 0px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333333;">
+                <p>Dear <strong><t t-out="object.partner_id.name"/></strong>,</p>
+                <p>We are thrilled to welcome you to our hotel in just two days on <strong><t t-out="object.checkin_date"/></strong>!</p>
+                <p>To ensure your room is perfectly prepared, please take 60 seconds to complete your Contactless Pre-Registration. You can tell us your arrival time, select your room preferences, and upload your ID so you can skip the line at the Front Desk.</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a t-att-href="object._get_pre_arrival_absolute_url()" style="background-color: #7B68EE; padding: 12px 24px; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                        Complete Pre-Registration
+                    </a>
+                </div>
+                
+                <p>We look forward to hosting you.</p>
+                <p>Warm regards,<br/><strong>The Front Desk Team</strong></p>
+            </div>
+        </field>
+    </record>
+
+    <record id="ir_cron_pre_arrival_emails" model="ir.cron">
+        <field name="name">Hotel: Send Pre-Arrival Emails</field>
+        <field name="model_id" ref="hotel_management.model_hotel_reservation"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_send_pre_arrival_emails()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <record id="view_partner_form_inherit_hotel" model="ir.ui.view">
+        <field name="name">res.partner.form.inherit.hotel</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='vat']" position="after">
+                <field name="passport_number" string="Passport / National ID"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_hotel_express_checkin_wizard" model="ir.ui.view">
+        <field name="name">hotel.express.checkin.wizard.form</field>
+        <field name="model">hotel.express.checkin.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Express Check-In">
+                <sheet>
+                    <div class="text-center mb-4">
+                        <h2 class="text-primary fw-bold">Express QR Check-In</h2>
+                        <p class="text-muted">Align the guest's QR code within the camera frame below.</p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-7 text-center border-end">
+                            <div id="camera_window" style="background: #000; border-radius: 10px; overflow: hidden; height: 300px; position: relative;">
+                                <video id="preview" style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 2px dashed #fff; width: 200px; height: 200px; pointer-events: none; opacity: 0.5;"></div>
+                            </div>
+                            <p class="mt-2 small text-info"><i class="fa fa-camera"/> Laptop Camera Active</p>
+                        </div>
+
+                        <div class="col-md-5">
+                            <group>
+                                <label for="access_token" string="Scan Result"/>
+                                <div class="o_row">
+                                    <field name="access_token" placeholder="Paste Token Here..." class="fw-bold"/>
+                                    <button name="action_find_guest" type="object" string="Find Guest" class="btn btn-primary"/>
+                                </div>                                
+                                <field name="reservation_id" invisible="not reservation_id" readonly="1"/>
+                                <field name="partner_id" invisible="not reservation_id" readonly="1"/>
+                                <field name="room_id" invisible="not reservation_id" readonly="1"/>
+                            </group>
+                            
+                            <div class="alert alert-success mt-3" role="alert" invisible="not reservation_id">
+                                <strong>Match Found!</strong><br/>
+                                Please ask the guest to sign the digital pad below.
+                            </div>
+                        </div>
+                    </div>
+
+                    <group invisible="not reservation_id" string="Guest Digital Signature" class="mt-4 border-top pt-3">
+                        <field name="guest_signature" widget="signature" nolabel="1" colspan="2"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm_checkin" type="object" string="Save Signature &amp; Review Reservation" class="btn btn-success" invisible="not reservation_id"/>
+                    <button special="cancel" string="Close" class="btn btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_express_checkin" model="ir.actions.act_window">
+        <field name="name">Express QR Check-In</field>
+        <field name="res_model">hotel.express.checkin.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'on_init_action': 'action_start_hotel_camera'}</field>
+    </record>
+
+    <record id="view_partner_form_hotel_nationality" model="ir.ui.view">
+        <field name="name">res.partner.form.hotel.nationality</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='vat']" position="after">
+                <field name="nationality_id" placeholder="e.g. Cambodian" options="{'no_create': True}"/>
+            </xpath>
+        </field>
+    </record>    
+              
+</odoo>
+

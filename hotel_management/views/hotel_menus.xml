@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_hotel_root" name="Hotel Management" web_icon="hotel_management,static/description/icon.png" sequence="1"
+              groups="hotel_management.group_hotel_housekeeper,hotel_management.group_hotel_front_office,hotel_management.group_hotel_account_receivable,hotel_management.group_hotel_manager,base.group_system"/>
+
+    <menuitem id="menu_hotel_dashboard_parent" name="Hotel Dashboard" parent="menu_hotel_root" sequence="1"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_front_desk" name="Front Desk" parent="menu_hotel_root" sequence="20"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_housekeeping_parent" name="Housekeeping" parent="menu_hotel_root" sequence="30"
+              groups="hotel_management.group_hotel_housekeeper,hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_change" name="Journal" parent="menu_hotel_root" sequence="40"
+              groups="hotel_management.group_hotel_front_office,hotel_management.group_hotel_account_receivable"/>
+    <menuitem id="menu_hotel_reporting" name="Reporting" parent="menu_hotel_root" sequence="50"
+              groups="hotel_management.group_hotel_night_auditor"/>
+    <menuitem id="menu_hotel_report_reservation" name="Reservations" parent="menu_hotel_reporting" sequence="20"
+              groups="hotel_management.group_hotel_night_auditor"/>
+    <menuitem id="menu_hotel_report_accounting_parent" name="Accounting" parent="menu_hotel_reporting" sequence="80"
+              groups="hotel_management.group_hotel_night_auditor"/>
+    <menuitem id="menu_hotel_config" name="Configuration" parent="menu_hotel_root" sequence="100"
+              groups="hotel_management.group_hotel_manager,base.group_system"/>
+    <menuitem id="menu_hotel_rate_plan" 
+              name="Rate Plans" 
+              parent="hotel_management.menu_hotel_config" 
+              action="action_hotel_rate_plan" 
+              sequence="10"/>
+    
+    <menuitem id="menu_hotel_room_config" name="Room Settings" parent="menu_hotel_config" sequence="1"/>
+    <menuitem id="menu_hotel_rate_config" name="Pricing" parent="menu_hotel_config" sequence="5"/>
+    <menuitem id="menu_hotel_marketing_config" name="Marketing" parent="menu_hotel_config" sequence="10"/>
+    <menuitem id="menu_hotel_service_config" name="Products &amp; Services" parent="menu_hotel_config" sequence="15"/>
+    <menuitem id="menu_hotel_document_sequences" 
+              name="Document Sequences" 
+              parent="menu_hotel_config" 
+              action="action_hotel_document_sequences" 
+              sequence="90"/>
+    <menuitem id="menu_hotel_tax_journals" 
+              name="Invoice &amp; Receipt Sequences" 
+              parent="menu_hotel_config" 
+              action="action_hotel_tax_journals" 
+              sequence="91"/>          
+    <menuitem id="menu_hotel_settings"
+              name="Setting Options"
+              parent="menu_hotel_config"
+              action="action_hotel_config_settings"
+              sequence="10"/>
+    <menuitem id="menu_setup_default_hotel_accounting"
+              name="Setup Default Hotel Accounting"
+              parent="menu_hotel_config"
+              action="action_setup_default_hotel_accounting"
+              sequence="20"
+              groups="hotel_management.group_hotel_manager,account.group_account_manager,base.group_system"/>
+
+    <menuitem id="menu_hotel_dashboard" name="Hotel Dashboard" parent="menu_hotel_dashboard_parent" action="action_open_hotel_dashboard" sequence="1"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_dashboard_main" name="Room Status (Live)" parent="menu_hotel_dashboard_parent" action="action_hotel_room_status_dashboard" sequence="2"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_occupancy" name="Occupancy Chart" parent="menu_hotel_dashboard_parent" action="action_occupancy_analysis_daily" sequence="3"
+              groups="hotel_management.group_hotel_night_auditor"/>
+    <menuitem id="menu_hotel_occupancy_comparison" name="Occupancy Comparison" parent="menu_hotel_dashboard_parent" action="action_hotel_occupancy_client" sequence="4"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_revenue_forecast_dash" name="Revenue Forecast" parent="menu_hotel_dashboard_parent" action="action_revenue_analysis_daily" sequence="5"
+              groups="hotel_management.group_hotel_night_auditor"/>
+    <menuitem id="menu_hotel_advanced_analytics" name="Pivot Analytics" parent="menu_hotel_dashboard_parent" action="action_hotel_advanced_analytics" sequence="6"
+              groups="hotel_management.group_hotel_night_auditor"/>    
+
+    <menuitem id="menu_hotel_floor_plan" name="Floor Plan Map" parent="menu_hotel_front_desk" action="action_hotel_floor_plan" sequence="1"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_tape_chart" name="Room Chart" parent="menu_hotel_front_desk" action="action_hotel_tape_chart_client" sequence="2"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_availability_grid" name="Availability Grid" parent="menu_hotel_front_desk" action="action_hotel_availability_grid_client" sequence="3"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_reservations" name="Reservations" parent="menu_hotel_front_desk" action="action_hotel_reservation" sequence="10"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_inhouse_guests" name="In-House Guests" parent="menu_hotel_front_desk" action="action_hotel_inhouse_guests" sequence="11"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_desk_folios_active" 
+              name="Active Desk Folios" 
+              parent="menu_hotel_front_desk" 
+              action="action_hotel_desk_folios_active" 
+              sequence="25"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_group_blocks" name="Group Blocks" parent="menu_hotel_front_desk" action="action_hotel_group_master" sequence="12"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_guests" name="Guest Database" parent="menu_hotel_front_desk" action="base.action_partner_form" sequence="20"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_guest_requests" name="Guest Requests" parent="menu_hotel_front_desk" action="action_hotel_service_request" sequence="21"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_guest_messages" name="Guest Chat Logs" parent="menu_hotel_front_desk" action="action_hotel_guest_message" sequence="22"
+              groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_night_audit" name="Run Night Audit" parent="menu_hotel_front_desk" action="action_open_night_audit_wizard" sequence="30"
+              groups="hotel_management.group_hotel_front_office"/>
+
+    <menuitem id="menu_hotel_housekeeping_ops" name="Housekeeping Operations" parent="menu_hotel_housekeeping_parent" action="action_hotel_housekeeping" sequence="1"
+              groups="hotel_management.group_hotel_housekeeper,hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_room_blocks"
+          name="Room Blocks"
+          parent="menu_hotel_housekeeping_parent"
+          action="action_hotel_room_blocks"
+          sequence="3"
+          groups="hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_housekeeping_task_log"
+          name="Housekeeping Task Log"
+          parent="menu_hotel_housekeeping_parent"
+          action="action_hotel_housekeeping_task_log"
+          sequence="4"
+          groups="hotel_management.group_hotel_housekeeper,hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_maintenance_requests" name="Maintenance Requests" parent="menu_hotel_housekeeping_parent" action="action_hotel_maintenance_request" sequence="2"
+              groups="hotel_management.group_hotel_housekeeper,hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_maintenance" name="Housekeeping Status" parent="menu_hotel_housekeeping_parent" action="action_placeholder_maintenance" sequence="3"
+              groups="hotel_management.group_hotel_housekeeper,hotel_management.group_hotel_front_office"/>
+    <menuitem id="menu_hotel_lost_found" name="Lost &amp; Found" parent="menu_hotel_housekeeping_parent" action="action_hotel_lost_found" sequence="4"
+              groups="hotel_management.group_hotel_housekeeper,hotel_management.group_hotel_front_office"/>
+    
+    <menuitem id="menu_hotel_posting_journal" name="Master Posting Journal" parent="menu_hotel_change" action="action_hotel_posting_journal" sequence="15"
+              groups="hotel_management.group_hotel_front_office,hotel_management.group_hotel_account_receivable"/>
+    <menuitem id="menu_hotel_change_journal" name="Change Journal" parent="menu_hotel_change" action="action_hotel_change_log" sequence="10"
+              groups="hotel_management.group_hotel_front_office,hotel_management.group_hotel_account_receivable"/>
+    <menuitem id="menu_hotel_payment_history" name="Payment &amp; Receipts" parent="menu_hotel_change" action="action_hotel_payments" sequence="50"
+              groups="hotel_management.group_hotel_front_office,hotel_management.group_hotel_account_receivable"/>
+    <menuitem id="menu_hotel_folio_tax_audit" 
+              name="Tax Audit: Folios" 
+              parent="menu_hotel_change" 
+              action="action_hotel_folio_tax_audit" 
+              sequence="60"
+              groups="hotel_management.group_hotel_account_receivable,hotel_management.group_hotel_night_auditor"/>
+    <menuitem id="menu_hotel_tax_audit_invoices" 
+              name="Invoice Tax Audit" 
+              parent="menu_hotel_change" 
+              action="action_hotel_tax_audit_invoices" 
+              sequence="99"
+              groups="hotel_management.group_hotel_account_receivable,hotel_management.group_hotel_night_auditor"/>          
+
+    <menuitem id="menu_hotel_report_mdr" name="Manager Daily Report (MDR)" parent="menu_hotel_reporting" action="action_hotel_manager_daily_report" sequence="1"
+              groups="hotel_management.group_hotel_night_auditor"/>
+    <menuitem id="menu_hotel_report_revenue_item" name="Revenue Analysis" parent="menu_hotel_reporting" action="action_revenue_analysis_daily" sequence="2"
+              groups="hotel_management.group_hotel_night_auditor"/>
+    <menuitem id="menu_hotel_report_occupancy_item" name="Occupancy Analysis" parent="menu_hotel_reporting" action="action_occupancy_analysis_daily" sequence="3"
+              groups="hotel_management.group_hotel_night_auditor"/>
+    <menuitem id="menu_hotel_report_expected_arrivals_item" name="Expected Arrivals" parent="menu_hotel_report_reservation" action="action_hotel_arrival_wizard" sequence="1"
+              groups="hotel_management.group_hotel_night_auditor"/>
+    <menuitem id="menu_hotel_report_expected_departures_item" name="Expected Departures" parent="menu_hotel_report_reservation" action="action_hotel_departure_wizard" sequence="2"
+              groups="hotel_management.group_hotel_night_auditor"/>
+    <menuitem id="menu_hotel_accounting_print" name="Print Invoice and Receipt" parent="menu_hotel_report_accounting_parent" action="action_hotel_accounting_report_wizard" sequence="1"
+              groups="hotel_management.group_hotel_night_auditor"/> 
+    <menuitem id="menu_hotel_revenue_forecast" name="Daily Occupancy &amp; Revenue" parent="menu_hotel_reporting" action="action_combined_forecast_daily" sequence="95"
+              groups="hotel_management.group_hotel_night_auditor"/> 
+    
+                  
+    <menuitem id="menu_hotel_zone" name="Buildings / Zones" parent="menu_hotel_room_config" action="action_hotel_zone" sequence="1"/>
+    <menuitem id="menu_hotel_floor" name="Floors" parent="menu_hotel_room_config" action="action_hotel_floor" sequence="2"/>
+    <menuitem id="menu_hotel_room_types" name="Room Types" parent="menu_hotel_room_config" action="action_hotel_room_type" sequence="3"/>
+    <menuitem id="menu_hotel_room_numbers" name="Rooms" parent="menu_hotel_room_config" action="action_hotel_room" sequence="4"/>
+    <menuitem id="menu_hotel_amenities" name="Amenities" parent="menu_hotel_room_config" action="action_hotel_room_amenity" sequence="5"/>
+    <!-- <menuitem id="menu_hotel_rate_setup" name="Rate Setup" parent="menu_hotel_rate_config" action="action_hotel_room_rate" sequence="1"/> -->
+    <menuitem id="menu_hotel_products" name="Product Setup" parent="menu_hotel_service_config" action="action_hotel_product_setup" sequence="1"/>
+    <menuitem id="menu_booking_source" name="Booking Sources" parent="menu_hotel_marketing_config" action="action_booking_source" sequence="1"/>
+    <menuitem id="menu_market_segment" name="Market Segments" parent="menu_hotel_marketing_config" action="action_market_segment" sequence="2"/>
+    <menuitem id="menu_guest_classify" name="Guest Classifications" parent="menu_hotel_marketing_config" action="action_guest_classify" sequence="3"/>
+    <menuitem id="menu_hotel_guest_attribute" name="Guest Analysis Dropdowns" parent="menu_hotel_marketing_config" action="action_hotel_guest_attribute" sequence="4"/>
+    
+    <menuitem id="menu_hotel_db_manager" name="Backup &amp; Restore" parent="menu_hotel_config" action="action_open_database_manager" sequence="999" groups="base.group_system"/>
+
+    <menuitem id="menu_hotel_city_ledger_root" name="City Ledger" parent="menu_hotel_root" sequence="45"
+              groups="hotel_management.group_hotel_account_receivable"/>
+
+    <menuitem id="menu_city_ledger_invoices" 
+              name="Unpaid Folios (A/R)" 
+              parent="menu_hotel_city_ledger_root" 
+              action="hotel_management.action_hotel_city_ledger_invoices" 
+              sequence="10"
+              groups="hotel_management.group_hotel_account_receivable"/>
+
+    <menuitem id="menu_city_ledger_customers" 
+              name="Corporate Accounts" 
+              parent="menu_hotel_city_ledger_root" 
+              action="hotel_management.action_hotel_city_ledger_customers" 
+              sequence="20"
+              groups="hotel_management.group_hotel_account_receivable"/>
+      <menuitem id="menu_express_checkin" 
+          name="Express QR Check-In" 
+          parent="hotel_management.menu_hotel_front_desk" 
+          action="action_hotel_express_checkin" 
+          sequence="1"/>
+
+</odoo>

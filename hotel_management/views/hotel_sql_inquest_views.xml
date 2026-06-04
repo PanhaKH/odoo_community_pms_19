@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_hotel_sql_inquest_popup" model="ir.actions.act_window">
+        <field name="name">SQL Inquest</field>
+        <field name="res_model">hotel.sql.inquest.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{}</field>
+    </record>
+
+    <record id="action_hotel_sql_report_from_query" model="ir.actions.act_window">
+        <field name="name">SQL Report</field>
+        <field name="res_model">hotel.sql.inquest.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+        <field name="context">{}</field>
+    </record>
+
+    <record id="view_hotel_sql_inquest_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.sql.inquest.wizard.form</field>
+        <field name="model">hotel.sql.inquest.wizard</field>
+        <field name="arch" type="xml">
+            <form string="SQL Inquest" create="false" delete="false" class="o_hotel_sql_inquest_form">
+                <header>
+                    <button name="action_execute_query" type="object" string="Run Query" class="btn-primary"/>
+                    <button name="%(action_hotel_sql_inquest_popup)d" type="action" string="Open Query Page" class="btn-secondary" context="{'default_sql_query': sql_query}"/>
+                    <button name="%(action_hotel_sql_report_from_query)d" type="action" string="Add to Report" class="btn-secondary" context="{'default_sql_query': sql_query}"/>
+                    <button name="action_clear_results" type="object" string="Clear Results" class="btn-secondary"/>
+                </header>
+                <sheet class="o_hotel_sql_inquest_sheet">
+                    <div class="row g-3 o_hotel_sql_inquest_layout">
+                        <div class="col-xl-8 col-lg-7 col-12 o_hotel_sql_inquest_query_col">
+                            <group string="Query">
+                                <field name="sql_query" nolabel="1" widget="text" class="o_hotel_sql_inquest_editor"/>
+                            </group>
+                        </div>
+                        <div class="col-xl-4 col-lg-5 col-12 o_hotel_sql_inquest_browser_col">
+                            <group string="All Tables">
+                                <field name="help_html" nolabel="1" readonly="1" class="o_hotel_sql_inquest_help"/>
+                            </group>
+                        </div>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_sql_inquest_query_form" model="ir.ui.view">
+        <field name="name">hotel.sql.inquest.wizard.query.form</field>
+        <field name="model">hotel.sql.inquest.wizard</field>
+        <field name="arch" type="xml">
+            <form string="SQL Query" create="false" delete="false" class="o_hotel_sql_inquest_form">
+                <header>
+                    <button name="action_execute_query" type="object" string="Run Query" class="btn-primary"/>
+                    <button name="%(action_hotel_sql_inquest_popup)d" type="action" string="Open Query Page" class="btn-secondary" context="{'default_sql_query': sql_query}"/>
+                    <button name="%(action_hotel_sql_report_from_query)d" type="action" string="Add to Report" class="btn-secondary" context="{'default_sql_query': sql_query}"/>
+                    <button name="action_clear_results" type="object" string="Clear Results" class="btn-secondary"/>
+                </header>
+                <sheet class="o_hotel_sql_inquest_sheet">
+                    <group string="Query">
+                        <field name="sql_query" nolabel="1" widget="text" class="o_hotel_sql_inquest_editor"/>
+                    </group>
+                    <group string="Execution">
+                        <group>
+                            <field name="row_count"/>
+                            <field name="column_count"/>
+                        </group>
+                        <group>
+                            <field name="executed_at"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_sql_inquest" model="ir.actions.act_window">
+        <field name="name">SQL Inquest</field>
+        <field name="res_model">hotel.sql.inquest.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+        <field name="view_id" ref="view_hotel_sql_inquest_wizard_form"/>
+        <field name="context">{}</field>
+    </record>
+
+    <record id="action_hotel_sql_inquest_popup" model="ir.actions.act_window">
+        <field name="view_id" ref="view_hotel_sql_inquest_query_form"/>
+    </record>
+
+    <record id="action_hotel_sql_report_from_query" model="ir.actions.act_window">
+        <field name="view_id" ref="view_hotel_sql_inquest_query_form"/>
+    </record>
+
+    <record id="action_hotel_sql_saved_query" model="ir.actions.act_window">
+        <field name="name">SQL Reports</field>
+        <field name="res_model">hotel.sql.inquest.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_hotel_sql_inquest_query_form"/>
+        <field name="target">current</field>
+        <field name="context">{'default_sql_query': 'SELECT\n    *\nFROM hotel_reservation'}</field>
+    </record>
+
+    <record id="action_hotel_roommaster_sql_inquest" model="ir.actions.act_window">
+        <field name="name">RoomMaster SQL Inquest</field>
+        <field name="res_model">hotel.sql.inquest.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_hotel_sql_inquest_query_form"/>
+        <field name="target">current</field>
+        <field name="context">{'default_sql_query': 'SELECT\n    room.id,\n    room.name AS room_number,\n    zone.name AS building,\n    floor.display_name AS floor,\n    room_type.name AS room_type,\n    room.capacity,\n    room.state,\n    room.clean_priority,\n    room.ooo_until\nFROM hotel_room room\nLEFT JOIN hotel_zone zone ON zone.id = room.zone_id\nLEFT JOIN hotel_floor floor ON floor.id = room.floor_id\nLEFT JOIN hotel_room_type room_type ON room_type.id = room.room_type_id\nORDER BY zone.sequence, floor.sequence, room.name'}</field>
+    </record>
+
+</odoo>

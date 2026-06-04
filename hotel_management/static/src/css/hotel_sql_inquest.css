@@ -1,0 +1,340 @@
+.o_sql_inquest {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #eef3f8 0%, #f8fafc 100%);
+    color: #16324f;
+    overflow: hidden;
+}
+
+.o_hotel_sql_inquest_form .o_form_sheet_bg {
+    overflow-x: hidden;
+}
+
+.o_hotel_sql_inquest_sheet {
+    max-width: none !important;
+    width: 100%;
+    min-width: 0;
+}
+
+.o_hotel_sql_inquest_layout,
+.o_hotel_sql_inquest_query_col,
+.o_hotel_sql_inquest_browser_col,
+.o_hotel_sql_inquest_help,
+.o_hotel_sql_inquest_results {
+    min-width: 0;
+}
+
+.o_hotel_sql_inquest_editor textarea,
+.o_hotel_sql_inquest_editor .o_input {
+    min-height: 52vh;
+    max-height: 68vh;
+    font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
+    resize: vertical;
+}
+
+.o_hotel_sql_inquest_notice {
+    padding: 10px 12px;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.o_hotel_sql_inquest_table_browser {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    min-width: 0;
+}
+
+.o_hotel_sql_inquest_table_browser_title {
+    padding: 8px 10px;
+    font-weight: 600;
+    border-bottom: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
+
+.o_hotel_sql_inquest_table_scroll {
+    max-height: min(520px, 58vh);
+    overflow: auto;
+}
+
+.o_hotel_sql_inquest_table {
+    table-layout: fixed;
+    width: 100%;
+    min-width: 0;
+    font-size: 12px;
+}
+
+.o_hotel_sql_inquest_table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f8f9fa;
+}
+
+.o_hotel_sql_inquest_table th,
+.o_hotel_sql_inquest_table td {
+    vertical-align: top;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.o_hotel_sql_inquest_table th:nth-child(1),
+.o_hotel_sql_inquest_table td:nth-child(1) {
+    width: 16%;
+}
+
+.o_hotel_sql_inquest_table th:nth-child(2),
+.o_hotel_sql_inquest_table td:nth-child(2) {
+    width: 38%;
+}
+
+.o_hotel_sql_inquest_table th:nth-child(3),
+.o_hotel_sql_inquest_table td:nth-child(3) {
+    width: 12%;
+}
+
+.o_hotel_sql_inquest_table th:nth-child(4),
+.o_hotel_sql_inquest_table td:nth-child(4) {
+    width: 34%;
+}
+
+.o_hotel_sql_inquest_table code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.o_hotel_sql_query_open code {
+    color: inherit;
+}
+
+.o_hotel_sql_query_open:hover code {
+    text-decoration: underline;
+}
+
+.o_hotel_sql_inquest_result_scroll {
+    max-height: min(480px, 52vh);
+    overflow: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+}
+
+.o_hotel_sql_inquest_result_table {
+    width: max-content;
+    min-width: 100%;
+}
+
+/* Toolbar */
+.o_sql_inquest_toolbar {
+    padding: 12px 16px;
+    border-bottom: 1px solid #d6dfeb;
+    background: linear-gradient(180deg, #ffffff 0%, #eef4fb 100%);
+    flex-shrink: 0;
+}
+
+.o_sql_inquest_title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #204f86;
+}
+
+/* Workspace */
+.o_sql_inquest_workspace {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, clamp(280px, 26vw, 420px));
+    gap: 12px;
+    padding: 12px;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Panels */
+.o_sql_inquest_editor_panel,
+.o_sql_inquest_browser_panel,
+.o_sql_inquest_results {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #d6dfeb;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(25, 66, 110, 0.08);
+    overflow: hidden;
+}
+
+/* Editor panel */
+.o_sql_inquest_editor_panel {
+    display: grid;
+    grid-template-rows: auto minmax(320px, 1fr);
+    gap: 10px;
+    padding: 12px;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* Titles */
+.o_sql_inquest_panel_title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #55718f;
+}
+
+/* SQL editor */
+.o_sql_inquest_editor {
+    width: 100%;
+    height: 100%;
+    border: 1px solid #c6d4e5;
+    border-radius: 10px;
+    padding: 14px 16px;
+    background: #fbfdff;
+    color: #0f2740;
+    font: 500 14px/1.5 "SFMono-Regular", "Menlo", "Consolas", monospace;
+    resize: vertical; /* allow resize */
+    min-height: 0;
+}
+
+.o_sql_inquest_editor:focus {
+    outline: none;
+    border-color: #3d7ad6;
+    box-shadow: 0 0 0 3px rgba(61, 122, 214, 0.14);
+}
+
+/* Results */
+.o_sql_inquest_results {
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+}
+
+.o_sql_inquest_results_body {
+    flex: 1;
+    overflow: auto;
+    border: 1px solid #d6dfeb;
+    border-radius: 10px;
+    background: #ffffff;
+    min-width: 0;
+}
+
+/* Sticky header */
+.o_sql_inquest_results th {
+    position: sticky;
+    top: 0;
+    background: #edf4fc;
+    z-index: 2;
+}
+
+.o_sql_inquest_result_table {
+    width: max-content;
+    min-width: 100%;
+}
+
+.o_sql_inquest_result_table th,
+.o_sql_inquest_result_table td {
+    max-width: 360px;
+    overflow-wrap: anywhere;
+    vertical-align: top;
+}
+
+/* Table browser */
+.o_sql_inquest_browser_panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* Search */
+.o_sql_inquest_browser_search input {
+    width: 100%;
+    border-radius: 999px;
+    padding: 8px 12px;
+}
+
+/* Table list */
+.o_sql_inquest_table_list {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Table item */
+.o_sql_inquest_table_item {
+    border: 1px solid #d6dfeb;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-width: 0;
+    text-align: left;
+}
+
+.o_sql_inquest_table_item:hover,
+.o_sql_inquest_table_item.active {
+    border-color: #3d7ad6;
+    background: linear-gradient(180deg, #f6faff 0%, #eaf2fd 100%);
+}
+
+/* Text */
+.o_sql_inquest_table_name {
+    display: block;
+    font-weight: 700;
+    color: #183f69;
+    overflow-wrap: anywhere;
+}
+
+.o_sql_inquest_table_meta {
+    display: block;
+    font-size: 0.78rem;
+    color: #6a8099;
+    overflow-wrap: anywhere;
+}
+
+/* Empty state */
+.o_sql_inquest_empty {
+    padding: 24px 18px;
+    color: #6a8099;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+    .o_sql_inquest_workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(520px, 1fr) minmax(260px, 36vh);
+    }
+}
+
+@media (max-width: 991.98px) {
+    .o_hotel_sql_inquest_editor textarea,
+    .o_hotel_sql_inquest_editor .o_input {
+        min-height: 320px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .o_hotel_sql_inquest_table th:nth-child(4),
+    .o_hotel_sql_inquest_table td:nth-child(4) {
+        display: none;
+    }
+
+    .o_hotel_sql_inquest_table th:nth-child(1),
+    .o_hotel_sql_inquest_table td:nth-child(1) {
+        width: 24%;
+    }
+
+    .o_hotel_sql_inquest_table th:nth-child(2),
+    .o_hotel_sql_inquest_table td:nth-child(2) {
+        width: 56%;
+    }
+
+    .o_hotel_sql_inquest_table th:nth-child(3),
+    .o_hotel_sql_inquest_table td:nth-child(3) {
+        width: 20%;
+    }
+}

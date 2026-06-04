@@ -1,0 +1,31 @@
+/* Custom Heatmap Colors */
+.hotel-occ-high { background-color: #ff4d4d !important; color: white; } /* 90-100% Red */
+.hotel-occ-med-high { background-color: #ffff99 !important; color: black; } /* 70-89% Yellow */
+.hotel-occ-med { background-color: #99ff99 !important; color: black; } /* 50-69% Green */
+.hotel-occ-low { background-color: #99ccff !important; color: black; } /* 0-49% Blue */
+.hotel-occ-none { background-color: #f8f9fa !important; color: #ccc; } /* No Data */
+
+.hotel-cal-cell {
+    height: 100px;
+    vertical-align: middle !important;
+    border: 1px solid #dee2e6;
+    transition: transform 0.1s;
+}
+.hotel-cal-cell:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+.hotel-cal-value { font-size: 1.8em; font-weight: bold; }
+.hotel-cal-grid .hotel-cell {
+    transition: transform 0.2s;
+    border-color: #dee2e6 !important;
+}
+.hotel-cal-grid .hotel-cell:hover {
+    transform: scale(1.05);
+    z-index: 10;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    cursor: pointer;
+}
+.bg-light-blue { background-color: #e3f2fd; }
+.bg-light-50 { background-color: #f8f9fa; }

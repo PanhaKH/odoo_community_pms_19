@@ -1,0 +1,148 @@
+/* --- MODERN TAPE CHART THEME (FIXED TEXT OVERFLOW) --- */
+
+/* 1. Main Container */
+.o_tape_chart_container {
+    height: calc(100vh - 100px);
+    overflow: auto;
+    background-color: #f0f2f5; 
+    padding: 15px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* 2. The Grid Table */
+.chart-table {
+    border-collapse: separate; 
+    border-spacing: 0;
+    width: 100%;
+    table-layout: fixed;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* 3. Sticky Headers */
+.sticky-corner {
+    position: sticky; left: 0; top: 0; z-index: 60;
+    background: #2c3e50 !important; color: white;
+    border: 1px solid #34495e;
+    height: 45px; vertical-align: middle !important;
+    text-transform: uppercase; font-size: 11px; letter-spacing: 1px;
+}
+
+.month-header {
+    position: sticky; top: 0; z-index: 50;
+    background: #2c3e50 !important; color: white;
+    border-left: 1px solid #34495e;
+    height: 45px; vertical-align: middle !important;
+    font-weight: 500;
+}
+
+.sticky-col-header {
+    position: sticky; left: 0; top: 45px; z-index: 55;
+    background: #f8f9fa !important; border-right: 1px solid #dee2e6;
+    height: 35px;
+}
+
+.day-header {
+    position: sticky; top: 45px; z-index: 45;
+    background: #f8f9fa !important;
+    border-bottom: 1px solid #dee2e6;
+    border-left: 1px solid #e9ecef;
+    color: #495057; font-size: 11px; font-weight: bold;
+    height: 35px; vertical-align: middle !important;
+}
+
+.day-header.weekend {
+    background-color: #e9ecef !important;
+    color: #e74c3c;
+}
+
+/* 4. Room Column (Left) */
+.sticky-room-col {
+    position: sticky; left: 0; z-index: 40; 
+    background: white !important;
+    border-right: 2px solid #dee2e6 !important;
+    border-bottom: 1px solid #f1f1f1;
+    color: #2c3e50; font-weight: 600; font-size: 13px;
+    vertical-align: middle !important;
+    padding-left: 15px !important;
+}
+
+.room-maintenance {
+    background: #636e72 !important;
+    color: #dfe6e9 !important;
+    text-decoration: line-through;
+}
+
+/* 5. Cells (The Canvas) */
+.chart-table td {
+    height: 45px;
+    padding: 0 !important;
+    border-bottom: 1px solid #f1f1f1;
+    border-right: 1px solid #f8f9fa; 
+    position: relative; 
+    vertical-align: middle !important;
+    z-index: 10; /* Base level for empty cells */
+}
+
+.table-hover-cell:hover {
+    background-color: #ffeaa7 !important; 
+    cursor: pointer;
+}
+
+/* --- MODERN TAPE CHART THEME (FIXED TEXT OVERFLOW) --- */
+
+/* ... (Keep the previous CSS sections 1-5 exactly the same) ... */
+
+/* 6. BOOKING BARS */
+.booking-cell {
+    position: relative;
+    cursor: pointer;
+    border-top: 2px solid white;
+    border-bottom: 2px solid white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    z-index: 15; /* Colored bars slightly higher than empty cells */
+    overflow: visible !important; 
+}
+
+/* *** THE FIX: The Start Cell must be higher than everything following it *** */
+.booking-start-cell {
+    z-index: 35 !important; 
+}
+
+/* COLORS - ADDED NO SHOW */
+.bg-checkin { background-color: #ff7675 !important; color: white !important; } /* Coral */
+.bg-confirm { background-color: #00b894 !important; color: white !important; } /* Teal */
+.bg-draft   { background-color: #0984e3 !important; color: white !important; } /* Blue */
+.bg-checkout{ background-color: #b2bec3 !important; color: white !important; } /* Gray */
+.bg-noshow  { background-color: #2d3436 !important; color: white !important; } /* Black/Dark Gray */
+
+/* ... (Keep the rest of the CSS sections 7-9 the same) ... */
+/* 7. Seamless Joining */
+.booking-cell.no-border-left { border-left: none !important; margin-left: -1px; }
+.booking-cell.no-border-right { border-right: none !important; margin-right: -1px; }
+
+/* 8. Floating Name Label */
+.guest-name-label {
+    position: absolute; 
+    left: 5px; top: 0; height: 100%;
+    display: flex; align-items: center;
+    white-space: nowrap; 
+    overflow: visible; 
+    z-index: 100; /* Inside the cell, this is top priority */
+    pointer-events: none;
+    font-size: 12px; font-weight: 700; 
+    color: white !important;
+    text-shadow: 0 0 3px rgba(0,0,0,0.8), 0 1px 2px black;
+    width: max-content; 
+    padding-right: 15px;
+}
+
+/* 9. Legend */
+.tape-legend {
+    display: flex; gap: 15px; align-items: center;
+    background: white; padding: 6px 15px;
+    border-radius: 50px; border: 1px solid #dee2e6;
+}
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <record id="pos_payment_method_room_charge" model="pos.payment.method">
+            <field name="name">Bill To Room Charge</field>
+            <field name="is_room_charge" eval="True"/>
+        </record>
+
+    </data>
+
+    <function model="pos.payment.method" name="_link_room_charge_methods_to_pos_configs"/>
+</odoo>

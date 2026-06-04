@@ -1,0 +1,300 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_hotel_housekeeping_search" model="ir.ui.view">
+        <field name="name">hotel.housekeeping.search</field>
+        <field name="model">hotel.room</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="room_type_id"/>
+                <field name="zone_id"/>
+                <field name="floor_id"/>
+                <field name="service_workflow"/>
+                <field name="assigned_housekeeper_id"/>
+                <field name="assigned_inspector_id"/>
+                <field name="occupancy_status"/>
+                <field name="housekeeping_status"/>
+                <field name="availability_status"/>
+                <filter string="Dirty Rooms" name="dirty_rooms" domain="[('housekeeping_status', '=', 'dirty')]"/>
+                <filter string="Priority Cleaning" name="priority_clean" domain="[('clean_priority', '=', True)]"/>
+                <filter string="Out of Order" name="ooo_rooms" domain="[('availability_status', '=', 'out_of_order')]"/>
+                <filter string="Arrival Priority" name="arrival_priority" domain="[('arrival_priority_level', '!=', 'none')]"/>
+                <filter string="Inspection Pending" name="inspection_pending" domain="[('service_workflow', '=', 'inspection_pending')]"/>
+                <filter string="Departure Clean" name="departure_clean" domain="[('departure_clean_required', '=', True)]"/>
+                <filter string="DND" name="dnd" domain="[('do_not_disturb', '=', True)]"/>
+                <filter string="Priority Clean" name="priority_clean" domain="[('clean_priority', '=', True)]"/>
+                
+                <searchpanel>
+                    <field name="housekeeping_status" string="Housekeeping" select="multi" icon="fa-filter"/>
+                    <field name="availability_status" string="Availability" select="multi" icon="fa-ban"/>
+                    <field name="service_workflow" string="Workflow" select="multi" icon="fa-tasks"/>
+                    
+                    <field name="arrival_priority_level" string="Arrival Priority" select="multi" icon="fa-exclamation-triangle"/>
+                                        
+                    <field name="zone_id" string="Building / Zone" enable_counters="1" icon="fa-building"/>
+                    <field name="room_type_id" string="Room Type" enable_counters="1" icon="fa-bed"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_hotel_housekeeping_kanban" model="ir.ui.view">
+        <field name="name">hotel.housekeeping.kanban</field>
+        <field name="model">hotel.room</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="housekeeping_status" create="false" group_create="false" records_draggable="false">
+                <field name="name"/>
+                <field name="state"/>
+                <field name="occupancy_status"/>
+                <field name="housekeeping_status"/>
+                <field name="availability_status"/>
+                <field name="service_workflow"/>
+                <field name="arrival_priority_level"/>
+                <field name="release_ready"/>
+                <field name="assigned_housekeeper_id"/>
+                <field name="assigned_inspector_id"/>
+                <field name="do_not_disturb"/>
+                <field name="turndown_required"/>
+                <field name="turndown_completed"/>
+                <field name="minibar_check_required"/>
+                <field name="minibar_checked"/>
+                <field name="linen_change_required"/>
+                <field name="linen_changed"/>
+                <field name="room_type_id"/>
+                <field name="zone_id"/> <field name="clean_priority"/>
+                <field name="room_note"/>
+                
+                <templates>
+                    <t t-name="card">
+                        <div t-attf-class="oe_kanban_global_click shadow-sm rounded mb-2 border-start border-5 
+                            #{record.availability_status.raw_value == 'out_of_order' ? 'border-dark' : 
+                              record.housekeeping_status.raw_value == 'dirty' ? 'border-danger' : 
+                              record.housekeeping_status.raw_value == 'inspected' ? 'border-primary' : 
+                              record.occupancy_status.raw_value == 'occupied' ? 'border-info' : 'border-success'}">
+                            
+                            <div class="o_kanban_record_top mb-2">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title" style="font-size: 1.4em;">
+                                        Room <field name="name"/>
+                                    </strong>
+                                    <div class="text-muted small">
+                                        <field name="zone_id"/> - <field name="room_type_id"/>
+                                    </div>
+                                </div>
+                                <div class="o_dropdown_kanban dropdown">
+                                    <field name="clean_priority" widget="boolean_toggle"/> <span class="ms-1 text-muted small">Priority</span>
+                                </div>
+                            </div>
+
+                            <div class="o_kanban_record_body">
+                                <div class="mb-2">
+                                    <span t-attf-class="badge #{record.housekeeping_status.raw_value == 'dirty' ? 'text-bg-danger' : record.housekeeping_status.raw_value == 'inspected' ? 'text-bg-primary' : 'text-bg-success'}">
+                                        <field name="housekeeping_status"/>
+                                    </span>
+                                    <span class="badge text-bg-secondary ms-1"><field name="occupancy_status"/></span>
+                                    <span t-if="record.availability_status.raw_value == 'out_of_order'" class="badge text-bg-dark ms-1"><field name="availability_status"/></span>
+                                    <span t-if="record.release_ready.raw_value" class="badge text-bg-success ms-1">Release Ready</span>
+                                    <span t-if="record.arrival_priority_level.raw_value == 'rush_arrival'" class="badge text-bg-danger ms-1">Rush Arrival</span>
+                                    <span t-if="record.arrival_priority_level.raw_value == 'arrival_today'" class="badge text-bg-warning ms-1">Arrival Today</span>
+                                </div>
+                                <div class="small text-muted mb-1">
+                                    <i class="fa fa-tasks me-1"></i><field name="service_workflow"/>
+                                </div>
+                                <div t-if="record.assigned_housekeeper_id.raw_value or record.assigned_inspector_id.raw_value" class="small text-muted mb-2">
+                                    <span t-if="record.assigned_housekeeper_id.raw_value"><i class="fa fa-user me-1"></i>HK: <field name="assigned_housekeeper_id"/></span>
+                                    <span t-if="record.assigned_inspector_id.raw_value" class="ms-2"><i class="fa fa-shield me-1"></i>INSP: <field name="assigned_inspector_id"/></span>
+                                </div>
+                                <div class="mb-2">
+                                    <span t-if="record.do_not_disturb.raw_value" class="badge text-bg-dark me-1">DND</span>
+                                    <span t-if="record.turndown_required.raw_value and !record.turndown_completed.raw_value" class="badge text-bg-info me-1">Turndown</span>
+                                    <span t-if="record.minibar_check_required.raw_value and !record.minibar_checked.raw_value" class="badge text-bg-warning me-1">Minibar</span>
+                                    <span t-if="record.linen_change_required.raw_value and !record.linen_changed.raw_value" class="badge text-bg-secondary me-1">Linen</span>
+                                </div>
+                                <t t-if="record.room_note.raw_value">
+                                    <div class="alert alert-warning p-1 small mb-1">
+                                        <i class="fa fa-sticky-note me-1"></i> <field name="room_note"/>
+                                    </div>
+                                </t>
+                            </div>
+
+                            <div class="oe_kanban_bottom_right btn-group w-100">
+                                <button name="action_assign_housekeeper_me" type="object" 
+                                        class="btn btn-sm btn-outline-primary flex-grow-1" 
+                                        title="Assign Me as Housekeeper">
+                                    <i class="fa fa-user"></i> Assign
+                                </button>
+
+                                <button name="action_assign_inspector_me" type="object" 
+                                        class="btn btn-sm btn-outline-secondary flex-grow-1" 
+                                        title="Assign Me as Inspector">
+                                    <i class="fa fa-shield"></i> Inspector
+                                </button>
+                            </div>
+
+                            <div class="oe_kanban_bottom_right btn-group w-100 mt-1">
+    
+                                <button name="action_set_clean" type="object" 
+                                        class="btn btn-sm btn-success flex-grow-1" 
+                                        title="Mark Clean"
+                                        invisible="housekeeping_status in ('clean', 'inspected') or availability_status == 'out_of_order'">
+                                    <i class="fa fa-check"></i> Clean
+                                </button>
+
+                                <button name="action_set_inspected" type="object" 
+                                        class="btn btn-sm btn-primary flex-grow-1" 
+                                        title="Mark Inspected"
+                                        invisible="housekeeping_status == 'inspected' or availability_status == 'out_of_order'">
+                                    <i class="fa fa-star"></i> Inspect
+                                </button>
+
+                                <button name="action_set_dirty" type="object" 
+                                        class="btn btn-sm btn-warning flex-grow-1" 
+                                        title="Mark Dirty"
+                                        invisible="housekeeping_status == 'dirty' or availability_status == 'out_of_order'">
+                                    <i class="fa fa-times"></i> Dirty
+                                </button>
+
+                                <button name="action_set_blocked"
+                                    type="object"
+                                    class="btn btn-sm btn-secondary flex-grow-1"
+                                    groups="hotel_management.group_hotel_front_office"
+                                    title="Mark Room Unavailable"
+                                    invisible="availability_status == 'out_of_order' or occupancy_status == 'occupied'">
+                                    <i class="fa fa-ban"></i> Unavailable
+                                </button>
+
+                                <button name="action_release_ooo"
+                                    type="object"
+                                    class="btn btn-sm btn-outline-secondary flex-grow-1"
+                                    groups="hotel_management.group_hotel_front_office"
+                                    title="Release Room"
+                                    invisible="availability_status != 'out_of_order'">
+                                    <i class="fa fa-unlock"></i> Release
+                                </button>
+
+                            </div>
+                            <div class="oe_kanban_bottom_right btn-group w-100 mt-1">
+                                <button name="action_toggle_dnd" type="object"
+                                    class="btn btn-sm btn-outline-dark flex-grow-1"
+                                    title="Toggle DND"
+                                    invisible="occupancy_status != 'occupied'">
+                                    <i class="fa fa-moon-o"></i> DND
+                                </button>
+                                <button name="action_mark_turndown_done" type="object"
+                                    class="btn btn-sm btn-outline-info flex-grow-1"
+                                    title="Mark Turndown Done"
+                                    invisible="not turndown_required or turndown_completed">
+                                    <i class="fa fa-bed"></i> Turndown
+                                </button>
+                                <button name="action_mark_minibar_checked" type="object"
+                                    class="btn btn-sm btn-outline-warning flex-grow-1"
+                                    title="Mark Minibar Checked"
+                                    invisible="not minibar_check_required or minibar_checked">
+                                    <i class="fa fa-glass"></i> Minibar
+                                </button>
+                                <button name="action_mark_linen_changed" type="object"
+                                    class="btn btn-sm btn-outline-secondary flex-grow-1"
+                                    title="Mark Linen Changed"
+                                    invisible="not linen_change_required or linen_changed">
+                                    <i class="fa fa-refresh"></i> Linen
+                                </button>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_hotel_housekeeping" model="ir.actions.act_window">
+        <field name="name">Housekeeping List</field>
+        <field name="res_model">hotel.room</field>
+        <field name="view_mode">kanban,list</field>
+        <field name="view_id" ref="view_hotel_housekeeping_kanban"/>
+        <field name="search_view_id" ref="view_hotel_housekeeping_search"/>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Manage your room cleaning status here.
+            </p>
+        </field>
+    </record>
+
+    <record id="view_hotel_housekeeping_task_tree" model="ir.ui.view">
+        <field name="name">hotel.housekeeping.task.tree</field>
+        <field name="model">hotel.housekeeping</field>
+        <field name="arch" type="xml">
+            <list decoration-success="room_ready == True" decoration-warning="state == 'inspection'" decoration-danger="state == 'dirty'">
+                <field name="business_date"/>
+                <field name="name"/>
+                <field name="room_id"/>
+                <field name="service_type" widget="badge"/>
+                <field name="arrival_priority_level" widget="badge"/>
+                <field name="maid_id"/>
+                <field name="inspector_id"/>
+                <field name="state" widget="badge"/>
+                <field name="room_ready"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_housekeeping_task_form" model="ir.ui.view">
+        <field name="name">hotel.housekeeping.task.form</field>
+        <field name="model">hotel.housekeeping</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_assign_me" string="Assign Me" type="object" class="btn-outline-primary"/>
+                    <button name="action_assign_inspector_me" string="Assign Inspector Me" type="object" class="btn-outline-secondary"/>
+                    <button name="action_done" string="Complete Task" type="object" class="btn-success"/>
+                    <field name="state" widget="statusbar" statusbar_visible="dirty,clean,inspection,done"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Task">
+                            <field name="name"/>
+                            <field name="business_date"/>
+                            <field name="room_id"/>
+                            <field name="reservation_id"/>
+                            <field name="service_type"/>
+                            <field name="arrival_priority_level"/>
+                        </group>
+                        <group string="Assignments">
+                            <field name="maid_id"/>
+                            <field name="inspector_id"/>
+                            <field name="release_policy"/>
+                            <field name="room_ready" readonly="1"/>
+                            <field name="departure_clean_required" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Service Flags" col="4">
+                        <field name="do_not_disturb"/>
+                        <field name="turndown_required"/>
+                        <field name="turndown_completed"/>
+                        <field name="minibar_check_required"/>
+                        <field name="minibar_checked"/>
+                        <field name="linen_change_required"/>
+                        <field name="linen_changed"/>
+                    </group>
+                    <group string="Room Snapshot">
+                        <field name="room_state" readonly="1"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_housekeeping_task_log" model="ir.actions.act_window">
+        <field name="name">Housekeeping Task Log</field>
+        <field name="res_model">hotel.housekeeping</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_hotel_housekeeping_task_tree"/>
+        <field name="context">{'search_default_today': 1}</field>
+    </record>
+
+   <!-- <menuitem id="menu_hotel_housekeeping" name="Housekeeping" parent="menu_hotel_root" action="action_hotel_housekeeping" sequence="20"/> -->
+
+</odoo>
+

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_setup_default_hotel_accounting" model="ir.actions.server">
+        <field name="name">Setup Default Hotel Accounting</field>
+        <field name="model_id" ref="model_hotel_config_setup"/>
+        <field name="state">code</field>
+        <field name="code">action = env['hotel.config.setup'].sudo().setup_default_hotel_accounting()</field>
+    </record>
+</odoo>

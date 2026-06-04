@@ -1,0 +1,68 @@
+.o_hotel_availability_grid {
+    min-height: 0;
+
+    .o_hotel_availability_toolbar {
+        flex: 0 0 auto;
+    }
+
+    .o_hotel_availability_controls {
+        min-width: 0;
+    }
+
+    .o_hotel_availability_date_nav {
+        max-width: 100%;
+    }
+
+    .o_hotel_availability_date {
+        width: 9rem;
+        min-width: 9rem;
+        height: auto;
+        border-radius: 0;
+        border-top: 1px solid var(--border-color, #ced4da);
+        border-bottom: 1px solid var(--border-color, #ced4da);
+    }
+
+    .o_hotel_availability_scroll {
+        min-height: 0;
+    }
+
+    .o_hotel_availability_table {
+        width: max-content;
+        min-width: 100%;
+        table-layout: fixed;
+    }
+
+    .o_hotel_availability_room_type {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        min-width: 15.5rem;
+        width: 15.5rem;
+    }
+
+    thead .o_hotel_availability_room_type {
+        z-index: 101;
+    }
+
+    .o_hotel_availability_cell {
+        min-height: 3.25rem;
+    }
+
+    .o_hotel_availability_total_label {
+        background-color: #f8f9fa;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .o_hotel_availability_grid {
+        .o_hotel_availability_controls {
+            width: 100%;
+            justify-content: flex-start !important;
+        }
+
+        .o_hotel_availability_room_type {
+            min-width: 12rem;
+            width: 12rem;
+        }
+    }
+}

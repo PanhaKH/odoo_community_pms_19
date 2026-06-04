@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_account_payment_register_form_hotel" model="ir.ui.view">
+        <field name="name">account.payment.register.form.hotel</field>
+        <field name="model">account.payment.register</field>
+        <field name="inherit_id" ref="account.view_account_payment_register_form"/>
+        <field name="arch" type="xml">
+            <field name="payment_date" position="after">
+                <separator string="Hotel Info"/>
+                <field name="hotel_receipt_number" placeholder="e.g. REC-123"/>
+                <field name="hotel_reservation_id" options="{'no_create': True}" readonly="1" force_save="1"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_payment_tree_hotel_inherit" model="ir.ui.view">
+        <field name="name">account.payment.tree.hotel.inherit</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_tree"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="hotel_receipt_number" optional="show"/>
+                <field name="is_advance_deposit" optional="show"/>
+                <field name="hotel_invoice_ref" optional="show"/>
+                <field name="memo" string="Reservation (Memo)" optional="show"/>
+                <field name="hotel_reservation_id" string="Link to Res" widget="many2one_clickable" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_payment_form_hotel_inherit" model="ir.ui.view">
+        <field name="name">account.payment.form.hotel.inherit</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_print_advance_deposit_receipt"
+                        string="Print Advance Deposit Receipt"
+                        type="object"
+                        class="btn-secondary"
+                        icon="fa-print"
+                        invisible="not is_advance_deposit"/>
+            </xpath>
+            <field name="memo" position="after">
+                <field name="hotel_receipt_number"/>
+                <field name="is_advance_deposit"/>
+                <field name="hotel_invoice_ref"/>
+                <field name="hotel_reservation_id" widget="many2one_clickable"/>
+                <field name="folio_id" widget="many2one_clickable"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_payment_search_hotel_inherit" model="ir.ui.view">
+        <field name="name">account.payment.search.hotel.inherit</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_search"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="hotel_receipt_number"/>
+                <field name="hotel_reservation_id"/>
+                <field name="hotel_invoice_ref"/>
+                <field name="hotel_business_date"/> 
+            </field>
+            
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter string="Today's Business" name="today_business" domain="[('hotel_business_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="Advance Deposits" name="advance_deposits" domain="[('is_advance_deposit', '=', True)]"/>
+                
+                <group>
+                    <filter string="Business Date (Day)" name="groupby_biz_date" context="{'group_by': 'hotel_business_date:day'}"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- <menuitem id="menu_hotel_payment_history" name="Payment &amp; Receipts" parent="menu_hotel_front_desk" action="action_hotel_payments" sequence="50"/> -->
+
+    <record id="action_hotel_payments" model="ir.actions.act_window">
+        <field name="name">Payment History</field>
+        <field name="res_model">account.payment</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[]</field>
+        <field name="context">{'search_default_today_business': 1}</field>
+    </record>
+
+    <record id="view_hotel_payment_filter_wizard" model="ir.ui.view">
+        <field name="name">hotel.payment.filter.wizard.form</field>
+        <field name="model">hotel.payment.filter.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Select Date">
+                <sheet>
+                    <div class="alert alert-info" role="alert">
+                        Please select a Business Date to view the payment history.
+                    </div>
+                    <group>
+                        <field name="target_date" widget="date"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_open_payments" string="View History" type="object" class="btn-primary" icon="fa-search"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_open_payment_filter_wizard" model="ir.actions.act_window">
+        <field name="name">Payments &amp; Receipts</field>
+        <field name="res_model">hotel.payment.filter.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_hotel_folio_tax_audit_tree" model="ir.ui.view">
+        <field name="name">hotel.folio.tax.audit.tree</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <list string="Folio Tax Audit" create="false" edit="false" default_order="name asc" class="o_list_no_wrap">
+                <field name="name" string="Folio No." decoration-bf="1" width="90px"/>
+                <field name="date_order" string="Date Created" widget="date" optional="show" width="100px"/>
+                <field name="hotel_guest_names" string="Guest Name" optional="show" width="150px"/>
+                <field name="hotel_city_ledger_names" string="Company (City Ledger)" optional="show" width="150px"/>
+                <field name="partner_id" string="Account Name" optional="hide" width="150px"/>
+                <field name="amount_total" string="Total Charges" sum="Total" optional="show" width="100px"/>
+                
+                <field name="amount_untaxed" string="Base Amount" sum="Total Base" optional="hide" width="90px"/>
+                <field name="amount_tax" string="Tax Amount" sum="Total Tax" optional="hide" width="90px"/>
+
+                <field name="hotel_invoice_numbers" string="Tax Invoice No." decoration-info="1" optional="show" width="110px" class="force-ellipsis"/>
+                <field name="hotel_receipt_numbers" string="Receipt No." decoration-success="1" optional="show" width="110px" class="force-ellipsis"/>
+                
+                <field name="hotel_payment_journals" string="Payment Method" optional="hide" width="120px"/>
+                <field name="hotel_payment_dates" string="Date Paid" optional="hide" width="100px"/>
+                <field name="state" string="Status" widget="badge" optional="show" width="80px"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hotel_folio_tax_audit" model="ir.actions.act_window">
+        <field name="name">Tax Audit: Folios</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_hotel_folio_tax_audit_tree"/>
+        <field name="domain">['|', ('reference', 'ilike', 'Stay:'), ('reference', 'ilike', 'Group Master:')]</field>
+    </record>
+
+</odoo>
+

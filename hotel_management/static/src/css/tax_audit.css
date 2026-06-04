@@ -1,0 +1,32 @@
+/* 1. Target the exact 5 stubborn columns using Odoo 17's 'name' attribute! */
+.o_list_view th[name="hotel_guest_names"],
+.o_list_view td[name="hotel_guest_names"],
+.o_list_view th[name="hotel_invoice_numbers"],
+.o_list_view td[name="hotel_invoice_numbers"],
+.o_list_view th[name="hotel_receipt_numbers"],
+.o_list_view td[name="hotel_receipt_numbers"],
+.o_list_view th[name="hotel_payment_journals"],
+.o_list_view td[name="hotel_payment_journals"],
+.o_list_view th[name="hotel_payment_dates"],
+.o_list_view td[name="hotel_payment_dates"] {
+    /* The Straitjacket: Force it to be exactly 130px */
+    max-width: 130px !important; 
+    min-width: 130px !important;
+    width: 130px !important;
+    
+    /* Force the text to cut off with 3 dots */
+    white-space: nowrap !important;
+    overflow: hidden !important; 
+    text-overflow: ellipsis !important; 
+}
+
+/* 2. Force any links inside those columns to obey the cutoff */
+.o_list_view td[name="hotel_invoice_numbers"] a,
+.o_list_view td[name="hotel_receipt_numbers"] a,
+.o_list_view td[name="hotel_guest_names"] span {
+    display: inline-block !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    vertical-align: bottom !important;
+}

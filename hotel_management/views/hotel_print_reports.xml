@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_hotel_reservation_list" model="ir.actions.report">
+        <field name="name">Front Desk Reservation List</field>
+        <field name="model">hotel.reservation</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management.report_reservation_list</field>
+        <field name="report_file">hotel_management.report_reservation_list</field>
+        <field name="binding_model_id" ref="model_hotel_reservation"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_reservation_list">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <style>
+                        /* Server note: install Noto Sans Khmer or Khmer OS fonts on the Windows/Odoo server, then restart the Odoo service before printing Khmer PDFs. No font files are bundled in this module. */
+                        body,
+                        .page,
+                        .page table,
+                        .page td,
+                        .page th,
+                        .page div,
+                        .page span,
+                        .page p,
+                        .page h1,
+                        .page h2,
+                        .page h3,
+                        .page h4,
+                        .page h5,
+                        .page h6,
+                        .header,
+                        .header table,
+                        .header td,
+                        .header th,
+                        .header div,
+                        .header span,
+                        .header p,
+                        .footer,
+                        .footer div,
+                        .footer span,
+                        .footer p,
+                        .article,
+                        .article table,
+                        .article td,
+                        .article th,
+                        .article div,
+                        .article span,
+                        .article p,
+                        [class*="o_company_"],
+                        [class*="o_company_"] table,
+                        [class*="o_company_"] td,
+                        [class*="o_company_"] th,
+                        [class*="o_company_"] div,
+                        [class*="o_company_"] span,
+                        [class*="o_company_"] p {
+                            font-family: "Noto Sans Khmer", "Khmer OS Battambang", "Khmer OS Siemreap", Arial, sans-serif !important;
+                        }
+                    </style>
+                    <h2 class="mt-4 mb-4">Front Desk: Daily Guest List</h2>
+                    
+                    <table class="table table-sm table-bordered">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Reservation #</th>
+                                <th>Guest Name</th>
+                                <th>Check-In</th>
+                                <th>Check-Out</th>
+                                <th>Room Type</th>
+                                <th>Room #</th>
+                                <th>Status</th>
+                                <th>Deposit / Paid</th>
+                                <th>Balance Due</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="docs" t-as="doc">
+                                <tr>
+                                    <td><span t-field="doc.name"/></td>
+                                    <td><strong><span t-field="doc.partner_id.name"/></strong></td>
+                                    <td><span t-field="doc.checkin_date"/></td>
+                                    <td><span t-field="doc.checkout_date"/></td>
+                                    <td><span t-field="doc.room_type_id.name"/></td>
+                                    <td><span t-field="doc.room_id.name"/></td>
+                                    <td><span t-field="doc.state"/></td>
+                                    <td><span t-field="doc.folio_paid" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                    <td><span t-field="doc.folio_balance" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_reservation_confirmation" model="ir.actions.report">
+        <field name="name">Reservation Confirmation</field>
+        <field name="model">hotel.reservation</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management.report_reservation_confirmation</field>
+        <field name="report_file">hotel_management.report_reservation_confirmation</field>
+        <field name="binding_model_id" ref="model_hotel_reservation"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_reservation_confirmation">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-set="data" t-value="doc._get_reservation_confirmation_data()"/>
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <style>
+                            /* Server note: install Noto Sans Khmer or Khmer OS fonts on the Windows/Odoo server, then restart the Odoo service before printing Khmer PDFs. No font files are bundled in this module. */
+                            @font-face {
+                                font-family: "Noto Sans Khmer";
+                                src: local("Noto Sans Khmer"), local("NotoSansKhmer");
+                                font-weight: normal;
+                                font-style: normal;
+                            }
+                            @font-face {
+                                font-family: "Khmer OS Battambang";
+                                src: local("Khmer OS Battambang"), local("KhmerOSBattambang");
+                                font-weight: normal;
+                                font-style: normal;
+                            }
+                            @font-face {
+                                font-family: "Khmer OS Siemreap";
+                                src: local("Khmer OS Siemreap"), local("KhmerOSSiemreap");
+                                font-weight: normal;
+                                font-style: normal;
+                            }
+                            @font-face {
+                                font-family: "Hotel Khmer Report";
+                                src: local("Noto Sans Khmer"), local("NotoSansKhmer"),
+                                     local("Khmer OS Battambang"), local("KhmerOSBattambang"),
+                                     local("Khmer OS Siemreap"), local("KhmerOSSiemreap");
+                                font-weight: normal;
+                                font-style: normal;
+                            }
+                            body,
+                            table,
+                            td,
+                            th,
+                            div,
+                            span,
+                            p,
+                            .page,
+                            .page table,
+                            .page td,
+                            .page th,
+                            .page div,
+                            .page span,
+                            .page p,
+                            .page h1,
+                            .page h2,
+                            .page h3,
+                            .page h4,
+                            .page h5,
+                            .page h6,
+                            .header,
+                            .header table,
+                            .header td,
+                            .header th,
+                            .header div,
+                            .header span,
+                            .header p,
+                            .footer,
+                            .footer div,
+                            .footer span,
+                            .footer p,
+                            .article,
+                            .article table,
+                            .article td,
+                            .article th,
+                            .article div,
+                            .article span,
+                            .article p,
+                            [class*="o_company_"],
+                            [class*="o_company_"] table,
+                            [class*="o_company_"] td,
+                            [class*="o_company_"] th,
+                            [class*="o_company_"] div,
+                            [class*="o_company_"] span,
+                            [class*="o_company_"] p,
+                            .hotel-doc-page,
+                            .hotel-doc-page table,
+                            .hotel-doc-page div,
+                            .hotel-doc-page span,
+                            .hotel-doc-page td,
+                            .hotel-doc-page th,
+                            .hotel-doc-page p {
+                                font-family: "Hotel Khmer Report", "Noto Sans Khmer", "Khmer OS Battambang", "Khmer OS Siemreap", Arial, sans-serif !important;
+                            }
+                            .hotel-doc-title { font-size: 26px; font-weight: 700; color: #173f5f; letter-spacing: 0.5px; }
+                            .hotel-doc-subtitle { font-size: 12px; text-transform: uppercase; letter-spacing: 1.6px; color: #6c757d; }
+                            .hotel-doc-page { color: #22313f; line-height: 1.35; }
+                            .hotel-doc-header { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+                            .hotel-doc-header td { vertical-align: top; padding: 0; }
+                            .hotel-doc-header-main { width: 68%; padding-right: 18px; }
+                            .hotel-doc-header-meta { width: 32%; text-align: right; padding-left: 12px; }
+                            .hotel-doc-header-meta-line { margin-bottom: 6px; line-height: 1.45; }
+                            .hotel-doc-card { border: 1px solid #d9e2ec; border-radius: 10px; padding: 20px 22px; background: #f8fbff; overflow: visible; }
+                            .hotel-doc-section { border: 1px solid #dee2e6; border-radius: 10px; padding: 18px 20px; margin-top: 12px; }
+                            .hotel-doc-section h4 { margin: 0 0 10px 0; color: #173f5f; font-size: 16px; }
+                            .hotel-doc-info-layout { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                            .hotel-doc-info-layout td { vertical-align: top; }
+                            .hotel-doc-info-layout td:first-child { width: 50%; padding-right: 12px; }
+                            .hotel-doc-info-layout td:last-child { width: 50%; padding-left: 12px; }
+                            .hotel-doc-meta { width: 100%; border-collapse: separate; border-spacing: 0 8px; table-layout: fixed; }
+                            .hotel-doc-meta td { padding: 6px 10px; vertical-align: top; line-height: 1.5; background: transparent !important; border: 0 !important; color: #22313f; }
+                            .hotel-doc-meta .hotel-doc-meta-label { width: 34%; color: #173f5f; white-space: normal; word-break: break-word; }
+                            .hotel-doc-meta .hotel-doc-meta-separator { width: 4%; padding-left: 0; padding-right: 0; text-align: center; color: #173f5f; }
+                            .hotel-doc-meta .hotel-doc-meta-value { width: 62%; padding-left: 6px; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
+                            .hotel-doc-summary td { padding: 7px 10px; line-height: 1.45; vertical-align: middle; }
+                            .hotel-doc-tax-table td { padding: 6px 10px; line-height: 1.4; }
+                            .hotel-doc-note { border-left: 4px solid #173f5f; background: #f4f8fb; padding: 13px 16px; line-height: 1.5; }
+                        </style>
+
+                        <div class="hotel-doc-page">
+                            <table class="hotel-doc-header">
+                                <tr>
+                                    <td class="hotel-doc-header-main">
+                                        <div class="hotel-doc-subtitle">Guest Document</div>
+                                        <div class="hotel-doc-title">Reservation Confirmation / Proforma</div>
+                                        <div class="text-muted mt-1">Prepared for operational guest confirmation only. This is not a tax invoice.</div>
+                                    </td>
+                                    <td class="hotel-doc-header-meta">
+                                        <div class="hotel-doc-header-meta-line"><strong>Reservation No:</strong> <span t-field="doc.name"/></div>
+                                        <div class="hotel-doc-header-meta-line"><strong>Generated:</strong> <span t-esc="data.get('generated_on_display')"/></div>
+                                        <div class="hotel-doc-header-meta-line"><strong>Hotel Business Date:</strong> <span t-esc="data['business_date']" t-options='{"widget": "date"}'/></div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div class="row g-3">
+                                <div class="col-8">
+                                    <div class="hotel-doc-card">
+                                        <table class="hotel-doc-info-layout">
+                                            <tr>
+                                                <td>
+                                                <table class="hotel-doc-meta">
+                                                    <tr>
+                                                        <td class="hotel-doc-meta-label"><strong>Guest Name</strong></td>
+                                                        <td class="hotel-doc-meta-separator">:</td>
+                                                        <td class="hotel-doc-meta-value"><t t-esc="data['guest_name']"/></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="hotel-doc-meta-label"><strong>Arrival</strong></td>
+                                                        <td class="hotel-doc-meta-separator">:</td>
+                                                        <td class="hotel-doc-meta-value"><span t-field="doc.checkin_date"/></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="hotel-doc-meta-label"><strong>Departure</strong></td>
+                                                        <td class="hotel-doc-meta-separator">:</td>
+                                                        <td class="hotel-doc-meta-value"><span t-field="doc.checkout_date"/></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="hotel-doc-meta-label"><strong>Room Type</strong></td>
+                                                        <td class="hotel-doc-meta-separator">:</td>
+                                                        <td class="hotel-doc-meta-value"><t t-esc="data['room_type_name']"/></td>
+                                                    </tr>
+                                                </table>
+                                                </td>
+                                                <td>
+                                                <table class="hotel-doc-meta">
+                                                    <tr>
+                                                        <td class="hotel-doc-meta-label"><strong>Account Name</strong></td>
+                                                        <td class="hotel-doc-meta-separator">:</td>
+                                                        <td class="hotel-doc-meta-value"><t t-esc="data['account_name']"/></td>
+                                                    </tr>
+                                                    <tr t-if="data['bill_to_name']">
+                                                        <td class="hotel-doc-meta-label"><strong>Bill To</strong></td>
+                                                        <td class="hotel-doc-meta-separator">:</td>
+                                                        <td class="hotel-doc-meta-value"><t t-esc="data['bill_to_name']"/></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="hotel-doc-meta-label"><strong>Status</strong></td>
+                                                        <td class="hotel-doc-meta-separator">:</td>
+                                                        <td class="hotel-doc-meta-value"><span t-field="doc.state"/></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="hotel-doc-meta-label"><strong>Room No.</strong></td>
+                                                        <td class="hotel-doc-meta-separator">:</td>
+                                                        <td class="hotel-doc-meta-value"><t t-esc="data['room_name'] or 'To Be Assigned'"/></td>
+                                                    </tr>
+                                                </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="hotel-doc-card">
+                                        <table class="table table-sm hotel-doc-summary mb-0">
+                                            <tr>
+                                                <td>Room Charges</td>
+                                                <td class="text-end"><t t-esc="data['untaxed_total']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Taxes / Service</td>
+                                                <td class="text-end"><t t-esc="data['tax_total']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Total Stay Amount</strong></td>
+                                                <td class="text-end"><strong><t t-esc="data['total_stay_amount']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Required Deposit (<t t-esc="data['required_deposit_percent']"/>%)</td>
+                                                <td class="text-end"><t t-esc="data['required_deposit_amount']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Advance Deposit Received</td>
+                                                <td class="text-end"><t t-esc="data['deposit_received']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Remaining Balance</strong></td>
+                                                <td class="text-end"><strong><t t-esc="data['remaining_balance']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></strong></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="hotel-doc-section">
+                                <h4>Nightly Charges by Business Date</h4>
+                                <table class="table table-sm table-bordered mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Business Date</th>
+                                            <th class="text-end">Nightly Charge</th>
+                                            <th class="text-end">Taxes / Service</th>
+                                            <th class="text-end">Night Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="data['nightly_lines']" t-as="line">
+                                            <td><t t-esc="line['business_date']" t-options='{"widget": "date"}'/></td>
+                                            <td class="text-end"><t t-esc="line['room_charge']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                            <td class="text-end"><t t-esc="line['tax_amount']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                            <td class="text-end"><t t-esc="line['line_total']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="hotel-doc-section">
+                                <h4>Taxes / Service Summary</h4>
+                                <table class="table table-sm hotel-doc-tax-table mb-0">
+                                    <tbody>
+                                        <tr t-foreach="data['tax_summary']" t-as="tax">
+                                            <td><t t-esc="tax[0]"/></td>
+                                            <td class="text-end"><t t-esc="tax[1]" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                        </tr>
+                                        <tr t-if="not data['tax_summary']">
+                                            <td colspan="2" class="text-muted">No taxes or service charges are configured on the accommodation product.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="hotel-doc-section">
+                                <h4>Payment Instructions</h4>
+                                <div class="hotel-doc-note">
+                                    <t t-raw="data['payment_instructions']"/>
+                                </div>
+                            </div>
+
+                            <div class="hotel-doc-section">
+                                <h4>Cancellation Policy</h4>
+                                <div class="hotel-doc-note">
+                                    <t t-raw="data['cancellation_policy']"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_advance_deposit_receipt" model="ir.actions.report">
+        <field name="name">Advance Deposit Receipt</field>
+        <field name="model">account.payment</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management.report_advance_deposit_receipt</field>
+        <field name="report_file">hotel_management.report_advance_deposit_receipt</field>
+    </record>
+
+    <template id="report_advance_deposit_receipt">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-set="data" t-value="doc._get_advance_deposit_receipt_data()"/>
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <style>
+                            /* Server note: install Noto Sans Khmer or Khmer OS fonts on the Windows/Odoo server, then restart the Odoo service before printing Khmer PDFs. No font files are bundled in this module. */
+                            @font-face {
+                                font-family: "Noto Sans Khmer";
+                                src: local("Noto Sans Khmer"), local("NotoSansKhmer");
+                                font-weight: normal;
+                                font-style: normal;
+                            }
+                            @font-face {
+                                font-family: "Khmer OS Battambang";
+                                src: local("Khmer OS Battambang"), local("KhmerOSBattambang");
+                                font-weight: normal;
+                                font-style: normal;
+                            }
+                            @font-face {
+                                font-family: "Khmer OS Siemreap";
+                                src: local("Khmer OS Siemreap"), local("KhmerOSSiemreap");
+                                font-weight: normal;
+                                font-style: normal;
+                            }
+                            @font-face {
+                                font-family: "Hotel Khmer Report";
+                                src: local("Noto Sans Khmer"), local("NotoSansKhmer"),
+                                     local("Khmer OS Battambang"), local("KhmerOSBattambang"),
+                                     local("Khmer OS Siemreap"), local("KhmerOSSiemreap");
+                                font-weight: normal;
+                                font-style: normal;
+                            }
+                            body,
+                            table,
+                            td,
+                            th,
+                            div,
+                            span,
+                            p,
+                            .page,
+                            .page table,
+                            .page td,
+                            .page th,
+                            .page div,
+                            .page span,
+                            .page p,
+                            .page h1,
+                            .page h2,
+                            .page h3,
+                            .page h4,
+                            .page h5,
+                            .page h6,
+                            .header,
+                            .header table,
+                            .header td,
+                            .header th,
+                            .header div,
+                            .header span,
+                            .header p,
+                            .footer,
+                            .footer div,
+                            .footer span,
+                            .footer p,
+                            .article,
+                            .article table,
+                            .article td,
+                            .article th,
+                            .article div,
+                            .article span,
+                            .article p,
+                            [class*="o_company_"],
+                            [class*="o_company_"] table,
+                            [class*="o_company_"] td,
+                            [class*="o_company_"] th,
+                            [class*="o_company_"] div,
+                            [class*="o_company_"] span,
+                            [class*="o_company_"] p,
+                            .hotel-receipt-page,
+                            .hotel-receipt-page table,
+                            .hotel-receipt-page div,
+                            .hotel-receipt-page span,
+                            .hotel-receipt-page td,
+                            .hotel-receipt-page th,
+                            .hotel-receipt-page p {
+                                font-family: "Hotel Khmer Report", "Noto Sans Khmer", "Khmer OS Battambang", "Khmer OS Siemreap", Arial, sans-serif !important;
+                            }
+                            .hotel-receipt-title { font-size: 26px; font-weight: 700; color: #16324f; }
+                            .hotel-receipt-card { border: 1px solid #d9e2ec; border-radius: 10px; padding: 16px; background: #fbfdff; }
+                            .hotel-receipt-statement { border-left: 5px solid #0f766e; background: #f0fdfa; padding: 14px; color: #134e4a; }
+                            .hotel-receipt-summary td { padding: 7px 8px; }
+                        </style>
+
+                        <div class="hotel-receipt-page">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <div class="text-uppercase text-muted" style="letter-spacing: 1.4px;">Guest Receipt</div>
+                                    <div class="hotel-receipt-title">Advance Deposit Receipt</div>
+                                </div>
+                                <div class="text-end">
+                                    <div><strong>Receipt No:</strong> <t t-esc="data['receipt_number']"/></div>
+                                    <div><strong>Business Date:</strong> <t t-esc="data['business_date']" t-options='{"widget": "date"}'/></div>
+                                    <div><strong>Generated:</strong> <t t-esc="data.get('generated_on_display')"/></div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-7">
+                                    <div class="hotel-receipt-card">
+                                        <table class="table table-borderless table-sm mb-0">
+                                            <tbody>
+                                                <tr><td><strong>Reservation No.</strong></td><td><t t-esc="data['reservation_number'] or '-'"/></td></tr>
+                                                <tr><td><strong>Guest / Account Name</strong></td><td><t t-esc="data['account_name'] or '-'"/></td></tr>
+                                                <tr t-if="data['guest_name'] and data['guest_name'] != data['account_name']"><td><strong>Guest Name</strong></td><td><t t-esc="data['guest_name']"/></td></tr>
+                                                <tr>
+                                                    <td><strong>Stay Dates</strong></td>
+                                                    <td>
+                                                        <t t-if="data['stay_from']">
+                                                            <t t-esc="data['stay_from']" t-options='{"widget": "date"}'/>
+                                                        </t>
+                                                        <t t-else="">-</t>
+                                                        <t t-if="data['stay_to']">
+                                                            to <t t-esc="data['stay_to']" t-options='{"widget": "date"}'/>
+                                                        </t>
+                                                    </td>
+                                                </tr>
+                                                <tr><td><strong>Payment Method</strong></td><td><t t-esc="data['payment_method']"/></td></tr>
+                                                <tr><td><strong>Cashier / User</strong></td><td><t t-esc="data['cashier_name']"/></td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-5">
+                                    <div class="hotel-receipt-card">
+                                        <table class="table table-sm hotel-receipt-summary mb-0">
+                                            <tr>
+                                                <td>Deposit Received</td>
+                                                <td class="text-end"><strong><t t-esc="data['deposit_received']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Total Reservation Value</td>
+                                                <td class="text-end"><t t-esc="data['total_reservation_value']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Remaining Balance After Deposit</strong></td>
+                                                <td class="text-end"><strong><t t-esc="data['remaining_balance']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></strong></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 hotel-receipt-statement">
+                                This payment is recorded as advance deposit and will be applied to the final folio invoice.
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

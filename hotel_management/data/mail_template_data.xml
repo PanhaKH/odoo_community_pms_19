@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        
+        <record id="email_template_hotel_reservation_confirm" model="mail.template">
+            <field name="name">Hotel: Booking Confirmation</field>
+            <field name="model_id" ref="hotel_management.model_hotel_reservation"/>
+            <field name="subject">Booking Confirmation - {{ object.name }}</field>
+            <field name="email_to">{{ object.partner_email }}</field>
+            <field name="partner_to">{{ object.partner_id.id }}</field>
+            <field name="description">Sent automatically when reservation is confirmed</field>
+            <field name="body_html" type="html">
+                <div style="margin: 0px; padding: 0px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333;">
+                    <p>
+                        Dear <t t-out="object.partner_id.name or 'Guest'"></t>,<br/><br/>
+                        Thank you for choosing to stay with us! We are thrilled to confirm your upcoming reservation.<br/><br/>
+                        
+                        <strong style="color: #6f42c1;">Your Booking Details:</strong><br/>
+                        <ul>
+                            <li><strong>Reference:</strong> <t t-out="object.name"></t></li>
+                            <li><strong>Check-in:</strong> <t t-out="object.checkin_date"></t></li>
+                            <li><strong>Check-out:</strong> <t t-out="object.checkout_date"></t></li>
+                            <li><strong>Room Type:</strong> <t t-out="object.room_type_id.name"></t></li>
+                        </ul>
+                        
+                        <strong style="color: #28a745;">Estimated Pricing:</strong><br/>
+                        <ul>
+                            <li><strong>Nightly Rate:</strong> <t t-out="object.rate_id.name"></t></li>
+                            <li><strong>Estimated Total:</strong> <t t-out="object.total_amount" t-options='{"widget": "monetary", "display_currency": object.currency_id}'></t></li>
+                        </ul>
+                    </p>
+                    
+                    <p>
+                        <strong style="color: #6f42c1;">Your Personal Digital Concierge:</strong><br/>
+                        You can view your booking, request room service, and chat directly with our front desk team before or during your stay through your personal guest portal.<br/><br/>
+                        
+                        <div style="text-align: center; margin: 24px 0px 24px 0px;">
+                            <a t-att-href="object._get_share_absolute_url()"
+                                style="background-color: #6f42c1; padding: 12px 24px; text-decoration: none; color: #fff; border-radius: 5px; font-size: 16px; font-weight: bold;">
+                                Access My Guest Portal
+                            </a>
+                        </div><br/>
+                        
+                        We look forward to welcoming you!<br/><br/>
+                        Warm regards,<br/>
+                        <strong>The Hotel Management Team</strong>
+                    </p>
+                </div>
+            </field>
+        </record>
+
+        <record id="email_template_hotel_reservation_checkout" model="mail.template">
+            <field name="name">Hotel: Check-Out Final Folio</field>
+            <field name="model_id" ref="hotel_management.model_hotel_reservation"/>
+            <field name="subject">Thank you for your stay! - Final Receipt {{ object.name }}</field>
+            <field name="email_to">{{ object.partner_email }}</field>
+            <field name="partner_to">{{ object.partner_id.id }}</field>
+            <field name="description">Sent automatically upon Check-Out with the final bill</field>
+            <field name="body_html" type="html">
+                <div style="margin: 0px; padding: 0px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333;">
+                    <p>
+                        Dear <t t-out="object.partner_id.name or 'Guest'"></t>,<br/><br/>
+                        
+                        <t t-if="object.city_ledger_id">
+                            Thank you for your stay with us. You have successfully checked out.<br/><br/>
+                            <span style="background-color: #f8f9fa; padding: 10px; border-left: 4px solid #6f42c1; display: block;">
+                                <strong>Note:</strong> Your final folio balance has been routed to your corporate account: <strong style="color: #6f42c1;" t-out="object.city_ledger_id.name">Company Name</strong> for processing.
+                            </span><br/>
+                            Below is the itemized record of your stay for your reference.<br/><br/>
+                        </t>
+                        <t t-else="">
+                            Thank you so much for staying with us! We hope you had a wonderful time.<br/>
+                            Your balance is settled. Below is the final itemized receipt for your stay.<br/><br/>
+                        </t>
+                        
+                    </p>
+
+                    <t t-if="object.sale_order_id and object.sale_order_id.order_line">
+                        <div style="margin-top: 20px; margin-bottom: 30px;">
+                            <h3 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 8px;">Final Folio Information</h3>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid #ddd; text-align: left; color: #000;">
+                                        <th style="padding: 8px 5px;">Description</th>
+                                        <th style="padding: 8px 5px; text-align: center;">Qty</th>
+                                        <th style="padding: 8px 5px; text-align: right;">Price</th>
+                                        <th style="padding: 8px 5px; text-align: right;">Taxes</th>
+                                        <th style="padding: 8px 5px; text-align: right;">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="object.sale_order_id.order_line" t-as="line">
+                                        <tr style="border-bottom: 1px solid #eee;">
+                                            <td style="padding: 8px 5px;"><t t-out="line.name"/></td>
+                                            <td style="padding: 8px 5px; text-align: center;"><t t-out="line.product_uom_qty"/></td>
+                                            <td style="padding: 8px 5px; text-align: right;">
+                                                <t t-out="line.price_unit" t-options='{"widget": "monetary", "display_currency": object.currency_id}'/>
+                                            </td>
+                                            <td style="padding: 8px 5px; text-align: right;">
+                                                <t t-out="', '.join(line.tax_ids.mapped('name'))"/>
+                                            </td>
+                                            <td style="padding: 8px 5px; text-align: right;">
+                                                <t t-out="line.price_subtotal" t-options='{"widget": "monetary", "display_currency": object.currency_id}'/>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                            
+                            <table style="width: 100%; margin-top: 10px;">
+                                <tr>
+                                    <td style="width: 50%;"></td>
+                                    <td style="width: 50%;">
+                                        <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 13px;">
+                                            <tr style="color: #555;">
+                                                <td style="padding: 6px 5px;">Gross Total</td>
+                                                <td style="padding: 6px 5px;"><t t-out="object.folio_total" t-options='{"widget": "monetary", "display_currency": object.currency_id}'/></td>
+                                            </tr>
+                                            <tr style="border-bottom: 2px solid #ddd; color: #28a745;">
+                                                <td style="padding: 6px 5px;">Payments Received</td>
+                                                <td style="padding: 6px 5px;">-<t t-out="object.folio_paid" t-options='{"widget": "monetary", "display_currency": object.currency_id}'/></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 10px 5px; font-size: 16px;"><strong>Balance Due</strong></td>
+                                                <td style="padding: 10px 5px; font-size: 16px; color: #dc3545;"><strong><t t-out="object.folio_balance" t-options='{"widget": "monetary", "display_currency": object.currency_id}'/></strong></td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </t>
+                    
+                    <p>
+                        We wish you safe travels on your onward journey!<br/><br/>
+                        Warm regards,<br/>
+                        <strong>The Hotel Management Team</strong>
+                    </p>
+                </div>
+            </field>
+        </record>
+
+    </data>
+</odoo>

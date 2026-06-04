@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_hotel_availability_grid_client" model="ir.actions.client">
+        <field name="name">Availability by Room Type</field>
+        <field name="tag">hotel_management.availability_grid_view</field>
+    </record>
+
+    </odoo>

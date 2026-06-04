@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_report_hotel_tax_invoice" model="ir.actions.report">
+        <field name="name">Tax Invoice</field>
+        <field name="model">hotel.reservation</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management.report_tax_invoice_template</field>
+        <field name="report_file">hotel_management.report_tax_invoice_template</field>
+        <field name="print_report_name">'Tax_Invoice_%s' % (object.name)</field>
+        <field name="binding_model_id" ref="model_hotel_reservation"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_hotel_commercial_invoice" model="ir.actions.report">
+        <field name="name">Commercial Invoice</field>
+        <field name="model">hotel.reservation</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management.report_commercial_invoice_template</field>
+        <field name="report_file">hotel_management.report_commercial_invoice_template</field>
+        <field name="print_report_name">'Commercial_Invoice_%s' % (object.name)</field>
+        <field name="binding_model_id" ref="model_hotel_reservation"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_commercial_invoice_template">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.basic_layout">
+                    
+                    <div class="header">
+                        <div class="row pt-4 pb-3 border-bottom align-items-center" style="width: 100%;">
+                            <div class="col-6">
+                                <img t-if="env.company.logo" t-att-src="image_data_uri(env.company.logo)" style="max-height: 80px; max-width: 250px;" alt="Hotel Logo"/>
+                                <h3 t-if="not env.company.logo" class="fw-bold"><span t-field="env.company.name"/></h3>
+                            </div>
+                            <div class="col-6 text-end" style="font-size: 14px;">
+                                <h4 class="fw-bold mb-1" style="color: #333;"><span t-field="env.company.name"/></h4>
+                                <span t-field="env.company.street"/><br/>
+                                <t t-if="env.company.city"><span t-field="env.company.city"/>, </t>
+                                <t t-if="env.company.country_id"><span t-field="env.company.country_id.name"/></t><br/>
+                                <t t-if="env.company.phone">Tel: <span t-field="env.company.phone"/><br/></t>
+                                <t t-if="env.company.email"><span t-field="env.company.email"/></t>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="page">
+                        <div class="row mt-4 mb-4">
+                            <div class="col-6">
+                                <h2 style="color: #6f42c1; font-weight: bold;">COMMERCIAL INVOICE</h2>
+                                <strong>Invoice No:</strong> <span t-esc="doc.name.replace('RES', 'INV')"/><br/>
+                                <strong>Date:</strong> <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')"/><br/>
+                            </div>
+                            <div class="col-6 text-end">
+                                <strong>Billed To:</strong><br/>
+                                <span t-field="doc.partner_id.name" style="font-size: 1.2em; font-weight: bold;"/><br/>
+                                <span t-if="doc.partner_id.vat">TIN: <span t-field="doc.partner_id.vat"/></span>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4 p-3" style="background-color: #f8f9fa; border-radius: 5px;">
+                            <div class="col-3"><strong>Check-In:</strong><br/><span t-field="doc.checkin_date"/></div>
+                            <div class="col-3"><strong>Check-Out:</strong><br/><span t-field="doc.checkout_date"/></div>
+                            <div class="col-3"><strong>Room No:</strong><br/><span t-field="doc.room_id.name"/></div>
+                            <div class="col-3"><strong>Nights:</strong><br/><span t-field="doc.duration"/></div>
+                        </div>
+
+                        <table class="table table-sm table-bordered mt-4">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Accommodation Charge</td>
+                                    <td class="text-center"><span t-field="doc.duration"/></td>
+                                    <td class="text-end"><span t-field="doc.folio_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <div class="row justify-content-end">
+                            <div class="col-4">
+                                <table class="table table-sm table-borderless">
+                                    <tr class="bg-dark text-white fw-bold">
+                                        <td>Total Amount:</td>
+                                        <td class="text-end"><span t-field="doc.folio_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="row mt-5 pt-5" style="page-break-inside: avoid;">
+                            <div class="col-5 text-center">
+                                <p class="mb-1 fw-bold">Prepared By</p>
+                                <div style="height: 60px; border-bottom: 1px solid black; margin: 0 20px;"></div>
+                                <br/><span t-esc="env.user.name"/>
+                                <div class="text-muted mt-1" style="font-size: 13px;">Date: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')"/></div>
+                            </div>
+                            <div class="col-2"></div>
+                            <div class="col-5 text-center">
+                                <p class="mb-1 fw-bold">Guest Acknowledgment</p>
+                                <div style="height: 60px; border-bottom: 1px solid black; margin: 0 20px; position: relative;">
+                                    <img t-if="doc.guest_signature" t-att-src="image_data_uri(doc.guest_signature)" style="max-height: 60px; max-width: 100%; position: absolute; bottom: 0; left: 35%; transform: translateX(-50%);"/>
+                                </div>
+                                <br/><span t-field="doc.partner_id.name"/>
+                                <div class="text-muted mt-1" style="font-size: 13px;">Date: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')"/></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_tax_invoice_template">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.basic_layout">
+                    
+                    <div class="header">
+                        <div class="row pt-4 pb-3 border-bottom align-items-center" style="width: 100%;">
+                            <div class="col-6">
+                                <img t-if="env.company.logo" t-att-src="image_data_uri(env.company.logo)" style="max-height: 80px; max-width: 250px;" alt="Hotel Logo"/>
+                                <h3 t-if="not env.company.logo" class="fw-bold"><span t-field="env.company.name"/></h3>
+                            </div>
+                            <div class="col-6 text-end" style="font-size: 14px;">
+                                <h4 class="fw-bold mb-1" style="color: #333;"><span t-field="env.company.name"/></h4>
+                                <span t-field="env.company.street"/><br/>
+                                <t t-if="env.company.city"><span t-field="env.company.city"/>, </t>
+                                <t t-if="env.company.country_id"><span t-field="env.company.country_id.name"/></t><br/>
+                                <t t-if="env.company.phone">Tel: <span t-field="env.company.phone"/><br/></t>
+                                <t t-if="env.company.email"><span t-field="env.company.email"/></t>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="page">
+                        
+                        <div class="row mt-4 mb-4">
+                            <div class="col-12 text-center">
+                                <h2 style="color: #dc3545; font-weight: bold; text-decoration: underline;">OFFICIAL TAX INVOICE</h2>
+                                <h4 class="mt-2">
+                                    <t t-if="env.company.vat">VAT TIN: <span t-field="env.company.vat"/> </t>
+                                    (<span t-field="env.company.name"/>)
+                                </h4>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <strong>Invoice No:</strong> <span t-esc="doc.name.replace('RES', 'INV')"/><br/>
+                                <strong>Date of Issue:</strong> <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')"/>
+                            </div>
+                            <div class="col-6 text-end border border-dark p-2">
+                                <strong>Customer / Company:</strong><br/>
+                                <span t-field="doc.partner_id.name" class="fw-bold"/><br/>
+                                <strong>Customer VAT TIN:</strong> <span t-field="doc.partner_id.vat"/>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4 p-2" style="background-color: #f8f9fa; border: 1px solid #dee2e6;">
+                            <div class="col-3"><strong>Check-In:</strong> <span t-field="doc.checkin_date"/></div>
+                            <div class="col-3"><strong>Check-Out:</strong> <span t-field="doc.checkout_date"/></div>
+                            <div class="col-3"><strong>Room No:</strong> <span t-field="doc.room_id.name"/></div>
+                            <div class="col-3"><strong>Nights:</strong> <span t-field="doc.duration"/></div>
+                        </div>
+
+                        <t t-set="tax_rate" t-value="0.10"/>
+                        <t t-set="untaxed_amount" t-value="doc.folio_total / (1 + tax_rate)"/>
+                        <t t-set="tax_amount" t-value="doc.folio_total - untaxed_amount"/>
+
+                        <table class="table table-sm table-bordered mt-4">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Unit Price (Excl. VAT)</th>
+                                    <th class="text-end">Taxes</th>
+                                    <th class="text-end">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Accommodation Charge</td>
+                                    <td class="text-center"><span t-field="doc.duration"/></td>
+                                    <td class="text-end"><span t-esc="untaxed_amount" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                    <td class="text-end">10% VAT</td>
+                                    <td class="text-end"><span t-field="doc.folio_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="row justify-content-end mt-3">
+                            <div class="col-4">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td>Untaxed Amount:</td>
+                                        <td class="text-end"><span t-esc="untaxed_amount" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                    </tr>
+                                    <tr class="border-bottom border-dark">
+                                        <td>VAT 10%:</td>
+                                        <td class="text-end"><span t-esc="tax_amount" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                    </tr>
+                                    <tr class="bg-dark text-white fw-bold">
+                                        <td>Total Amount:</td>
+                                        <td class="text-end"><span t-field="doc.folio_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="row mt-5 pt-5" style="page-break-inside: avoid;">
+                            <div class="col-5 text-center">
+                                <p class="mb-1 fw-bold">Prepared By (Cashier)</p>
+                                <div style="height: 60px; border-bottom: 1px solid black; margin: 0 20px;"></div>
+                                <br/><span t-esc="env.user.name"/>
+                                <div class="text-muted mt-1" style="font-size: 13px;">Date: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')"/></div>
+                            </div>
+                            <div class="col-2"></div>
+                            <div class="col-5 text-center">
+                                <p class="mb-1 fw-bold">Guest Acknowledgment</p>
+                                <div style="height: 60px; border-bottom: 1px solid black; margin: 0 20px; position: relative;">
+                                    <img t-if="doc.guest_signature" t-att-src="image_data_uri(doc.guest_signature)" style="max-height: 60px; max-width: 100%; position: absolute; bottom: 0; left: 35%; transform: translateX(-50%);"/>
+                                </div>
+                                <br/><span t-field="doc.partner_id.name"/>
+                                <div class="text-muted mt-1" style="font-size: 13px;">Date: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')"/></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

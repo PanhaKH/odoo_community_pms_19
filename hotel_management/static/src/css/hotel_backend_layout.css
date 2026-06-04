@@ -1,0 +1,174 @@
+/* Keep dense custom backend screens inside the visible Odoo viewport. */
+.o_control_panel .o_control_panel_main {
+    min-width: 0;
+}
+
+.o_control_panel .o_control_panel_breadcrumbs,
+.o_control_panel .o_control_panel_actions,
+.o_control_panel .o_control_panel_navigation {
+    min-width: 0;
+}
+
+.o_control_panel .o_control_panel_main_buttons,
+.o_control_panel .o_control_panel_navigation {
+    flex-wrap: wrap !important;
+}
+
+.o_control_panel .o_breadcrumb {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.o_control_panel .o_last_breadcrumb_item,
+.o_control_panel .o_breadcrumb .breadcrumb-item {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.o_control_panel > .o_hotel_quick_toolbar {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+    margin-left: 0 !important;
+    overflow: visible;
+    padding-top: 4px;
+}
+
+.o_control_panel > .o_hotel_quick_toolbar .btn {
+    flex: 0 0 auto;
+}
+
+.o_web_client .o_form_view {
+    min-width: 0;
+}
+
+.o_web_client .o_form_view.o_hotel_reservation_form,
+.o_web_client .o_form_view .o_form_renderer.o_hotel_reservation_form {
+    min-width: 0;
+}
+
+.o_web_client .o_form_view.o_hotel_reservation_form .o_form_renderer,
+.o_web_client .o_form_view .o_form_renderer.o_hotel_reservation_form {
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    height: auto !important;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+.o_web_client .o_form_view.o_hotel_reservation_form .o_form_sheet_bg,
+.o_web_client .o_form_view .o_form_renderer.o_hotel_reservation_form .o_form_sheet_bg,
+.o_web_client .o_form_view.o_hotel_reservation_form .o_form_sheet,
+.o_web_client .o_form_view .o_form_renderer.o_hotel_reservation_form .o_form_sheet {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+}
+
+.o_web_client .o_form_view.o_hotel_reservation_form .oe_chatter,
+.o_web_client .o_form_view .o_form_renderer.o_hotel_reservation_form .oe_chatter {
+    flex: 0 0 auto !important;
+    max-width: 100%;
+    min-width: 0 !important;
+    width: 100% !important;
+}
+
+.o_web_client .o_form_view .o_form_statusbar {
+    margin-inline: 0 !important;
+    max-width: 100%;
+    overflow: visible;
+    padding-inline: 16px !important;
+    padding-block: 8px !important;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 48px;
+    height: auto;
+    align-items: stretch;
+}
+
+.o_web_client .o_form_view .o_statusbar_buttons {
+    min-width: 0;
+    flex: 1 1 420px;
+}
+
+.o_web_client .o_form_view .o_statusbar_buttons:empty {
+    display: none;
+    flex: 0 0 auto;
+}
+
+.o_web_client .o_form_view .o_statusbar_buttons .btn {
+    flex: 0 0 auto;
+    max-width: 100%;
+}
+
+.o_web_client .o_form_view .o_field_statusbar {
+    min-width: 0;
+    flex: 1 1 360px;
+    align-self: stretch !important;
+    overflow: visible;
+}
+
+.o_web_client .o_form_view .o_statusbar_buttons:empty + .o_field_statusbar {
+    flex-basis: 100%;
+}
+
+.o_web_client .o_form_view .o_field_statusbar > .o_statusbar_status {
+    flex-flow: row-reverse wrap !important;
+    row-gap: 4px;
+    min-height: 32px;
+    width: 100%;
+    overflow: visible;
+}
+
+.o_web_client .o_form_view .o_field_statusbar > .o_statusbar_status > .o_arrow_button:not(.d-none) {
+    align-items: center;
+    display: inline-flex;
+    min-height: 32px;
+    white-space: nowrap;
+}
+
+.o_web_client .o_form_view.o_hotel_reservation_form .o_form_statusbar,
+.o_web_client .o_form_view .o_form_renderer.o_hotel_reservation_form .o_form_statusbar,
+.o_web_client .o_form_view .o_form_statusbar.o_hotel_reservation_header {
+    min-height: 52px;
+    overflow: visible !important;
+}
+
+.o_web_client .o_form_view.o_hotel_reservation_form .o_field_statusbar,
+.o_web_client .o_form_view .o_form_renderer.o_hotel_reservation_form .o_field_statusbar,
+.o_web_client .o_form_view .o_form_statusbar.o_hotel_reservation_header .o_field_statusbar {
+    flex: 1 1 100%;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .o_control_panel .o_control_panel_breadcrumbs,
+    .o_control_panel .o_control_panel_actions,
+    .o_control_panel .o_control_panel_navigation,
+    .o_control_panel > .o_hotel_quick_toolbar,
+    .o_web_client .o_form_view .o_statusbar_buttons,
+    .o_web_client .o_form_view .o_field_statusbar {
+        flex-basis: 100%;
+    }
+
+    .o_control_panel > .o_hotel_quick_toolbar .btn span {
+        display: none;
+    }
+
+    .o_web_client .o_form_view .o_form_statusbar {
+        padding-inline: 8px !important;
+    }
+
+    .o_web_client .o_form_view .o_field_statusbar > .o_statusbar_status {
+        justify-content: flex-start;
+    }
+
+    .o_web_client .o_form_view .o_field_statusbar > .o_statusbar_status > .o_arrow_button:not(.d-none) {
+        flex: 1 1 150px;
+        justify-content: center;
+        min-width: 0;
+    }
+}

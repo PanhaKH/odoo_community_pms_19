@@ -1,0 +1,311 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_hotel_room_form" model="ir.ui.view">
+        <field name="name">hotel.room.form</field>
+        <field name="model">hotel.room</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_set_clean" string="Set Clean" type="object" class="btn-success" invisible="housekeeping_status in ('clean', 'inspected') or availability_status == 'out_of_order'"/>
+                    <button name="action_set_inspected" string="Inspect" type="object" class="btn-primary" invisible="housekeeping_status == 'inspected' or availability_status == 'out_of_order'"/>
+                    <button name="action_set_dirty" string="Set Dirty" type="object" class="btn-warning" invisible="housekeeping_status == 'dirty' or availability_status == 'out_of_order'"/>
+                    <button name="action_assign_housekeeper_me" string="Assign Me HK" type="object" class="btn-outline-primary"/>
+                    <button name="action_assign_inspector_me" string="Assign Me Inspector" type="object" class="btn-outline-secondary"/>
+                    <button name="action_set_blocked" string="Unavailable (OOO)" type="object" class="btn-danger" groups="hotel_management.group_hotel_front_office" invisible="availability_status == 'out_of_order' or occupancy_status == 'occupied'"/>
+                    <button name="action_release_ooo" string="Release OOO" type="object" class="btn-secondary" groups="hotel_management.group_hotel_front_office" invisible="availability_status != 'out_of_order'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="vacant_clean,occupied_clean,occupied_dirty,vacant_dirty,blocked"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name" placeholder="e.g. 101"/></h1>
+                    </div>
+                    <group>
+                        <group string="Location">
+                            <field name="zone_id"/>
+                            <field name="floor_id" domain="[('zone_id', '=', zone_id)]"/>
+                            <field name="room_type_id" domain="[('zone_ids', 'in', zone_id)]"/>
+                        </group>
+                        <group string="Details">
+                            <group string="Connecting Rooms">
+                                <field name="physical_connecting_room_ids" widget="many2many_tags" placeholder="e.g. A208"/>
+                                <field name="active_connecting_room_ids" widget="many2many_tags" 
+                                    domain="[('id', 'in', physical_connecting_room_ids)]"/>
+                                    
+                            </group>
+                            <field name="capacity"/>
+                            <field name="clean_priority"/>
+                            <field name="service_workflow" widget="badge"/>
+                            <field name="arrival_priority_level" widget="badge"/>
+                            <field name="release_ready"/>
+                            <field name="housekeeping_release_policy"/>
+                            <field name="occupancy_status" widget="badge"/>
+                            <field name="housekeeping_status" widget="badge"/>
+                            <field name="availability_status" widget="badge"/>
+                            <field name="ooo_until" invisible="availability_status != 'out_of_order'"/>
+                            <field name="amenity_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Housekeeping Workflow">
+                            <group>
+                                <group string="Assignments">
+                                    <field name="assigned_housekeeper_id"/>
+                                    <field name="assigned_inspector_id"/>
+                                    <field name="cleaned_by_id" readonly="1"/>
+                                    <field name="cleaned_at" readonly="1"/>
+                                    <field name="inspected_by_id" readonly="1"/>
+                                    <field name="inspected_at" readonly="1"/>
+                                </group>
+                                <group string="Service Flags">
+                                    <field name="departure_clean_required" readonly="1"/>
+                                    <field name="do_not_disturb"/>
+                                    <field name="turndown_required"/>
+                                    <field name="turndown_completed"/>
+                                    <field name="minibar_check_required"/>
+                                    <field name="minibar_checked"/>
+                                    <field name="linen_change_required"/>
+                                    <field name="linen_changed"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Floor Plan Settings">
+                            <group col="4">
+                                <field name="pos_x"/>
+                                <field name="pos_y"/>
+                                <field name="shape"/>
+                            </group>
+                        </page>
+                        <page string="Notes">
+                            <field name="room_note"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_room_tree" model="ir.ui.view">
+        <field name="name">hotel.room.tree</field>
+        <field name="model">hotel.room</field>
+        <field name="arch" type="xml">
+            <list decoration-success="occupancy_status == 'vacant' and housekeeping_status in ('clean', 'inspected') and availability_status == 'available'" decoration-danger="availability_status == 'out_of_order'" decoration-info="occupancy_status == 'occupied'">
+                <field name="name"/>
+                <field name="zone_id"/>
+                <field name="floor_id"/>
+                <field name="room_type_id"/>
+                <field name="service_workflow" widget="badge"/>
+                <field name="arrival_priority_level" widget="badge"/>
+                <field name="release_ready"/>
+                <field name="assigned_housekeeper_id"/>
+                <field name="assigned_inspector_id"/>
+                <field name="occupancy_status" widget="badge"/>
+                <field name="housekeeping_status" widget="badge"/>
+                <field name="availability_status" widget="badge"/>
+                <field name="state" widget="badge" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_room_search" model="ir.ui.view">
+        <field name="name">hotel.room.search</field>
+        <field name="model">hotel.room</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="room_type_id"/>
+                <field name="floor_id"/>
+                <field name="zone_id"/>
+                <field name="occupancy_status"/>
+                <field name="housekeeping_status"/>
+                <field name="availability_status"/>
+                <field name="service_workflow"/>
+                <field name="assigned_housekeeper_id"/>
+                <field name="assigned_inspector_id"/>
+                
+                <filter string="Vacant Ready" name="vacant_ready" domain="[('release_ready', '=', True)]"/>
+                <filter string="Occupied" name="occupied" domain="[('occupancy_status', '=', 'occupied')]"/>
+                <filter string="Dirty" name="dirty" domain="[('housekeeping_status', '=', 'dirty')]"/>
+                <filter string="Out of Order" name="out_of_order" domain="[('availability_status', '=', 'out_of_order')]"/>
+                <filter string="Arrival Priority" name="arrival_priority" domain="[('arrival_priority_level', '!=', 'none')]"/>
+                <filter string="Inspection Pending" name="inspection_pending" domain="[('service_workflow', '=', 'inspection_pending')]"/>
+                <filter string="Departure Clean" name="departure_clean" domain="[('departure_clean_required', '=', True)]"/>
+                <filter string="DND" name="dnd" domain="[('do_not_disturb', '=', True)]"/>
+                
+                <filter string="Priority Clean" name="priority_clean" domain="[('clean_priority', '=', True)]"/>
+                
+                <group>
+                    <filter string="Building / Zone" name="group_zone" context="{'group_by': 'zone_id'}"/>
+                    <filter string="Floor" name="group_floor" context="{'group_by': 'floor_id'}"/>
+                    <filter string="Room Type" name="group_type" context="{'group_by': 'room_type_id'}"/>
+                    <filter string="Housekeeping" name="group_housekeeping" context="{'group_by': 'housekeeping_status'}"/>
+                    <filter string="Occupancy" name="group_occupancy" context="{'group_by': 'occupancy_status'}"/>
+                    <filter string="Workflow" name="group_workflow" context="{'group_by': 'service_workflow'}"/>
+                </group>
+
+                <searchpanel>
+                    <field name="housekeeping_status" string="Housekeeping" enable_counters="1" icon="fa-filter"/>
+                    <field name="availability_status" string="Availability" enable_counters="1" icon="fa-ban"/>
+                    <field name="service_workflow" string="Workflow" enable_counters="1" icon="fa-tasks"/>
+                    <field name="arrival_priority_level" string="Arrival Priority" enable_counters="1" icon="fa-exclamation-triangle"/>
+                    <field name="zone_id" string="Building / Zone" enable_counters="1" icon="fa-building"/>
+                    <field name="room_type_id" string="Room Type" enable_counters="1" icon="fa-bed"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_hotel_room" model="ir.actions.act_window">
+        <field name="name">Rooms</field>
+        <field name="res_model">hotel.room</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_hotel_room_search"/>
+        <field name="context">{'search_default_group_floor': 1}</field>
+    </record>
+
+    <record id="view_hotel_zone_form" model="ir.ui.view">
+        <field name="name">hotel.zone.form</field>
+        <field name="model">hotel.zone</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group string="Building Info">
+                            <field name="name"/>
+                            <field name="sequence"/>
+                        </group>
+                        <group string="Map Position">
+                            <div class="alert alert-info">Position on Campus Map (0-100%)</div>
+                            <field name="pos_x"/>
+                            <field name="pos_y"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="background_image" widget="image" class="oe_avatar"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_zone" model="ir.actions.act_window">
+        <field name="name">Buildings / Zones</field>
+        <field name="res_model">hotel.zone</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_hotel_floor_form" model="ir.ui.view">
+        <field name="name">hotel.floor.form</field>
+        <field name="model">hotel.floor</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="zone_id"/>
+                        <field name="sequence"/>
+                        <field name="background_image" widget="image" class="oe_avatar"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_floor_tree" model="ir.ui.view">
+        <field name="name">hotel.floor.tree</field>
+        <field name="model">hotel.floor</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name" string="Floor Name"/>
+                <field name="zone_id" string="Building / Zone"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hotel_floor" model="ir.actions.act_window">
+        <field name="name">Floors</field>
+        <field name="res_model">hotel.floor</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_hotel_room_type_form" model="ir.ui.view">
+        <field name="name">hotel.room.type.form</field>
+        <field name="model">hotel.room.type</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="code"/>
+                        <field name="sequence"/>
+                        <field name="zone_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_room_type_tree" model="ir.ui.view">
+        <field name="name">hotel.room.type.tree</field>
+        <field name="model">hotel.room.type</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="zone_ids" widget="many2many_tags" string="Allowed Buildings"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hotel_room_type" model="ir.actions.act_window">
+        <field name="name">Room Types</field>
+        <field name="res_model">hotel.room.type</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_hotel_room_amenity_form" model="ir.ui.view">
+        <field name="name">hotel.room.amenity.form</field>
+        <field name="model">hotel.room.amenity</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="icon"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_room_amenity" model="ir.actions.act_window">
+        <field name="name">Room Amenities</field>
+        <field name="res_model">hotel.room.amenity</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_hotel_room_rate_tree" model="ir.ui.view">
+        <field name="name">hotel.room.rate.tree</field>
+        <field name="model">hotel.room.rate</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="name"/>
+                <field name="room_type_id"/>
+                <field name="unit_price" widget="monetary"/>
+                <field name="currency_id" invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hotel_room_rate" model="ir.actions.act_window">
+        <field name="name">Rate Setup</field>
+        <field name="res_model">hotel.room.rate</field>
+        <field name="view_mode">list</field>
+    </record>
+
+</odoo>
+

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_housekeeping_inspection_list" model="ir.ui.view">
+        <field name="name">hotel.housekeeping.inspection.list</field>
+        <field name="model">hotel.housekeeping</field>
+        <field name="arch" type="xml">
+            <list string="Supervisor Inspection"
+                  decoration-warning="inspection_state == 'ready'"
+                  decoration-danger="inspection_state == 'failed'"
+                  decoration-success="inspection_state == 'passed'"
+                  create="false">
+                <field name="is_ready_for_inspection" column_invisible="1"/>
+                <field name="business_date"/>
+                <field name="room_id"/>
+                <field name="floor_id"/>
+                <field name="room_type_id"/>
+                <field name="maid_id" string="Housekeeper"/>
+                <field name="cleaning_completed_by_id"/>
+                <field name="cleaning_completed_datetime"/>
+                <field name="inspection_state" widget="badge"/>
+                <field name="inspected_by"/>
+                <field name="inspected_datetime"/>
+                <field name="failure_reason" optional="show"/>
+                <button name="action_inspection_passed" string="Pass" type="object"
+                        icon="fa-check" invisible="not is_ready_for_inspection"
+                        groups="hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_housekeeping_inspection_form" model="ir.ui.view">
+        <field name="name">hotel.housekeeping.inspection.form</field>
+        <field name="model">hotel.housekeeping</field>
+        <field name="arch" type="xml">
+            <form string="Room Inspection">
+                <header>
+                    <button name="action_ready_for_inspection" string="Cleaning Done / Ready for Inspection"
+                            type="object" class="btn-primary"
+                            invisible="state in ['inspection', 'done']"/>
+                    <button name="action_inspection_passed" string="Inspection Passed"
+                            type="object" class="btn-success"
+                            invisible="not is_ready_for_inspection"
+                            groups="hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+                    <button name="action_inspection_failed" string="Failed / Reclean Required"
+                            type="object" class="btn-danger"
+                            invisible="not is_ready_for_inspection"
+                            groups="hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+                    <field name="inspection_state" widget="statusbar" statusbar_visible="pending,ready,passed,failed"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Room">
+                            <field name="room_id"/>
+                            <field name="floor_id" readonly="1"/>
+                            <field name="room_type_id" readonly="1"/>
+                            <field name="last_guest_id" readonly="1"/>
+                            <field name="room_housekeeping_status" readonly="1"/>
+                            <field name="room_occupancy_status" readonly="1"/>
+                        </group>
+                        <group string="Cleaning">
+                            <field name="maid_id"/>
+                            <field name="cleaning_completed_by_id" readonly="1"/>
+                            <field name="cleaning_completed_datetime" readonly="1"/>
+                            <field name="state" readonly="1"/>
+                            <field name="is_ready_for_inspection" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Inspection">
+                            <field name="inspector_id"/>
+                            <field name="inspected_by" readonly="1"/>
+                            <field name="inspected_datetime" readonly="1"/>
+                            <field name="supervisor_note"/>
+                        </group>
+                        <group string="Failure / Reclean">
+                            <field name="failure_reason" required="inspection_state == 'failed'"/>
+                            <field name="inspection_attachment_ids" widget="many2many_binary" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_housekeeping_inspection_search" model="ir.ui.view">
+        <field name="name">hotel.housekeeping.inspection.search</field>
+        <field name="model">hotel.housekeeping</field>
+        <field name="arch" type="xml">
+            <search string="Supervisor Inspection">
+                <field name="room_id"/>
+                <field name="floor_id"/>
+                <field name="maid_id"/>
+                <field name="inspected_by"/>
+                <filter string="Ready for Inspection" name="ready" domain="[('is_ready_for_inspection', '=', True), ('state', '!=', 'done')]"/>
+                <filter string="Failed / Reclean Required" name="failed" domain="[('inspection_state', '=', 'failed'), ('state', '=', 'dirty')]"/>
+                <filter string="Passed Today" name="passed_today" domain="[('inspection_state', '=', 'passed'), ('inspected_datetime', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00'))]"/>
+                <filter string="My Inspections" name="my_inspections" domain="[('inspected_by', '=', uid)]"/>
+                <group>
+                    <filter string="Floor" name="group_floor" context="{'group_by': 'floor_id'}"/>
+                    <filter string="Status" name="group_status" context="{'group_by': 'inspection_state'}"/>
+                    <filter string="Housekeeper" name="group_housekeeper" context="{'group_by': 'maid_id'}"/>
+                    <filter string="Inspector" name="group_inspector" context="{'group_by': 'inspected_by'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_housekeeping_supervisor_inspection" model="ir.actions.act_window">
+        <field name="name">Supervisor Inspection</field>
+        <field name="res_model">hotel.housekeeping</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_housekeeping_inspection_search"/>
+        <field name="domain">[('is_ready_for_inspection', '=', True), ('state', '!=', 'done')]</field>
+        <field name="context">{'search_default_ready': 1}</field>
+    </record>
+
+    <record id="action_housekeeping_supervisor_inspection_view_list" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_housekeeping_inspection_list"/>
+        <field name="act_window_id" ref="action_housekeeping_supervisor_inspection"/>
+    </record>
+
+    <record id="action_housekeeping_supervisor_inspection_view_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_housekeeping_inspection_form"/>
+        <field name="act_window_id" ref="action_housekeeping_supervisor_inspection"/>
+    </record>
+
+    <record id="action_housekeeping_supervisor_inspection_mobile" model="ir.actions.act_url">
+        <field name="name">Supervisor Inspection Mobile</field>
+        <field name="url">/housekeeping/supervisor/inspection</field>
+        <field name="target">self</field>
+    </record>
+
+    <record id="view_hotel_dashboard_form_housekeeping_inspection" model="ir.ui.view">
+        <field name="name">hotel.dashboard.form.housekeeping.inspection</field>
+        <field name="model">hotel.dashboard</field>
+        <field name="inherit_id" ref="hotel_management.view_hotel_dashboard_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_view_chat_logs']/ancestor::div[hasclass('col-md-3')][1]" position="after">
+                <div class="col-md-3 mb-3" groups="hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system">
+                    <button name="action_view_rooms_ready_for_inspection" type="object" class="btn p-0 w-100 border-0 h-100">
+                        <div class="card text-white text-center shadow-sm h-100" style="background-color: #0d6efd;">
+                            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                <h1 class="m-0 fw-bold"><field name="rooms_ready_for_inspection"/></h1>
+                                <span class="fw-bold mt-1">Ready for Inspection</span>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+                <div class="col-md-3 mb-3" groups="hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system">
+                    <button name="action_view_failed_inspection_reclean" type="object" class="btn p-0 w-100 border-0 h-100">
+                        <div class="card text-white text-center shadow-sm h-100" style="background-color: #dc3545;">
+                            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                <h1 class="m-0 fw-bold"><field name="failed_inspection_reclean"/></h1>
+                                <span class="fw-bold mt-1">Failed / Reclean</span>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+                <div class="col-md-3 mb-3" groups="hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system">
+                    <button name="action_view_passed_inspection_today" type="object" class="btn p-0 w-100 border-0 h-100">
+                        <div class="card text-white text-center shadow-sm h-100" style="background-color: #198754;">
+                            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                <h1 class="m-0 fw-bold"><field name="passed_inspection_today"/></h1>
+                                <span class="fw-bold mt-1">Passed Today</span>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hotel_minibar_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.minibar.wizard.form.mobile</field>
+        <field name="model">hotel.minibar.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Post Minibar Item">
+                <sheet>
+                    <div class="mb-3">
+                        <h2 class="text-primary text-center">Post to Room <field name="room_id" readonly="1" nolabel="1"/></h2>
+                    </div>
+                    <group>
+                        <field name="product_id" widget="many2one_avatar" options="{'no_create': True}" class="fs-4 py-2"/>
+                        <field name="quantity" class="fs-4 py-2"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_post_charge" type="object" string="POST CHARGE" class="btn btn-warning btn-lg w-100 py-3 fw-bold fs-5 shadow-sm text-dark mb-2"/>
+                    <button string="Cancel" class="btn btn-light btn-lg w-100 py-3 fs-5 border" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_open_minibar_wizard" model="ir.actions.act_window">
+        <field name="name">Post Minibar</field>
+        <field name="res_model">hotel.minibar.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field> 
+    </record>
+</odoo>

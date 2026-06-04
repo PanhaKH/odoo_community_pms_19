@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_hotel_availability_calendar" model="ir.ui.view">
+        <field name="name">hotel.availability.calendar</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <calendar string="Tape Chart" 
+                      date_start="checkin_date" 
+                      date_stop="checkout_date" 
+                      color="room_id" 
+                      mode="month" 
+                      quick_add="False" 
+                      event_open_popup="True">
+                <field name="partner_id"/>
+                <field name="room_id" filters="1"/>
+                <field name="state"/>
+                <field name="total_amount"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_hotel_availability_graph" model="ir.ui.view">
+        <field name="name">hotel.availability.graph</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <graph string="Occupancy Analysis" type="bar" sample="1" stacked="1">
+                <field name="checkin_date" interval="day"/>
+                <field name="room_id"/>
+                <field name="total_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_hotel_availability_pivot" model="ir.ui.view">
+        <field name="name">hotel.availability.pivot</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <pivot string="Revenue Analysis" sample="1" display_quantity="true">
+                <field name="checkin_date" type="row" interval="month"/>
+                <field name="room_id" type="col"/>
+                <field name="total_amount" type="measure"/>
+                <field name="duration" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_hotel_availability_search" model="ir.ui.view">
+        <field name="name">hotel.availability.search</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="partner_id"/>
+                <field name="room_id"/>
+                <field name="name"/>
+                
+                <filter string="Confirmed" name="confirmed" domain="[('state', '=', 'confirm')]"/>
+                <filter string="In-House" name="in_house" domain="[('state', '=', 'checkin')]"/>
+                <separator/>
+                <filter string="Check-in Today" name="today" domain="[('checkin_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                
+                <group>
+                    <filter string="Room" name="group_room" context="{'group_by':'room_id'}"/>
+                    <filter string="Status" name="group_status" context="{'group_by':'state'}"/>
+                    <filter string="Check-in Date" name="group_date" context="{'group_by':'checkin_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_hotel_availability_report" model="ir.actions.act_window">
+        <field name="name">Availability &amp; Tape Chart</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">calendar,graph,pivot,list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'calendar', 'view_id': ref('view_hotel_availability_calendar')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('view_hotel_availability_graph')}),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('view_hotel_availability_pivot')}),
+        ]"/>
+        <field name="search_view_id" ref="view_hotel_availability_search"/>
+        <field name="context">{'search_default_group_room': 1}</field>
+    </record>
+
+</odoo>

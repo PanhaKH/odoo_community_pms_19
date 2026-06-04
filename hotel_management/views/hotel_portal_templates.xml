@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="portal_my_home_hotel" name="Portal My Home : Hotel Entries" inherit_id="portal.portal_my_home" priority="20">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="before">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">Reservations</t>
+                <t t-set="url" t-value="'/my/reservations'"/>
+                <t t-set="placeholder">reservation_count</t>
+                <t t-set="count" t-value="reservation_count or 0"/>
+            </t>
+        </xpath>
+    </template>
+
+    <template id="portal_my_home_menu_hotel" name="Portal layout : hotel entries" inherit_id="portal.portal_breadcrumbs" priority="20">
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-if="page_name == 'reservation'" class="breadcrumb-item active">
+                <a t-if="reservation" t-attf-href="/my/reservations">Reservations</a>
+                <t t-else="">Reservations</t>
+            </li>
+            <li t-if="reservation" class="breadcrumb-item active">
+                <t t-esc="reservation.name"/>
+            </li>
+        </xpath>
+    </template>
+
+    <template id="portal_my_reservations" name="My Reservations">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+            <t t-call="portal.portal_table">
+                <thead>
+                    <tr class="active">
+                        <th>Reservation #</th>
+                        <th>Room</th>
+                        <th>Check-In</th>
+                        <th>Check-Out</th>
+                        <th>Status</th>
+                        <th class="text-end">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-foreach="reservations" t-as="res">
+                        <tr>
+                            <td><a t-attf-href="/my/reservation/#{res.id}"><t t-esc="res.name"/></a></td>
+                            <td><span t-field="res.room_id.name"/></td>
+                            <td><span t-field="res.checkin_date"/></td>
+                            <td><span t-field="res.checkout_date"/></td>
+                            <td>
+                                <span t-if="res.state == 'draft'" class="badge rounded-pill text-bg-secondary">Draft</span>
+                                <span t-if="res.state == 'confirm'" class="badge rounded-pill text-bg-primary">Confirmed</span>
+                                <span t-if="res.state == 'checkin'" class="badge rounded-pill text-bg-success">In-House</span>
+                                <span t-if="res.state == 'checkout'" class="badge rounded-pill text-bg-info">Checked Out</span>
+                            </td>
+                            <td class="text-end"><span t-field="res.folio_total" t-options='{"widget": "monetary", "display_currency": res.currency_id}'/></td>
+                        </tr>
+                    </t>
+                </tbody>
+            </t>
+        </t>
+    </template>
+
+    <template id="portal_reservation_page" name="Reservation Details">
+        <t t-call="portal.portal_layout">
+            <div class="container mt-3">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h3 class="m-0">Reservation: <t t-esc="reservation.name"/></h3>
+                        <span class="badge rounded-pill text-bg-light"><t t-esc="reservation.state.upper()"/></span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Room:</strong> <span t-field="reservation.room_id.name"/></p>
+                                <p class="mb-1"><strong>Check-In:</strong> <span t-field="reservation.checkin_date"/></p>
+                                <p class="mb-1"><strong>Check-Out:</strong> <span t-field="reservation.checkout_date"/></p>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <h4 class="text-muted">Total Charges: <span t-field="reservation.folio_total" t-options='{"widget": "monetary", "display_currency": reservation.currency_id}'/></h4>
+                                <h3 class="text-danger">Balance Due: <span t-field="reservation.folio_balance" t-options='{"widget": "monetary", "display_currency": reservation.currency_id}'/></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4 border-info shadow-sm" t-if="reservation.state == 'checkin'">
+                    <div class="card-header bg-info text-white">
+                        <h4 class="m-0"><i class="fa fa-concierge-bell me-2"/>Request Hotel Service</h4>
+                    </div>
+                    <div class="card-body">
+                        <form action="/my/reservation/request/submit" method="post">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <input type="hidden" name="reservation_id" t-att-value="reservation.id"/>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Service Type</label>
+                                    <select name="request_type" class="form-select">
+                                        <option value="housekeeping">Housekeeping (Towels/Clean)</option>
+                                        <option value="food">Food &amp; Drink</option>
+                                        <option value="transport">Taxi / Transport</option>
+                                        <option value="maintenance">Maintenance Issue</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label">Details</label>
+                                    <div class="input-group">
+                                        <input type="text" name="description" class="form-control" placeholder="What do you need?" required="required"/>
+                                        <button type="submit" class="btn btn-success">Send Request</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

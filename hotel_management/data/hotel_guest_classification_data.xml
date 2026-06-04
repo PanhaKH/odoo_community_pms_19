@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="guest_classification_repeat_guest" model="hotel.guest.classification">
+            <field name="name">Repeat Guest</field>
+            <field name="code">repeat_guest</field>
+            <field name="priority">10</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <record id="ir_cron_hotel_night_audit_charges" model="ir.cron">
+            <field name="name">Hotel: Auto Night Audit (Room Charges)</field>
+            <field name="model_id" ref="model_hotel_reservation"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_daily_room_charge()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <record id="ir_cron_hotel_auto_noshow" model="ir.cron">
+            <field name="name">Hotel: Auto No-Show Check</field>
+            <field name="model_id" ref="model_hotel_reservation"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_auto_noshow()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <record id="ir_cron_hotel_auto_checkout_hold" model="ir.cron">
+            <field name="name">Hotel: Auto Checkout Hold</field>
+            <field name="model_id" ref="model_hotel_reservation"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_auto_checkout_hold()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+        <record id="ir_cron_send_pre_arrival_links" model="ir.cron">
+            <field name="name">Hotel: Send Automated Pre-Arrival Links</field>
+            <field name="model_id" ref="model_hotel_reservation"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_send_pre_arrival_links()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+
+    </data>
+</odoo>

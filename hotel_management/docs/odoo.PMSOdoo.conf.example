@@ -1,0 +1,21 @@
+[options]
+addons_path = C:\Program Files\Odoo 17.0.20260307\server\odoo\addons,C:\Program Files\Odoo 17.0.20260307\server\addons
+admin_passwd = change_me
+
+db_host = localhost
+db_port = 5432
+db_user = openpg
+db_password = change_me
+
+db_name = PMSOdoo
+dbfilter = ^PMSOdoo$
+list_db = False
+
+data_dir = C:\Program Files\Odoo 17.0.20260307\sessions
+http_port = 8069
+proxy_mode = False
+
+logfile = C:\Program Files\Odoo 17.0.20260307\server\odoo.log
+
+server_wide_modules = base,web
+without_demo = True

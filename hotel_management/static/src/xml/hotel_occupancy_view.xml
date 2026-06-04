@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="hotel_management.OccupancyViewTemplate" owl="1">
+        <div class="h-100 d-flex flex-column bg-white">
+            
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+                <div class="d-flex align-items-center gap-3">
+                    <h3 class="m-0 text-primary">Occupancy Comparison</h3>
+                    
+                    <select class="form-select w-auto fw-bold" t-model="state.metric" t-on-change="loadData">
+                        <option value="occupancy">Show Occupancy %</option>
+                        <option value="adr">Show ADR (Price)</option>
+                        <option value="revpar">Show RevPAR</option>
+                    </select>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary" t-on-click="() => this.changeMonth(-1)">
+                        <i class="fa fa-chevron-left"/> Previous
+                    </button>
+                    <button class="btn btn-primary fw-bold px-4" style="min-width: 150px;">
+                        <t t-esc="state.currentMonthName"/> <t t-esc="state.currentYear"/>
+                    </button>
+                    <button class="btn btn-outline-secondary" t-on-click="() => this.changeMonth(1)">
+                        Next <i class="fa fa-chevron-right"/>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-grow-1 p-4 overflow-auto">
+                <t t-if="state.loading">
+                    <div class="text-center mt-5"><div class="spinner-border text-primary"/></div>
+                </t>
+                <t t-else="">
+                    <div class="container-fluid" style="max-width: 1200px;">
+                        <div class="row text-center fw-bold text-uppercase text-muted mb-2">
+                            <div class="col">Sun</div><div class="col">Mon</div><div class="col">Tue</div>
+                            <div class="col">Wed</div><div class="col">Thu</div><div class="col">Fri</div><div class="col">Sat</div>
+                        </div>
+
+                        <div class="d-flex flex-wrap border-top border-start">
+                            <t t-foreach="state.calendarPadding" t-as="pad" t-key="pad_index">
+                                <div class="hotel-cal-cell border-bottom border-end bg-light" style="width: 14.28%;"></div>
+                            </t>
+
+                            <t t-foreach="state.calendarDays" t-as="day" t-key="day.dateStr">
+                                <div t-att-class="'hotel-cal-cell border-bottom border-end d-flex flex-column justify-content-between p-2 ' + day.colorClass"
+                                     style="width: 14.28%; cursor: pointer;">
+                                    
+                                    <div class="text-end small opacity-75"><t t-esc="day.dayNum"/></div>
+                                    
+                                    <div class="text-center hotel-cal-value">
+                                        <t t-esc="day.value"/>
+                                    </div>
+                                    
+                                    <div class="text-center small" style="font-size: 0.7em; opacity: 0.8;">
+                                        <t t-if="state.metric == 'occupancy'">Occ</t>
+                                        <t t-if="state.metric == 'adr'">ADR</t>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </div>
+    </t>
+</templates>

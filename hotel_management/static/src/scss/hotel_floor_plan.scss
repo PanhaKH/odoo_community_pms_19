@@ -1,0 +1,9 @@
+// Shrink the Kanban columns to fit the new high-density 130px cards
+.o_hotel_floor_plan {
+    .o_kanban_group {
+        width: 150px !important; 
+        min-width: 150px !important;
+        flex: 0 0 150px !important;
+        padding-right: 10px !important; 
+    }
+}

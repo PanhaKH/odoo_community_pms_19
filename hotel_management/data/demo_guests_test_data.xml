@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================ -->
+    <!-- DEMO GUESTS - 32 Test Profiles for Hotel PMS Testing -->
+    <!-- ============================================================ -->
+
+    <!-- TEST CASE 1: STANDARD RESERVATION -->
+    <record id="demo_guest_hort_ranut" model="res.partner">
+        <field name="name">Hort Ranut</field>
+        <field name="email">hort.ranut@example.com</field>
+        <field name="phone">+855 12 345 678</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 2: WALK-IN GUEST -->
+    <record id="demo_guest_channa_chhom" model="res.partner">
+        <field name="name">Channa Chhom</field>
+        <field name="email">channa.chhom@example.com</field>
+        <field name="phone">+855 12 345 679</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 3: PARTIAL PAYMENT -->
+    <record id="demo_guest_vanh_chorleang" model="res.partner">
+        <field name="name">Vanh Chorleang</field>
+        <field name="email">vanh.chorleang@example.com</field>
+        <field name="phone">+855 12 345 680</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 4: SPLIT PAYMENT -->
+    <record id="demo_guest_so_phearch" model="res.partner">
+        <field name="name">So Phearch</field>
+        <field name="email">so.phearch@example.com</field>
+        <field name="phone">+855 12 345 681</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 5: CORPORATE BILLING -->
+    <record id="demo_guest_srey_nita" model="res.partner">
+        <field name="name">Srey Nita</field>
+        <field name="email">srey.nita@example.com</field>
+        <field name="phone">+855 12 345 682</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 6: NO SHOW -->
+    <record id="demo_guest_sok_dara" model="res.partner">
+        <field name="name">Sok Dara</field>
+        <field name="email">sok.dara@example.com</field>
+        <field name="phone">+855 12 345 683</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 7: CANCELLATION -->
+    <record id="demo_guest_chan_vutha" model="res.partner">
+        <field name="name">Chan Vutha</field>
+        <field name="email">chan.vutha@example.com</field>
+        <field name="phone">+855 12 345 684</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 8: ROOM CHANGE -->
+    <record id="demo_guest_rithy_chenda" model="res.partner">
+        <field name="name">Rithy Chenda</field>
+        <field name="email">rithy.chenda@example.com</field>
+        <field name="phone">+855 12 345 685</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 9: EARLY CHECK-IN -->
+    <record id="demo_guest_piseth_vannak" model="res.partner">
+        <field name="name">Piseth Vannak</field>
+        <field name="email">piseth.vannak@example.com</field>
+        <field name="phone">+855 12 345 686</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 10: LATE CHECKOUT -->
+    <record id="demo_guest_sopheaktra_mey" model="res.partner">
+        <field name="name">Sopheaktra Mey</field>
+        <field name="email">sopheaktra.mey@example.com</field>
+        <field name="phone">+855 12 345 687</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 11: MULTI-ROOM RESERVATION -->
+    <record id="demo_guest_dara_chhor" model="res.partner">
+        <field name="name">Dara Chhor</field>
+        <field name="email">dara.chhor@example.com</field>
+        <field name="phone">+855 12 345 688</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 12: QR HOUSEKEEPING REQUEST -->
+    <record id="demo_guest_sovan_rachana" model="res.partner">
+        <field name="name">Sovan Rachana</field>
+        <field name="email">sovan.rachana@example.com</field>
+        <field name="phone">+855 12 345 689</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 13: MAINTENANCE REQUEST -->
+    <record id="demo_guest_borey_sokha" model="res.partner">
+        <field name="name">Borey Sokha</field>
+        <field name="email">borey.sokha@example.com</field>
+        <field name="phone">+855 12 345 690</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 14: OVERPAYMENT -->
+    <record id="demo_guest_nary_chann" model="res.partner">
+        <field name="name">Nary Chann</field>
+        <field name="email">nary.chann@example.com</field>
+        <field name="phone">+855 12 345 691</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 15: REFUND -->
+    <record id="demo_guest_pich_vanna" model="res.partner">
+        <field name="name">Pich Vanna</field>
+        <field name="email">pich.vanna@example.com</field>
+        <field name="phone">+855 12 345 692</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 16: HOUSEKEEPING FULL FLOW -->
+    <record id="demo_guest_monika_srey" model="res.partner">
+        <field name="name">Monika Srey</field>
+        <field name="email">monika.srey@example.com</field>
+        <field name="phone">+855 12 345 693</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 17: VIP GUEST FLOW -->
+    <record id="demo_guest_sokun_theara" model="res.partner">
+        <field name="name">Sokun Theara</field>
+        <field name="email">sokun.theara@example.com</field>
+        <field name="phone">+855 12 345 694</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 18: LONG STAY GUEST -->
+    <record id="demo_guest_vireakboth_chan" model="res.partner">
+        <field name="name">Vireakboth Chan</field>
+        <field name="email">vireakboth.chan@example.com</field>
+        <field name="phone">+855 12 345 695</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- TEST CASE 19: FAMILY ROOM TEST -->
+    <record id="demo_guest_chanthy_dara" model="res.partner">
+        <field name="name">Chanthy Dara</field>
+        <field name="email">chanthy.dara@example.com</field>
+        <field name="phone">+855 12 345 696</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- STRESS TEST GUESTS (20-32) -->
+    <record id="demo_guest_pheakdey_sopheak" model="res.partner">
+        <field name="name">Pheakdey Sopheak</field>
+        <field name="email">pheakdey.sopheak@example.com</field>
+        <field name="phone">+855 12 345 697</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <record id="demo_guest_rotha_sovan" model="res.partner">
+        <field name="name">Rotha Sovan</field>
+        <field name="email">rotha.sovan@example.com</field>
+        <field name="phone">+855 12 345 698</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <record id="demo_guest_nita_channary" model="res.partner">
+        <field name="name">Nita Channary</field>
+        <field name="email">nita.channary@example.com</field>
+        <field name="phone">+855 12 345 699</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <record id="demo_guest_vannak_piseth" model="res.partner">
+        <field name="name">Vannak Piseth</field>
+        <field name="email">vannak.piseth@example.com</field>
+        <field name="phone">+855 12 345 700</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <record id="demo_guest_chenda_sopheak" model="res.partner">
+        <field name="name">Chenda Sopheak</field>
+        <field name="email">chenda.sopheak@example.com</field>
+        <field name="phone">+855 12 345 701</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <record id="demo_guest_dara_vireak" model="res.partner">
+        <field name="name">Dara Vireak</field>
+        <field name="email">dara.vireak@example.com</field>
+        <field name="phone">+855 12 345 702</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <record id="demo_guest_sokha_rith" model="res.partner">
+        <field name="name">Sokha Rith</field>
+        <field name="email">sokha.rith@example.com</field>
+        <field name="phone">+855 12 345 703</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <record id="demo_guest_rachana_nary" model="res.partner">
+        <field name="name">Rachana Nary</field>
+        <field name="email">rachana.nary@example.com</field>
+        <field name="phone">+855 12 345 704</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <record id="demo_guest_theara_pich" model="res.partner">
+        <field name="name">Theara Pich</field>
+        <field name="email">theara.pich@example.com</field>
+        <field name="phone">+855 12 345 705</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <record id="demo_guest_sopheak_vireak" model="res.partner">
+        <field name="name">Sopheak Vireak</field>
+        <field name="email">sopheak.vireak@example.com</field>
+        <field name="phone">+855 12 345 706</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <record id="demo_guest_chhor_dara" model="res.partner">
+        <field name="name">Chhor Dara</field>
+        <field name="email">chhor.dara@example.com</field>
+        <field name="phone">+855 12 345 707</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <record id="demo_guest_vanna_sokun" model="res.partner">
+        <field name="name">Vanna Sokun</field>
+        <field name="email">vanna.sokun@example.com</field>
+        <field name="phone">+855 12 345 708</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">False</field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- DEMO COMPANY FOR CORPORATE BILLING TEST -->
+    <!-- ============================================================ -->
+    <record id="demo_company_corporate" model="res.partner">
+        <field name="name">Demo Corporate Group</field>
+        <field name="email">billing@democorp.com</field>
+        <field name="phone">+855 23 888 999</field>
+        <field name="country_id" ref="base.kh"/>
+        <field name="type">contact</field>
+        <field name="is_company">True</field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- DEMO HOTEL STRUCTURE FOR TEST RESERVATIONS -->
+    <!-- ============================================================ -->
+    <record id="demo_hotel_zone_main" model="hotel.zone">
+        <field name="name">Main Tower</field>
+        <field name="color">4</field>
+        <field name="sequence">1</field>
+    </record>
+
+    <record id="demo_hotel_floor_1" model="hotel.floor">
+        <field name="name">Floor 1</field>
+        <field name="zone_id" ref="demo_hotel_zone_main"/>
+        <field name="sequence">1</field>
+    </record>
+
+    <record id="demo_room_type_standard_single" model="hotel.room.type">
+        <field name="name">Standard Single</field>
+        <field name="code">STD-S</field>
+        <field name="sequence">10</field>
+        <field name="zone_ids" eval="[(4, ref('demo_hotel_zone_main'))]"/>
+    </record>
+
+    <record id="demo_hotel_room_101" model="hotel.room">
+        <field name="name">101</field>
+        <field name="zone_id" ref="demo_hotel_zone_main"/>
+        <field name="floor_id" ref="demo_hotel_floor_1"/>
+        <field name="room_type_id" ref="demo_room_type_standard_single"/>
+        <field name="capacity">2</field>
+        <field name="state">vacant_clean</field>
+        <field name="occupancy_status">vacant</field>
+        <field name="housekeeping_status">clean</field>
+        <field name="availability_status">available</field>
+        <field name="shape">square</field>
+        <field name="pos_x">15.0</field>
+        <field name="pos_y">15.0</field>
+    </record>
+
+    <record id="demo_rate_plan_standard" model="hotel.rate.plan">
+        <field name="name">Standard Rate Plan</field>
+        <field name="active">True</field>
+    </record>
+
+    <record id="demo_rate_plan_line_standard_single" model="hotel.rate.plan.line">
+        <field name="plan_id" ref="demo_rate_plan_standard"/>
+        <field name="room_type_id" ref="demo_room_type_standard_single"/>
+        <field name="price">120.00</field>
+        <field name="included_guests">2</field>
+        <field name="extra_person_fee">25.00</field>
+    </record>
+
+    <!-- Reservation for TEST CASE 1: Standard Reservation -->
+    <record id="demo_reservation_hort_ranut" model="hotel.reservation">
+        <field name="partner_id" ref="demo_guest_hort_ranut"/>
+        <field name="room_type_id" ref="demo_room_type_standard_single"/>
+        <field name="room_id" ref="demo_hotel_room_101"/>
+        <field name="rate_plan_id" ref="demo_rate_plan_standard"/>
+        <field name="checkin_date">2026-05-20</field>
+        <field name="checkout_date">2026-05-22</field>
+        <field name="adults">1</field>
+        <field name="children">0</field>
+        <field name="billing_routing">guest</field>
+        <field name="reference">STD-BKG-001</field>
+    </record>
+
+</odoo>

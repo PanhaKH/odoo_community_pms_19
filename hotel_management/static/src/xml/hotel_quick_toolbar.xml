@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<templates xml:space="preserve">
+
+    <t t-inherit="web.ControlPanel" t-inherit-mode="extension" owl="1">
+        
+        <xpath expr="//div[contains(@class, 'o_control_panel_breadcrumbs')]" position="after">
+            
+            <div class="o_hotel_quick_toolbar d-flex align-items-center ms-4" t-if="showHotelToolbar">
+                <button class="btn btn-primary btn-sm mx-1 border border-primary shadow-sm fw-bold text-white" 
+                        title="Express QR Check-In" t-on-click="openExpressCheckin" t-if="!isHousekeepingApp">
+                    <i class="fa fa-qrcode text-white"/> <span class="ms-1">QR Check-In</span>
+                </button>
+                
+                <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
+                        title="Dashboard" t-on-click="openDashboard" t-if="!isHousekeepingApp">
+                    <i class="fa fa-tachometer text-info"/> <span class="ms-1">Dashboard</span>
+                </button>
+
+                <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
+                        title="New Reservation" t-on-click="openReservation" t-if="!isHousekeepingApp">
+                    <i class="fa fa-calendar-plus-o text-primary"/> <span class="ms-1">Reservation</span>
+                </button>
+
+                <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
+                        title="Room Chart" t-on-click="openRoomChart">
+                    <i class="fa fa-bed text-success"/> <span class="ms-1">Room Chart</span>
+                </button>
+
+                <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
+                        title="Floor Plan" t-on-click="openFloorPlan">
+                    <i class="fa fa-building-o text-secondary"/> <span class="ms-1">Floor Plan</span>
+                </button>
+
+                <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
+                        title="Availability Grid" t-on-click="openAvailabilityGrid" t-if="!isHousekeepingApp">
+                    <i class="fa fa-th text-warning"/> <span class="ms-1">Grid</span>
+                </button>
+
+                <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
+                        title="Guest Folio" t-on-click="openFolio" t-if="!isHousekeepingApp">
+                    <i class="fa fa-suitcase text-danger"/> <span class="ms-1">Folio</span>
+                </button>
+
+                <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
+                        title="Housekeeping" t-on-click="openHousekeeping">
+                    <i class="fa fa-paint-brush text-muted"/> <span class="ms-1">Housekeeping</span>
+                </button>
+                
+            </div>
+            <div class="o_hotel_legend d-flex align-items-center ms-auto me-3 mt-1" 
+                 t-if="env.config.actionId == 'hotel_management.action_hotel_floor_plan_kanban'">
+                
+                <span class="badge border border-dark text-dark me-1" style="background-color: #00FFFF; padding: 6px 12px; font-size: 11px;">VC (Vacant Clean)</span>
+                
+                <span class="badge border border-dark text-dark me-1" style="background-color: #FFB366; padding: 6px 12px; font-size: 11px;">VD (Vacant Dirty)</span>
+                
+                <span class="badge border border-dark text-white me-1" style="background-color: #B266FF; padding: 6px 12px; font-size: 11px;">OC (Occupied Clean)</span>
+                
+                <span class="badge border border-dark text-white me-1" style="background-color: #FF4D4D; padding: 6px 12px; font-size: 11px;">OD (Occupied Dirty)</span>
+                
+                <span class="badge border border-dark text-white me-1" style="background-color: #6C757D; padding: 6px 12px; font-size: 11px;">OOO (Out of Order)</span>
+            </div>
+        </xpath>
+    </t>
+</templates>

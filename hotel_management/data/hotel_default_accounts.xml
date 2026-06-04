@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        The Python setup service creates or reuses company-aware accounts,
+        taxes, journals, and products without overwriting existing settings.
+        Loading this function keeps upgrades idempotent.
+    -->
+    <function model="hotel.config.setup" name="setup_default_hotel_accounting"/>
+</odoo>

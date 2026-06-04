@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_hotel_occupancy_client" model="ir.actions.client">
+        <field name="name">Occupancy Comparison</field>
+        <field name="tag">hotel_management.occupancy_view_action</field> 
+    </record>
+
+    <record id="view_hotel_revenue_forecast_graph" model="ir.ui.view">
+        <field name="name">hotel.revenue.forecast.graph</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <graph string="Revenue Forecast" type="bar" stacked="0">
+                <field name="checkin_date" interval="month"/>
+                <field name="revenue_category"/>
+                <field name="total_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_hotel_revenue_forecast" model="ir.actions.act_window">
+        <field name="name">Revenue Forecast (Actual vs OTB)</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">graph,pivot,list</field>
+        <field name="view_id" ref="view_hotel_revenue_forecast_graph"/>
+        <field name="domain">[('revenue_category', '!=', False)]</field>
+    </record>
+
+    
+</odoo>

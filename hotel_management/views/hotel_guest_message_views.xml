@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hotel_guest_message_list" model="ir.ui.view">
+        <field name="name">hotel.guest.message.list</field>
+        <field name="model">hotel.guest.message</field>
+        <field name="arch" type="xml">
+            <list string="Guest Chat Logs" create="false" delete="false"
+                  decoration-warning="not is_read" decoration-muted="is_read">
+                <field name="create_date" string="Date"/>
+                <field name="reservation_id"/>
+                <field name="partner_id"/>
+                <field name="source" widget="badge"/>
+                <field name="message_body"/>
+                <field name="is_read" string="Read Status" widget="boolean"/>
+                <field name="read_by" optional="hide"/>
+                <field name="read_datetime" optional="hide"/>
+                <button name="action_mark_as_read" string="Mark as Read" type="object"
+                        icon="fa-check" invisible="is_read"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_guest_message_form" model="ir.ui.view">
+        <field name="name">hotel.guest.message.form</field>
+        <field name="model">hotel.guest.message</field>
+        <field name="arch" type="xml">
+            <form string="Guest Chat Log" create="false" delete="false" edit="false">
+                <header>
+                    <button name="action_mark_as_read" string="Mark as Read" type="object"
+                            class="btn-primary" invisible="is_read"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="create_date" string="Date"/>
+                            <field name="reservation_id"/>
+                            <field name="partner_id"/>
+                            <field name="source" widget="badge"/>
+                        </group>
+                        <group>
+                            <field name="is_read" string="Read Status"/>
+                            <field name="read_by"/>
+                            <field name="read_datetime"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="message_body"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_guest_message_search" model="ir.ui.view">
+        <field name="name">hotel.guest.message.search</field>
+        <field name="model">hotel.guest.message</field>
+        <field name="arch" type="xml">
+            <search string="Guest Chat Logs">
+                <field name="reservation_id"/>
+                <field name="partner_id"/>
+                <field name="message_body"/>
+                <filter string="Unread" name="unread" domain="[('is_read', '=', False)]"/>
+                <filter string="Read" name="read" domain="[('is_read', '=', True)]"/>
+                <group>
+                    <filter string="Source" name="group_source" context="{'group_by': 'source'}"/>
+                    <filter string="Guest" name="group_guest" context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_hotel_guest_message" model="ir.actions.act_window">
+        <field name="name">Guest Chat Logs</field>
+        <field name="res_model">hotel.guest.message</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_hotel_guest_message_search"/>
+        <field name="context">{'create': False}</field>
+    </record>
+</odoo>

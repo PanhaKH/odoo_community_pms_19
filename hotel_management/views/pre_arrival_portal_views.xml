@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="portal_pre_arrival_form" name="Pre-Arrival Check-In">
+        <t t-call="website.layout">
+            <div class="container mt-5 mb-5" style="max-width: 600px;">
+                <div class="card shadow-lg border-0 rounded-lg">
+                    <div class="card-header bg-primary text-white text-center py-4">
+                        <h2 class="mb-0 fw-bold">Welcome, <t t-out="reservation.partner_id.name"/>!</h2>
+                        <p class="mb-0 mt-2 opacity-75">Fast-track your check-in for <t t-out="reservation.checkin_date"/></p>
+                    </div>
+                    
+                    <div class="card-body p-4">
+                        <form action="/pre-arrival/submit" method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <input type="hidden" name="reservation_id" t-att-value="reservation.id"/>
+                            <input type="hidden" name="access_token" t-att-value="access_token"/>
+                            
+                            <h4 class="border-bottom pb-2 mb-3 text-secondary">Room Preferences</h4>
+                            
+                            <div class="mb-3">
+                                <label class="fw-bold mb-1">Estimated Arrival Time</label>
+                                <select name="estimated_arrival" class="form-select">
+                                    <option value="morning" t-att-selected="prefill_values.get('estimated_arrival') == 'morning'">Morning (8:00 AM - 12:00 PM)</option>
+                                    <option value="afternoon" t-att-selected="prefill_values.get('estimated_arrival') == 'afternoon'">Afternoon (12:00 PM - 4:00 PM)</option>
+                                    <option value="evening" t-att-selected="prefill_values.get('estimated_arrival') == 'evening'">Evening (4:00 PM - 8:00 PM)</option>
+                                    <option value="late" t-att-selected="prefill_values.get('estimated_arrival') == 'late'">Late Night (After 8:00 PM)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="row mb-4">
+                                <div class="col-6">
+                                    <label class="fw-bold mb-1">Smoking</label>
+                                    <select name="smoking_preference" class="form-select">
+                                        <option value="non_smoking" t-att-selected="prefill_values.get('smoking_preference') == 'non_smoking'">Non-Smoking</option>
+                                        <option value="smoking" t-att-selected="prefill_values.get('smoking_preference') == 'smoking'">Smoking</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="fw-bold mb-1">Bed Type</label>
+                                    <select name="bed_preference" class="form-select">
+                                        <option value="any" t-att-selected="prefill_values.get('bed_preference') == 'any'">No Preference</option>
+                                        <option value="king" t-att-selected="prefill_values.get('bed_preference') == 'king'">1 King Bed</option>
+                                        <option value="twin" t-att-selected="prefill_values.get('bed_preference') == 'twin'">2 Twin Beds</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <h4 class="border-bottom pb-2 mb-3 text-secondary mt-4">Guest Registration</h4>
+                            <p class="small text-muted mb-3">Please register every guest staying in the room. This helps the Front Desk prepare keys and comply with guest registration rules.</p>
+                            <div class="accordion mb-4" id="preArrivalGuestAccordion">
+                                <t t-foreach="guest_slots" t-as="guest">
+                                    <t t-set="idx" t-value="guest['index']"/>
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header" t-att-id="'guest_heading_%s' % idx">
+                                            <button class="accordion-button" t-att-class="'accordion-button' if idx == 0 else 'accordion-button collapsed'" type="button" data-bs-toggle="collapse" t-att-data-bs-target="'#guest_collapse_%s' % idx">
+                                                <span class="fw-bold"><t t-out="guest['title']"/></span>
+                                            </button>
+                                        </h2>
+                                        <div t-att-id="'guest_collapse_%s' % idx" t-att-class="'accordion-collapse collapse show' if idx == 0 else 'accordion-collapse collapse'" data-bs-parent="#preArrivalGuestAccordion">
+                                            <div class="accordion-body">
+                                                <div class="mb-3">
+                                                    <label class="fw-bold mb-1">Full Name</label>
+                                                    <input type="text" t-att-name="'guest_%s_name' % idx" class="form-control" t-att-value="guest.get('name') or ''" required="1"/>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="fw-bold mb-1">Phone</label>
+                                                        <input type="tel" t-att-name="'guest_%s_phone' % idx" class="form-control" t-att-value="guest.get('phone') or ''"/>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="fw-bold mb-1">Email</label>
+                                                        <input type="email" t-att-name="'guest_%s_email' % idx" class="form-control" t-att-value="guest.get('email') or ''"/>
+                                                    </div>
+                                                </div>
+                                                <div class="row" t-if="guest['is_primary']">
+                                                    <div class="col-md-8 mb-3">
+                                                        <label class="fw-bold mb-1">Street Address</label>
+                                                        <input type="text" name="street" class="form-control" t-att-value="prefill_values.get('street') or ''"/>
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="fw-bold mb-1">City</label>
+                                                        <input type="text" name="city" class="form-control" t-att-value="prefill_values.get('city') or ''"/>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="fw-bold mb-1">Passport / National ID Number</label>
+                                                        <input type="text" t-att-name="'guest_%s_passport_number' % idx" class="form-control" placeholder="e.g., A12345678" t-att-value="guest.get('passport_number') or ''" required="1"/>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="fw-bold mb-1">Date of Birth</label>
+                                                        <input type="date" t-att-name="'guest_%s_date_of_birth' % idx" class="form-control" t-att-value="guest.get('date_of_birth') or ''"/>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="fw-bold mb-1">Gender</label>
+                                                        <select t-att-name="'guest_%s_gender' % idx" class="form-select">
+                                                            <option value="">Select...</option>
+                                                            <option value="male" t-att-selected="guest.get('gender') == 'male'">Male</option>
+                                                            <option value="female" t-att-selected="guest.get('gender') == 'female'">Female</option>
+                                                            <option value="other" t-att-selected="guest.get('gender') == 'other'">Other</option>
+                                                            <option value="undisclosed" t-att-selected="guest.get('gender') == 'undisclosed'">Prefer not to say</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="fw-bold mb-1">Nationality</label>
+                                                        <select t-att-name="'guest_%s_nationality_id' % idx" class="form-select">
+                                                            <option value="">Select...</option>
+                                                            <t t-foreach="nationalities" t-as="n">
+                                                                <option t-att-value="n.id" t-att-selected="guest.get('nationality_id') == n.id">
+                                                                    <t t-out="n.name"/>
+                                                                </option>
+                                                            </t>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="fw-bold mb-1">Country</label>
+                                                        <select t-att-name="'guest_%s_country_id' % idx" class="form-select">
+                                                            <option value="">Select...</option>
+                                                            <t t-foreach="countries" t-as="c">
+                                                                <option t-att-value="c.id" t-att-selected="guest.get('country_id') == c.id">
+                                                                    <t t-out="c.name"/>
+                                                                </option>
+                                                            </t>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="fw-bold mb-1">Upload ID / Passport Photo</label>
+                                                    <input type="file" t-att-name="'guest_%s_passport_image' % idx" class="form-control" accept="image/*" capture="environment" t-att-required="'required' if reservation.company_id.hotel_require_id_checkin else None"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                            <t t-if="udf_fields">
+                                <h4 class="border-bottom pb-2 mb-3 text-secondary mt-4">Additional Preferences</h4>
+                                <div class="row mb-3">
+                                    <t t-foreach="udf_fields" t-as="udf">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="fw-bold mb-1"><t t-out="udf['label']"/></label>
+                                            <select t-att-name="udf['name']" class="form-select">
+                                                <option value="">Select...</option>
+                                                <t t-foreach="udf['options']" t-as="option">
+                                                    <option t-att-value="option.id" t-att-selected="udf['value'] == option.id">
+                                                        <t t-out="option.name"/>
+                                                    </option>
+                                                </t>
+                                            </select>
+                                        </div>
+                                    </t>
+                                </div>
+                            </t>
+                            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow">Submit Pre-Registration</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="portal_pre_arrival_success" name="Pre-Arrival Success">
+        <t t-call="website.layout">
+            <div class="container mt-5 mb-5 text-center" style="max-width: 600px;">
+                <div class="card shadow-lg border-0 rounded-lg p-5">
+                    <i class="fa fa-check-circle text-success" style="font-size: 80px; margin-bottom: 20px;"></i>
+                    <h2 class="fw-bold">You are all set!</h2>
+                    <p class="text-muted mt-3" style="font-size: 18px;">Your preferences and ID have been securely transmitted to the Front Desk. We look forward to welcoming you to the hotel!</p>
+                    
+                    <div class="mt-4 p-4 bg-light rounded d-inline-block border shadow-sm">
+                        <h4 class="fw-bold text-primary mb-2">Express Check-In Code</h4>
+                        
+                        <p class="small text-muted mb-3">Save this QR code to your phone and present it at the front desk for instant keys.</p>
+                        
+                        <img t-attf-src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&amp;data={{ reservation.access_token }}" 
+                            alt="Express Check-In QR Code" 
+                            style="width: 220px; height: 220px; object-fit: contain; border: 1px solid #ddd; padding: 10px; background: #fff;"/>
+                            
+                        <div class="mt-3 mb-2">
+                            <a t-attf-href="https://api.qrserver.com/v1/create-qr-code/?size=250x250&amp;data={{ reservation.access_token }}" 
+                            download="Hotel_CheckIn_QR.png" 
+                            target="_blank"
+                            class="btn btn-primary rounded-pill shadow-sm">
+                                <i class="fa fa-download me-2"/> Download QR Code
+                            </a>
+                        </div>
+                            
+                        <p class="mt-3 mb-0 fw-bold text-secondary" t-if="reservation.name">
+                            Reservation: <t t-esc="reservation.name"/>
+                        </p>
+                    </div>
+                    <div class="mt-4">
+                        <a t-att-href="'/pre-arrival/view/%s?access_token=%s' % (reservation.id, reservation.access_token)"
+                           class="btn btn-outline-primary">
+                            Review Pre-Arrival Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div id="hotel_guest_chatter" class="mt-5 text-start">
+                        <h4 class="border-bottom pb-2 mb-3 text-secondary fw-bold">Messages from the Front Desk</h4>
+                        <p class="text-muted small mb-4">Have a question or a special request? Send us a message below and we will get right back to you!</p>
+                        
+                        <t t-call="portal.message_thread">
+                            <t t-set="object" t-value="reservation"/>
+                            <t t-set="token" t-value="reservation.access_token"/>
+                            <t t-set="pid" t-value="pid"/>
+                            <t t-set="hash" t-value="hash"/>
+                        </t>
+            </div>
+        </t>
+    </template>
+
+    <template id="portal_pre_arrival_error" name="Pre-Arrival Error">
+        <t t-call="website.layout">
+            <div class="container mt-5 mb-5 text-center" style="max-width: 600px;">
+                <div class="card shadow-lg border-0 rounded-lg p-5">
+                    <i class="fa fa-exclamation-triangle text-warning" style="font-size: 70px; margin-bottom: 20px;"></i>
+                    <h2 class="fw-bold">We could not submit your registration</h2>
+                    <p class="text-muted mt-3" style="font-size: 17px;">
+                        <t t-out="message"/>
+                    </p>
+                    <div class="mt-4" t-if="reservation">
+                        <a t-att-href="'/pre-arrival/view/%s?access_token=%s' % (reservation.id, reservation.access_token)"
+                           class="btn btn-primary">
+                            Return to Pre-Arrival Form
+                        </a>
+                    </div>
+                    <div class="mt-4" t-if="not reservation">
+                        <a href="/" class="btn btn-outline-primary">Return to Website</a>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

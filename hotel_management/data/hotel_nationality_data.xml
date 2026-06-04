@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    
+    <record id="nat_kh" model="hotel.nationality">
+        <field name="name">Cambodian</field>
+        <field name="code">KH</field>
+    </record>
+    
+    <record id="nat_cn" model="hotel.nationality">
+        <field name="name">Chinese</field>
+        <field name="code">CN</field>
+    </record>
+    
+    <record id="nat_la" model="hotel.nationality">
+        <field name="name">Laotian</field>
+        <field name="code">LA</field>
+    </record>
+    
+    <record id="nat_mm" model="hotel.nationality">
+        <field name="name">Burmese</field>
+        <field name="code">MM</field>
+    </record>
+    
+    <record id="nat_vn" model="hotel.nationality">
+        <field name="name">Vietnamese</field>
+        <field name="code">VN</field>
+    </record>
+    
+    <record id="nat_th" model="hotel.nationality">
+        <field name="name">Thai</field>
+        <field name="code">TH</field>
+    </record>
+
+</odoo>

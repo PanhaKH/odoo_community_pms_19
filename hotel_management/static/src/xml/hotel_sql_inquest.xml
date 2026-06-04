@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="hotel_management.SqlInquestTemplate" owl="1">
+        <div class="o_sql_inquest d-flex flex-column h-100">
+            <div class="o_sql_inquest_toolbar d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="o_sql_inquest_title">Interactive SQL Report</span>
+                    <button class="btn btn-primary btn-sm" t-on-click="runQuery" t-att-disabled="state.running">
+                        <i class="fa fa-play me-1"/>
+                        <t t-esc="state.running ? 'Running...' : 'Run Query'"/>
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" t-on-click="clearQuery">
+                        <i class="fa fa-eraser me-1"/>Clear
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" t-on-click="loadTables">
+                        <i class="fa fa-refresh me-1"/>Refresh Tables
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" t-on-click="useSelectedTable" t-att-disabled="!state.selectedTable">
+                        <i class="fa fa-table me-1"/>Use Table
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" t-on-click="addToReport" t-att-disabled="!state.query.trim()">
+                        <i class="fa fa-bookmark me-1"/>Add to Report
+                    </button>
+                </div>
+                <div class="text-muted small">
+                    <t t-if="state.result.row_count">
+                        <t t-esc="state.result.row_count"/> rows
+                    </t>
+                </div>
+            </div>
+
+            <div class="o_sql_inquest_workspace">
+                <div class="o_sql_inquest_editor_panel">
+                    <div class="o_sql_inquest_panel_title">Query Editor</div>
+                    <textarea
+                        class="o_sql_inquest_editor"
+                        t-att-value="state.query"
+                        t-on-input="onQueryInput"
+                        spellcheck="false"
+                    />
+                </div>
+
+                <aside class="o_sql_inquest_browser_panel">
+                    <div class="o_sql_inquest_panel_title">All Tables</div>
+                    <div class="o_sql_inquest_browser_search">
+                        <input type="text" class="form-control form-control-sm" placeholder="Search tables..." t-on-input="onSearchInput"/>
+                    </div>
+                    <div class="o_sql_inquest_table_list">
+                        <t t-if="state.loading">
+                            <div class="o_sql_inquest_empty">Loading tables...</div>
+                        </t>
+                        <t t-else="">
+                            <t t-foreach="filteredTables" t-as="table" t-key="`${table.schemaname}.${table.table_name}`">
+                                <button
+                                    type="button"
+                                    class="o_sql_inquest_table_item"
+                                    t-att-class="state.selectedTable &amp;&amp; state.selectedTable.schemaname === table.schemaname &amp;&amp; state.selectedTable.table_name === table.table_name ? 'o_sql_inquest_table_item active' : 'o_sql_inquest_table_item'"
+                                    t-on-click="() => this.selectTable(table)"
+                                    t-on-dblclick="() => this.previewSelectedTable(table)"
+                                >
+                                    <span class="o_sql_inquest_table_name">
+                                        <t t-esc="table.table_name"/>
+                                    </span>
+                                    <span class="o_sql_inquest_table_meta">
+                                        <t t-esc="table.schemaname"/> · <t t-esc="table.estimated_rows"/> rows
+                                    </span>
+                                </button>
+                            </t>
+                        </t>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </t>
+</templates>

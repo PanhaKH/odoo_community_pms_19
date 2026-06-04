@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_hotel" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.hotel</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Hotel" string="Hotel PMS" name="hotel_management">
+                    <block title="Front Desk Operations" name="hotel_front_desk_settings">
+                        <setting id="checkout_hold_setting" string="Checkout Hold Time" help="Time when the late checkout automation triggers (e.g. 12:00)">
+                            <field name="hotel_checkout_hold_time" widget="float_time"/>
+                        </setting>
+
+                        <setting id="hotel_business_date_setting"
+                                string="Hotel Business Date"
+                                help="Current hotel business date used by Night Audit and operational reporting. Change only with manager approval.">
+                            <field name="hotel_business_date"/>
+                        </setting>
+
+                        <setting id="hotel_advance_deposit_account_setting"
+                                string="Advance Deposit Liability Account"
+                                help="Liability account used for Opera-style advance deposits until the final folio invoice is issued.">
+                            <field name="hotel_advance_deposit_account_id" options="{'no_create': True}"/>
+                        </setting>
+
+                        <setting id="hotel_accounting_defaults_setting"
+                                string="Default Hotel Accounting"
+                                help="Default products, accounts, tax, and deposit journal created by the hotel accounting setup.">
+                            <div class="row mt16">
+                                <div class="col-lg-6">
+                                    <label for="hotel_accommodation_product_id"/>
+                                    <field name="hotel_accommodation_product_id" options="{'no_create': True}"/>
+                                </div>
+                                <div class="col-lg-6">
+                                    <label for="hotel_advance_deposit_product_id"/>
+                                    <field name="hotel_advance_deposit_product_id" options="{'no_create': True}"/>
+                                </div>
+                                <div class="col-lg-6 mt8">
+                                    <label for="hotel_room_revenue_account_id"/>
+                                    <field name="hotel_room_revenue_account_id" options="{'no_create': True}"/>
+                                </div>
+                                <div class="col-lg-6 mt8">
+                                    <label for="hotel_city_ledger_receivable_account_id"/>
+                                    <field name="hotel_city_ledger_receivable_account_id" options="{'no_create': True}"/>
+                                </div>
+                                <div class="col-lg-6 mt8">
+                                    <label for="hotel_default_sale_tax_id"/>
+                                    <field name="hotel_default_sale_tax_id" options="{'no_create': True}"/>
+                                </div>
+                                <div class="col-lg-6 mt8">
+                                    <label for="hotel_default_deposit_journal_id"/>
+                                    <field name="hotel_default_deposit_journal_id" options="{'no_create': True}"/>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <setting id="hotel_confirmation_deposit_percent_setting"
+                                string="Reservation Deposit Requirement (%)"
+                                help="Percentage shown as the required deposit on the Reservation Confirmation / Proforma document.">
+                            <field name="hotel_confirmation_deposit_percent"/>
+                        </setting>
+
+                        <setting id="hotel_deposit_tax_proportional_setting"
+                                string="Apply Proportional Taxes to Hotel Deposits"
+                                help="Deposit tax invoice mode is deferred to Version 2. Version 1 records deposits as liability receipts, not customer invoices."
+                                invisible="1">
+                            <field name="hotel_deposit_tax_proportional"/>
+                            <div class="text-muted">
+                                Deposit tax invoice mode deferred to Version 2.
+                            </div>
+                        </setting>
+                        
+                        <setting id="hotel_guest_profile_requirements_setting"
+                                string="Guest Profile Requirements"
+                                help="Choose which guest/profile fields are mandatory at reservation confirmation and at check-in. All options are disabled by default.">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle o_list_table">
+                                    <thead>
+                                        <tr>
+                                            <th>Field</th>
+                                            <th class="text-center">Required at Reservation</th>
+                                            <th class="text-center">Required at Check-In</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="table-light">
+                                            <th colspan="3">Identity</th>
+                                        </tr>
+                                        <tr>
+                                            <td>Nationality</td>
+                                            <td class="text-center"><field name="hotel_req_reservation_nationality" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_nationality" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Country</td>
+                                            <td class="text-center"><field name="hotel_req_reservation_country" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_country" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Passport / ID Number</td>
+                                            <td class="text-center"><field name="hotel_req_reservation_passport_id" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_passport_id" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Date of Birth</td>
+                                            <td class="text-center"><field name="hotel_req_reservation_date_of_birth" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_date_of_birth" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Gender</td>
+                                            <td class="text-center"><field name="hotel_req_reservation_gender" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_gender" nolabel="1"/></td>
+                                        </tr>
+                                        <tr class="table-light">
+                                            <th colspan="3">Contact</th>
+                                        </tr>
+                                        <tr>
+                                            <td>Email</td>
+                                            <td class="text-center"><field name="hotel_req_reservation_email" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_email" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Phone</td>
+                                            <td class="text-center"><field name="hotel_req_reservation_phone" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_phone" nolabel="1"/></td>
+                                        </tr>
+                                        <tr class="table-light">
+                                            <th colspan="3">Marketing / Analysis</th>
+                                        </tr>
+                                        <tr>
+                                            <td>Source Category</td>
+                                            <td class="text-center"><field name="hotel_req_reservation_source_category" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_source_category" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Sub Source</td>
+                                            <td class="text-center"><field name="hotel_req_reservation_sub_source" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_sub_source" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Market Segment</td>
+                                            <td class="text-center"><field name="hotel_req_reservation_market_segment" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_market_segment" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Guest Class</td>
+                                            <td class="text-center"><field name="hotel_req_reservation_guest_class" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_guest_class" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Guest Classification</td>
+                                            <td class="text-center"><field name="hotel_req_reservation_guest_classification" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_guest_classification" nolabel="1"/></td>
+                                        </tr>
+                                        <tr class="table-light">
+                                            <th colspan="3">Guest Analysis / Preferences</th>
+                                        </tr>
+                                        <tr>
+                                            <td><field name="hotel_udf_label_1" nolabel="1" readonly="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_reservation_udf_1" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_udf_1" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td><field name="hotel_udf_label_2" nolabel="1" readonly="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_reservation_udf_2" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_udf_2" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td><field name="hotel_udf_label_3" nolabel="1" readonly="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_reservation_udf_3" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_udf_3" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td><field name="hotel_udf_label_4" nolabel="1" readonly="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_reservation_udf_4" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_udf_4" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td><field name="hotel_udf_label_5" nolabel="1" readonly="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_reservation_udf_5" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_udf_5" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td><field name="hotel_udf_label_6" nolabel="1" readonly="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_reservation_udf_6" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_udf_6" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td><field name="hotel_udf_label_7" nolabel="1" readonly="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_reservation_udf_7" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_udf_7" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td><field name="hotel_udf_label_8" nolabel="1" readonly="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_reservation_udf_8" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_udf_8" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td><field name="hotel_udf_label_9" nolabel="1" readonly="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_reservation_udf_9" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_udf_9" nolabel="1"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td><field name="hotel_udf_label_10" nolabel="1" readonly="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_reservation_udf_10" nolabel="1"/></td>
+                                            <td class="text-center"><field name="hotel_req_checkin_udf_10" nolabel="1"/></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt16">
+                                <h6>Stay Guests</h6>
+                                <div class="row">
+                                    <label for="hotel_req_checkin_all_stay_guest_profiles" class="col-lg-6 o_light_label"/>
+                                    <field name="hotel_req_checkin_all_stay_guest_profiles"/>
+                                </div>
+                                <div class="row">
+                                    <label for="hotel_req_checkin_all_stay_guest_passport" class="col-lg-6 o_light_label"/>
+                                    <field name="hotel_req_checkin_all_stay_guest_passport"/>
+                                </div>
+                                <div class="row">
+                                    <label for="hotel_req_checkin_all_stay_guest_nationality" class="col-lg-6 o_light_label"/>
+                                    <field name="hotel_req_checkin_all_stay_guest_nationality"/>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <setting id="hotel_auto_noshow_setting"
+                                string="Enable Auto No-Show"
+                                help="Control whether the scheduled Auto No-Show cron can mark eligible arrivals as no-show. Disabled by default for UAT safety.">
+                            <field name="hotel_auto_noshow_enabled"/>
+                            <div class="content-group mt16" invisible="not hotel_auto_noshow_enabled">
+                                <div class="row">
+                                    <label for="hotel_auto_noshow_cutoff_time" class="col-lg-4 o_light_label"/>
+                                    <field name="hotel_auto_noshow_cutoff_time" widget="float_time"/>
+                                </div>
+                                <div class="row">
+                                    <label for="hotel_auto_noshow_grace_hours" class="col-lg-4 o_light_label"/>
+                                    <field name="hotel_auto_noshow_grace_hours"/>
+                                </div>
+                                <div class="row">
+                                    <label for="hotel_auto_noshow_apply_to" class="col-lg-4 o_light_label"/>
+                                    <field name="hotel_auto_noshow_apply_to"/>
+                                </div>
+                                <div class="row">
+                                    <label for="hotel_auto_noshow_exclude_deposit" class="col-lg-4 o_light_label"/>
+                                    <field name="hotel_auto_noshow_exclude_deposit"/>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <setting id="hotel_cancellation_policy_setting"
+                                string="Reservation Cancellation Policy"
+                                help="Guest-facing cancellation policy printed on Reservation Confirmation / Proforma documents.">
+                            <field name="hotel_cancellation_policy" widget="html"/>
+                        </setting>
+
+                        <setting id="hotel_payment_instructions_setting"
+                                string="Reservation Payment Instructions"
+                                help="Guest-facing payment instructions printed on Reservation Confirmation / Proforma documents.">
+                            <field name="hotel_payment_instructions" widget="html"/>
+                        </setting>
+                        <setting id="pre_arrival_automation" string="Pre-Arrival Automation" help="Number of days before check-in to email the secure pre-arrival link.">
+                            <field name="pre_arrival_days"/>
+                            <div class="text-muted">
+                                Days before arrival
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_hotel_config_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="context">{'module' : 'hotel_management', 'bin_size': False}</field>
+    </record>
+
+    
+</odoo>

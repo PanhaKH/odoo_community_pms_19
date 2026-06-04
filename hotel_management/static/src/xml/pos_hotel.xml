@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    
+    <t t-name="hotel_management.RoomSearchPopup" owl="1">
+        <Dialog title="props.title" footer="false" size="'lg'" bodyClass="'p-0'">
+            <div class="p-3" style="border-bottom: 1px solid #ccc; background: #f8f9fa;">
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="Type Room No, Guest Name, or Desk Folio..." 
+                       t-model="state.searchString" 
+                       style="width: 100%; padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid #aaa;"
+                       autofocus="1"/>
+            </div>
+            
+            <main class="selection scrollable-y" style="max-height: 400px; overflow-y: auto;">
+                <t t-foreach="filteredList" t-as="item" t-key="item.id">
+                    <div class="selection-item" t-on-click="() => this.selectItem(item)" style="padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; text-align: left;">
+                        <t t-esc="item.label" />
+                    </div>
+                </t>
+                <t t-if="filteredList.length === 0">
+                    <div style="padding: 20px; color: #777; text-align: center;">No matches found.</div>
+                </t>
+            </main>
+            
+        </Dialog>
+    </t>
+    
+</templates>

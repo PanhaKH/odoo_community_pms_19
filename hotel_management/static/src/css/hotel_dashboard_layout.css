@@ -1,0 +1,66 @@
+.o_hotel_dashboard_full_width .o_form_sheet_bg,
+.o_hotel_dashboard_full_width .o_form_sheet {
+    max-width: none !important;
+    width: 100% !important;
+}
+
+.o_hotel_dashboard_full_width .o_form_sheet {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.o_hotel_dashboard_full_width .container-fluid {
+    max-width: none;
+    width: 100%;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+.o_hotel_dashboard_full_width .row {
+    --bs-gutter-x: 1rem;
+    --bs-gutter-y: 1rem;
+}
+
+.o_hotel_dashboard_full_width .card {
+    min-width: 0;
+}
+
+.o_hotel_dashboard_full_width .btn {
+    white-space: normal;
+}
+
+.o_hotel_dashboard_full_width .o_hotel_repeat_guest_counters {
+    gap: 0.35rem;
+}
+
+.o_hotel_dashboard_full_width .o_hotel_repeat_guest_counter {
+    border-radius: 0.5rem;
+    transition: background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.o_hotel_dashboard_full_width .o_hotel_repeat_guest_counter:not(:last-child) {
+    border-right: 1px solid rgba(0, 0, 0, 0.18) !important;
+}
+
+.o_hotel_dashboard_full_width .o_hotel_repeat_guest_counter:hover,
+.o_hotel_dashboard_full_width .o_hotel_repeat_guest_counter:focus {
+    background-color: rgba(255, 255, 255, 0.35) !important;
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.14);
+    transform: translateY(-1px);
+}
+
+@media (max-width: 767.98px) {
+    .o_hotel_dashboard_full_width .alert {
+        flex-direction: column;
+        gap: 0.5rem !important;
+    }
+
+    .o_hotel_dashboard_full_width .o_hotel_repeat_guest_counters {
+        flex-direction: column;
+    }
+
+    .o_hotel_dashboard_full_width .o_hotel_repeat_guest_counter:not(:last-child) {
+        border-right: 0 !important;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.18) !important;
+    }
+}
