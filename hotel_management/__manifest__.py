@@ -1,6 +1,6 @@
 {
     'name': 'Hotel Management System',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.0.1',
     'summary': 'Complete Hotel Reservation, Front Desk, and Housekeeping System',
     'sequence': -100,
     'description': """Hotel Management Solution""",
