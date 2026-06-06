@@ -51,6 +51,12 @@
               action="action_setup_default_hotel_accounting"
               sequence="20"
               groups="hotel_management.group_hotel_manager,account.group_account_manager,base.group_system"/>
+    <menuitem id="menu_hotel_document_templates"
+              name="Document Templates"
+              parent="menu_hotel_config"
+              action="action_hotel_document_template"
+              sequence="30"
+              groups="hotel_management.group_hotel_manager,base.group_system"/>
 
     <menuitem id="menu_hotel_dashboard" name="Hotel Dashboard" parent="menu_hotel_dashboard_parent" action="action_open_hotel_dashboard" sequence="1"
               groups="hotel_management.group_hotel_front_office"/>

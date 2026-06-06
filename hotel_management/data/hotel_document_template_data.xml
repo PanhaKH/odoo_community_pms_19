@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+    <record id="hotel_document_template_registration_card_default" model="hotel.document.template">
+        <field name="name">Default Registration Card</field>
+        <field name="document_type">registration_card</field>
+        <field name="active">True</field>
+        <field name="company_id" eval="False"/>
+        <field name="show_logo">True</field>
+        <field name="logo_position">center</field>
+        <field name="logo_width">180</field>
+        <field name="show_company_name">True</field>
+        <field name="html_body"><![CDATA[
+<div class="registration-card">
+    <div class="text-center">
+        ${company.logo}
+        <h2>GUEST REGISTRATION CARD</h2>
+        <div><strong>${company.name}</strong></div>
+        <div class="text-muted">Reservation No: ${reservation.name} | Date: ${today}</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Guest Identity &amp; Contact</div>
+        <table>
+            <tr><td class="label">Guest Name</td><td>${reservation.partner_id.name}</td><td class="label">Passport / ID</td><td>${reservation.passport_no}</td></tr>
+            <tr><td class="label">Nationality</td><td>${reservation.nationality_id.name}</td><td class="label">Country</td><td>${reservation.country_id.name}</td></tr>
+            <tr><td class="label">Phone</td><td>${reservation.phone}</td><td class="label">Email</td><td>${reservation.email}</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Stay Details</div>
+        <table>
+            <tr><td class="label">Arrival</td><td>${reservation.checkin_date}</td><td class="label">Departure</td><td>${reservation.checkout_date}</td></tr>
+            <tr><td class="label">Room Number</td><td>${reservation.room_id.name}</td><td class="label">Room Type</td><td>${reservation.room_type_id.name}</td></tr>
+            <tr><td class="label">Nights</td><td>${reservation.duration}</td><td class="label">Guest Class</td><td>${reservation.guest_classification_id.name}</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Accompanying Guests</div>
+        ${reservation.accompanying_guest_table}
+    </div>
+
+    <div class="section">
+        <div class="section-title">Estimated Accommodation &amp; Financial Summary</div>
+        <table>
+            <tr><td>Room Rate / Accommodation Estimate</td><td class="text-end">${reservation.estimated_room_amount}</td></tr>
+            <tr><td>Tax / Service Estimate</td><td class="text-end">${reservation.estimated_tax_amount}</td></tr>
+            <tr><td><strong>Total Estimated Stay Amount</strong></td><td class="text-end"><strong>${reservation.estimated_total_amount}</strong></td></tr>
+            <tr><td>Required Deposit</td><td class="text-end">${reservation.deposit_required_amount}</td></tr>
+            <tr><td>Deposit Received</td><td class="text-end">${reservation.deposit_received_amount}</td></tr>
+            <tr><td><strong>Estimated Balance</strong></td><td class="text-end"><strong>${reservation.estimated_balance_amount}</strong></td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Terms and Conditions</div>
+        ${reservation.registration_terms}
+    </div>
+
+    <div class="row mt-3" style="page-break-inside: avoid;">
+        <div class="col-6">
+            <div class="section-title">Guest E-Signature</div>
+            ${reservation.guest_signature}
+        </div>
+        <div class="col-6">
+            <div class="section-title">Front Desk Verification</div>
+            <div class="signature-box"></div>
+        </div>
+    </div>
+</div>
+        ]]></field>
+        <field name="custom_css"><![CDATA[
+.registration-card-template {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #222;
+    font-size: 13px;
+}
+.registration-card-template .registration-card {
+    width: 100%;
+}
+.registration-card-template .section {
+    margin-top: 14px;
+    page-break-inside: avoid;
+}
+.registration-card-template .section-title {
+    font-weight: 700;
+    color: #1f4e79;
+    border-bottom: 1px solid #d8dde6;
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: .03em;
+}
+.registration-card-template table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.registration-card-template td,
+.registration-card-template th {
+    padding: 5px 6px;
+    border: 1px solid #e1e5eb;
+    vertical-align: top;
+}
+.registration-card-template .label {
+    width: 18%;
+    font-weight: 700;
+    background: #f7f9fc;
+}
+.registration-card-template .text-muted {
+    color: #6c757d;
+}
+.registration-card-template .text-center {
+    text-align: center;
+}
+.registration-card-template .text-left {
+    text-align: left;
+}
+.registration-card-template .text-right {
+    text-align: right;
+}
+.registration-card-template .text-end {
+    text-align: right;
+}
+.registration-card-template .signature-box {
+    min-height: 90px;
+    border: 1px solid #b8c2cc;
+    background: #fff;
+    padding: 8px;
+}
+.registration-card-template .signature-box img {
+    max-height: 80px;
+    max-width: 100%;
+}
+        ]]></field>
+        <field name="notes">Default editable Registration Card template. Use placeholders from the form help tab to render reservation, estimate, deposit, company, terms, and signature values.</field>
+    </record>
+    </data>
+</odoo>

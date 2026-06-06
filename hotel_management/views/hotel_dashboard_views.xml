@@ -162,6 +162,27 @@
                                                 </div>
                                             </button>
                                         </div>
+                                        <div class="col-md-3 mb-3">
+                                            <div class="card text-white text-center shadow-sm h-100" style="background-color: #6f42c1;">
+                                                <div class="card-header fw-bold py-1"><i class="fa fa-diamond"></i> VIP / VVIP Guests</div>
+                                                <div class="card-body d-flex flex-column justify-content-center p-2">
+                                                    <div class="d-flex w-100 text-center o_hotel_repeat_guest_counters">
+                                                        <button type="object" name="action_view_vip_arriving_today" class="btn p-1 w-100 border-0 bg-transparent text-white o_hotel_repeat_guest_counter">
+                                                            <h2 class="m-0 fw-bold"><field name="vip_arriving_today_count"/></h2>
+                                                            <small class="fw-bold" style="font-size: 11px;">Arriving Today</small>
+                                                        </button>
+                                                        <button type="object" name="action_view_vip_inhouse" class="btn p-1 w-100 border-0 bg-transparent text-white o_hotel_repeat_guest_counter">
+                                                            <h2 class="m-0 fw-bold"><field name="vip_inhouse_count"/></h2>
+                                                            <small class="fw-bold" style="font-size: 11px;">In-House Stay</small>
+                                                        </button>
+                                                        <button type="object" name="action_view_vip_future_booking" class="btn p-1 w-100 border-0 bg-transparent text-white o_hotel_repeat_guest_counter">
+                                                            <h2 class="m-0 fw-bold"><field name="vip_future_booking_count"/></h2>
+                                                            <small class="fw-bold" style="font-size: 11px;">Future Booking</small>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                 </div>

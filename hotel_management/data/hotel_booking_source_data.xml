@@ -121,14 +121,17 @@
 
         <record id="guest_normal" model="hotel.guest.classification">
             <field name="name">Normal</field>
+            <field name="code">normal</field>
             <field name="priority">1</field>
         </record>
         <record id="guest_vip" model="hotel.guest.classification">
-            <field name="name">VIP</field>
-            <field name="priority">10</field>
+            <field name="name">VIP (Legacy)</field>
+            <field name="code">legacy_vip</field>
+            <field name="active" eval="False"/>
         </record>
         <record id="guest_blacklisted" model="hotel.guest.classification">
-            <field name="name">Blacklisted</field>
+            <field name="name">Blacklist</field>
+            <field name="code">blacklist</field>
             <field name="priority">0</field>
             <field name="discount_allowed">0.0</field>
         </record>

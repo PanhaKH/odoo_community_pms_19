@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hotel_document_template_list" model="ir.ui.view">
+        <field name="name">hotel.document.template.list</field>
+        <field name="model">hotel.document.template</field>
+        <field name="arch" type="xml">
+            <list string="Document Templates">
+                <field name="name"/>
+                <field name="document_type"/>
+                <field name="company_id"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_document_template_form" model="ir.ui.view">
+        <field name="name">hotel.document.template.form</field>
+        <field name="model">hotel.document.template</field>
+        <field name="arch" type="xml">
+            <form string="Document Template">
+                <header>
+                    <button name="action_preview_template" type="object" string="Preview Help" class="btn-secondary"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Registration Card"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="document_type"/>
+                            <field name="company_id"/>
+                            <field name="active"/>
+                        </group>
+                        <group string="Header Options">
+                            <field name="show_logo"/>
+                            <field name="logo_position"/>
+                            <field name="logo_width"/>
+                            <field name="show_company_name"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="HTML Body">
+                            <div class="alert alert-info" role="alert">
+                                <strong>Template help:</strong>
+                                Use placeholders such as
+                                <code><span>$</span><span>{reservation.partner_id.name}</span></code>.
+                                They will be replaced when printing. You can keep full HTML flexibility for tables,
+                                spacing, labels, terms, and layout.
+                            </div>
+                            <div class="mb16">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Field Label</th>
+                                            <th>Placeholder</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>Reservation No.</td><td><code><span>$</span><span>{reservation.name}</span></code></td><td>Reservation reference printed on the card.</td></tr>
+                                        <tr><td>Guest Name</td><td><code><span>$</span><span>{reservation.partner_id.name}</span></code></td><td>Main guest / booker name.</td></tr>
+                                        <tr><td>Passport / ID</td><td><code><span>$</span><span>{reservation.passport_no}</span></code></td><td>Main guest passport or national ID number.</td></tr>
+                                        <tr><td>Nationality</td><td><code><span>$</span><span>{reservation.nationality_id.name}</span></code></td><td>Main guest nationality.</td></tr>
+                                        <tr><td>Country</td><td><code><span>$</span><span>{reservation.country_id.name}</span></code></td><td>Main guest country.</td></tr>
+                                        <tr><td>Phone</td><td><code><span>$</span><span>{reservation.phone}</span></code></td><td>Main guest phone number.</td></tr>
+                                        <tr><td>Email</td><td><code><span>$</span><span>{reservation.email}</span></code></td><td>Main guest email address.</td></tr>
+                                        <tr><td>Arrival Date</td><td><code><span>$</span><span>{reservation.checkin_date}</span></code></td><td>Reservation arrival date.</td></tr>
+                                        <tr><td>Departure Date</td><td><code><span>$</span><span>{reservation.checkout_date}</span></code></td><td>Reservation departure date.</td></tr>
+                                        <tr><td>Room</td><td><code><span>$</span><span>{reservation.room_id.name}</span></code></td><td>Assigned room number.</td></tr>
+                                        <tr><td>Room Type</td><td><code><span>$</span><span>{reservation.room_type_id.name}</span></code></td><td>Assigned room type.</td></tr>
+                                        <tr><td>Adults</td><td><code><span>$</span><span>{reservation.adults}</span></code></td><td>Adult guest count.</td></tr>
+                                        <tr><td>Children</td><td><code><span>$</span><span>{reservation.children}</span></code></td><td>Child guest count.</td></tr>
+                                        <tr><td>VIP Level</td><td><code><span>$</span><span>{reservation.vip_level}</span></code></td><td>Manual VIP/VVIP level, if set.</td></tr>
+                                        <tr><td>Guest Classification</td><td><code><span>$</span><span>{reservation.guest_classification_id.name}</span></code></td><td>Guest classification for reporting.</td></tr>
+                                        <tr><td>Accommodation Estimate</td><td><code><span>$</span><span>{reservation.estimated_room_amount}</span></code></td><td>Estimated room amount before tax, based on reservation stay only.</td></tr>
+                                        <tr><td>Tax Estimate</td><td><code><span>$</span><span>{reservation.estimated_tax_amount}</span></code></td><td>Estimated VAT/service tax from the accommodation product taxes.</td></tr>
+                                        <tr><td>Total Estimate</td><td><code><span>$</span><span>{reservation.estimated_total_amount}</span></code></td><td>Estimated accommodation total including tax.</td></tr>
+                                        <tr><td>Required Deposit</td><td><code><span>$</span><span>{reservation.deposit_required_amount}</span></code></td><td>Configured required deposit estimate.</td></tr>
+                                        <tr><td>Deposit Received</td><td><code><span>$</span><span>{reservation.deposit_received_amount}</span></code></td><td>Posted deposit amount linked to the reservation.</td></tr>
+                                        <tr><td>Estimated Balance</td><td><code><span>$</span><span>{reservation.estimated_balance_amount}</span></code></td><td>Estimated total minus deposit received.</td></tr>
+                                        <tr><td>Accompanying Guests</td><td><code><span>$</span><span>{reservation.accompanying_guest_table}</span></code></td><td>Rendered table of registered stay guests.</td></tr>
+                                        <tr><td>Guest Signature</td><td><code><span>$</span><span>{reservation.guest_signature}</span></code></td><td>Existing e-signature image or a blank signature box.</td></tr>
+                                        <tr><td>Terms</td><td><code><span>$</span><span>{reservation.registration_terms}</span></code></td><td>Registration card policy text.</td></tr>
+                                        <tr><td>Hotel Name</td><td><code><span>$</span><span>{company.name}</span></code></td><td>Current company / hotel name.</td></tr>
+                                        <tr><td>Hotel Logo</td><td><code><span>$</span><span>{company.logo}</span></code></td><td>Company logo using the header options above.</td></tr>
+                                        <tr><td>Print Date</td><td><code><span>$</span><span>{today}</span></code></td><td>Date the card is printed.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <field name="html_body" widget="html" nolabel="1" style="min-height: 700px;"/>
+                        </page>
+                        <page string="Custom CSS">
+                            <field name="custom_css" nolabel="1" placeholder=".registration-card-template .section-title { color: #1f4e79; }"/>
+                        </page>
+                        <page string="Notes">
+                            <field name="notes" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_document_template" model="ir.actions.act_window">
+        <field name="name">Document Templates</field>
+        <field name="res_model">hotel.document.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'default_document_type': 'registration_card'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a hotel document template</p>
+            <p>Customize Registration Card HTML, CSS, logo behavior, terms, and reservation placeholders.</p>
+        </field>
+    </record>
+</odoo>

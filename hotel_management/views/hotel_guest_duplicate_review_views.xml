@@ -10,15 +10,25 @@
                         <field name="duplicate_count" readonly="1"/>
                     </group>
                     <p class="text-muted">
-                        This tool only lists possible duplicate contacts. It does not merge,
-                        delete, or change any guest profile.
+                        This tool compares possible duplicate contacts for manual review only.
+                        It does not merge, delete, or change any guest profile.
                     </p>
-                    <field name="duplicate_partner_ids" readonly="1">
+                    <field name="duplicate_review_ids" readonly="1">
                         <list>
-                            <field name="name"/>
-                            <field name="email"/>
-                            <field name="phone"/>
-                            <field name="passport_number"/>
+                            <field name="partner_a_id"/>
+                            <field name="partner_b_id"/>
+                            <field name="match_reason"/>
+                            <field name="confidence_level" widget="badge"
+                                   decoration-danger="confidence_level == 'high'"
+                                   decoration-warning="confidence_level == 'medium'"
+                                   decoration-info="confidence_level == 'low'"/>
+                            <field name="passport_display"/>
+                            <field name="email_display"/>
+                            <field name="phone_display"/>
+                            <field name="country_display"/>
+                            <field name="nationality_display"/>
+                            <button name="action_open_contacts" type="object" string="Open Contacts" icon="fa-external-link"/>
+                            <button name="action_mark_reviewed" type="object" string="Mark Reviewed / Ignore" icon="fa-check"/>
                         </list>
                     </field>
                 </sheet>
@@ -29,6 +39,60 @@
                             class="btn-primary"/>
                     <button string="Close" special="cancel"/>
                 </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_guest_duplicate_review_list" model="ir.ui.view">
+        <field name="name">hotel.guest.duplicate.review.list</field>
+        <field name="model">hotel.guest.duplicate.review</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0" edit="0"
+                  decoration-danger="confidence_level == 'high'"
+                  decoration-warning="confidence_level == 'medium'">
+                <field name="partner_a_id"/>
+                <field name="partner_b_id"/>
+                <field name="match_reason"/>
+                <field name="confidence_level" widget="badge"/>
+                <field name="passport_display"/>
+                <field name="email_display"/>
+                <field name="phone_display"/>
+                <field name="country_display"/>
+                <field name="nationality_display"/>
+                <button name="action_open_contacts" type="object" string="Open Contacts" icon="fa-external-link"/>
+                <button name="action_mark_reviewed" type="object" string="Mark Reviewed / Ignore" icon="fa-check"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_guest_duplicate_review_form" model="ir.ui.view">
+        <field name="name">hotel.guest.duplicate.review.form</field>
+        <field name="model">hotel.guest.duplicate.review</field>
+        <field name="arch" type="xml">
+            <form create="0" delete="0" edit="0">
+                <header>
+                    <button name="action_open_contacts" type="object" string="Open Contacts" class="btn-primary"/>
+                    <button name="action_mark_reviewed" type="object" string="Mark Reviewed / Ignore"
+                            class="btn-secondary" invisible="state == 'reviewed'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="partner_a_id"/>
+                            <field name="partner_b_id"/>
+                            <field name="match_reason"/>
+                            <field name="confidence_level" widget="badge"/>
+                        </group>
+                        <group>
+                            <field name="passport_display"/>
+                            <field name="email_display"/>
+                            <field name="phone_display"/>
+                            <field name="country_display"/>
+                            <field name="nationality_display"/>
+                        </group>
+                    </group>
+                </sheet>
             </form>
         </field>
     </record>

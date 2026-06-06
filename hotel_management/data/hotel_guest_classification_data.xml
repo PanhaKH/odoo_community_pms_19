@@ -6,5 +6,21 @@
             <field name="code">repeat_guest</field>
             <field name="priority">10</field>
         </record>
+        <record id="guest_classification_government" model="hotel.guest.classification">
+            <field name="name">Government</field>
+            <field name="code">government</field>
+        </record>
+        <record id="guest_classification_owner_guest" model="hotel.guest.classification">
+            <field name="name">Owner Guest</field>
+            <field name="code">owner_guest</field>
+        </record>
+        <record id="guest_classification_staff" model="hotel.guest.classification">
+            <field name="name">Staff</field>
+            <field name="code">staff</field>
+        </record>
+        <record id="guest_classification_crew" model="hotel.guest.classification">
+            <field name="name">Crew</field>
+            <field name="code">crew</field>
+        </record>
     </data>
 </odoo>

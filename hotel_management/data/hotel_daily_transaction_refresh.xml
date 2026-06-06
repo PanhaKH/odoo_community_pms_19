@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <function model="hotel.daily.transaction" name="refresh_unposted_estimated_amounts"/>
+</odoo>

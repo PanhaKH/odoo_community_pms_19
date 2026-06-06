@@ -10,6 +10,7 @@
             <field name="partner_to">{{ object.partner_id.id }}</field>
             <field name="description">Sent automatically when reservation is confirmed</field>
             <field name="body_html" type="html">
+                <t t-set="confirmation" t-value="object._get_reservation_confirmation_data()"/>
                 <div style="margin: 0px; padding: 0px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333;">
                     <p>
                         Dear <t t-out="object.partner_id.name or 'Guest'"></t>,<br/><br/>
@@ -17,7 +18,8 @@
                         
                         <strong style="color: #6f42c1;">Your Booking Details:</strong><br/>
                         <ul>
-                            <li><strong>Reference:</strong> <t t-out="object.name"></t></li>
+                            <li><strong>Reservation Reference:</strong> <t t-out="object.name"></t></li>
+                            <li><strong>Guest Name:</strong> <t t-out="object.partner_id.name or ''"></t></li>
                             <li><strong>Check-in:</strong> <t t-out="object.checkin_date"></t></li>
                             <li><strong>Check-out:</strong> <t t-out="object.checkout_date"></t></li>
                             <li><strong>Room Type:</strong> <t t-out="object.room_type_id.name"></t></li>
@@ -26,9 +28,47 @@
                         <strong style="color: #28a745;">Estimated Pricing:</strong><br/>
                         <ul>
                             <li><strong>Nightly Rate:</strong> <t t-out="object.rate_id.name"></t></li>
-                            <li><strong>Estimated Total:</strong> <t t-out="object.total_amount" t-options='{"widget": "monetary", "display_currency": object.currency_id}'></t></li>
+                            <li><strong>Estimated Stay Amount:</strong> <t t-out="confirmation['total_stay_amount']" t-options='{"widget": "monetary", "display_currency": object.currency_id}'></t></li>
                         </ul>
                     </p>
+
+                    <t t-if="object.company_id.hotel_deposit_required">
+                        <div style="background-color: #fff8e1; border: 1px solid #f0d98c; border-radius: 6px; padding: 14px; margin: 18px 0;">
+                            <strong style="color: #8a6500;">Deposit Required</strong>
+                            <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px;">
+                                <tr>
+                                    <td style="padding: 5px 0;">Estimated Stay Amount</td>
+                                    <td style="padding: 5px 0; text-align: right;"><t t-out="confirmation['total_stay_amount']" t-options='{"widget": "monetary", "display_currency": object.currency_id}'/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 5px 0;">Required Deposit %</td>
+                                    <td style="padding: 5px 0; text-align: right;"><t t-out="confirmation['required_deposit_percent']"/>%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 5px 0;">Required Deposit Amount</td>
+                                    <td style="padding: 5px 0; text-align: right;"><t t-out="confirmation['required_deposit_amount']" t-options='{"widget": "monetary", "display_currency": object.currency_id}'/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 5px 0;">Deposit Received</td>
+                                    <td style="padding: 5px 0; text-align: right;"><t t-out="confirmation['deposit_received']" t-options='{"widget": "monetary", "display_currency": object.currency_id}'/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 5px 0;">Remaining Deposit Required</td>
+                                    <td style="padding: 5px 0; text-align: right;"><t t-out="confirmation['remaining_deposit_required']" t-options='{"widget": "monetary", "display_currency": object.currency_id}'/></td>
+                                </tr>
+                                <tr style="border-top: 1px solid #f0d98c;">
+                                    <td style="padding: 8px 0;"><strong>Estimated Balance</strong></td>
+                                    <td style="padding: 8px 0; text-align: right;"><strong><t t-out="confirmation['remaining_balance']" t-options='{"widget": "monetary", "display_currency": object.currency_id}'/></strong></td>
+                                </tr>
+                            </table>
+                            <t t-if="object.company_id.hotel_online_payment_link_enabled and object.company_id.hotel_online_payment_instruction">
+                                <div style="margin-top: 12px;">
+                                    <strong>Online Payment / Instruction:</strong><br/>
+                                    <t t-out="object.company_id.hotel_online_payment_instruction"/>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
                     
                     <p>
                         <strong style="color: #6f42c1;">Your Personal Digital Concierge:</strong><br/>
@@ -44,6 +84,35 @@
                         We look forward to welcoming you!<br/><br/>
                         Warm regards,<br/>
                         <strong>The Hotel Management Team</strong>
+                    </p>
+                </div>
+            </field>
+        </record>
+
+        <record id="email_template_advance_deposit_receipt" model="mail.template">
+            <field name="name">Hotel: Advance Deposit Receipt</field>
+            <field name="model_id" ref="account.model_account_payment"/>
+            <field name="subject">Deposit Receipt - {{ object._get_hotel_receipt_reservation().name or object.name }}</field>
+            <field name="email_to">{{ object._get_hotel_receipt_reservation().partner_email or object._get_hotel_receipt_reservation().partner_id.email or object.partner_id.email }}</field>
+            <field name="description">Sent after an advance deposit payment is posted when enabled in Hotel Settings.</field>
+            <field name="body_html" type="html">
+                <t t-set="reservation" t-value="object._get_hotel_receipt_reservation()"/>
+                <div style="margin: 0px; padding: 0px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333;">
+                    <p>Dear <t t-out="reservation.partner_id.name or object.partner_id.name or 'Guest'"/>,</p>
+                    <p>Thank you for your deposit payment.</p>
+                    <p>Please find attached your Deposit Receipt.</p>
+                    <p>
+                        <strong>Reservation:</strong><br/>
+                        <t t-out="reservation.name or object.memo or ''"/>
+                    </p>
+                    <p>
+                        <strong>Guest:</strong><br/>
+                        <t t-out="reservation.partner_id.name or object.partner_id.name or ''"/>
+                    </p>
+                    <p>We look forward to welcoming you.</p>
+                    <p>
+                        Best Regards,<br/>
+                        <strong><t t-out="reservation.company_id.name or object.company_id.name"/></strong>
                     </p>
                 </div>
             </field>

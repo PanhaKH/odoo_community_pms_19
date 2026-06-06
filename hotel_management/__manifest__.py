@@ -21,6 +21,8 @@
         'data/hotel_default_products.xml',
         'data/hotel_default_journals.xml',
         'data/hotel_guest_classification_data.xml',
+        'data/hotel_document_template_data.xml',
+        'data/hotel_daily_transaction_refresh.xml',
         # --- VIEWS ---
         'views/hotel_room_views.xml',    
         'views/hotel_rate_plan_views.xml',  
@@ -35,6 +37,7 @@
         'views/hotel_maintenance_views.xml',
         'views/hotel_lost_found_views.xml',
         'views/hotel_service_request_views.xml',
+        'views/hotel_email_audit_views.xml',
         'views/hotel_guest_message_views.xml',
         'views/hotel_portal_templates.xml',
         
@@ -46,6 +49,7 @@
         'views/hotel_change_log_views.xml',
         
         'views/hotel_print_reports.xml', # <-- ADD THIS LINE!
+        'views/hotel_document_template_views.xml',
         # ... other files ...
         'wizard/hotel_split_line_wizard_views.xml',
         # --- MENUS (Load Last) ---

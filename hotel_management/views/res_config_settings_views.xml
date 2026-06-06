@@ -55,10 +55,34 @@
                             </div>
                         </setting>
 
-                        <setting id="hotel_confirmation_deposit_percent_setting"
-                                string="Reservation Deposit Requirement (%)"
-                                help="Percentage shown as the required deposit on the Reservation Confirmation / Proforma document.">
-                            <field name="hotel_confirmation_deposit_percent"/>
+                        <setting id="hotel_deposit_policy_setting"
+                                string="Deposit Policy"
+                                help="Control whether deposits are required, how much is required, and which guest communication options apply.">
+                            <field name="hotel_deposit_required"/>
+                            <div class="mt16" invisible="not hotel_deposit_required">
+                                <div class="row">
+                                    <div class="col-lg-6 mb-2">
+                                        <label for="hotel_confirmation_deposit_percent"/>
+                                        <field name="hotel_confirmation_deposit_percent"/>
+                                    </div>
+                                    <div class="col-lg-6 mb-2">
+                                        <label for="hotel_auto_email_deposit_receipt"/>
+                                        <field name="hotel_auto_email_deposit_receipt"/>
+                                    </div>
+                                    <div class="col-lg-6 mb-2">
+                                        <label for="hotel_attach_confirmation_pdf_to_booking_email"/>
+                                        <field name="hotel_attach_confirmation_pdf_to_booking_email"/>
+                                    </div>
+                                    <div class="col-lg-6 mb-2">
+                                        <label for="hotel_online_payment_link_enabled"/>
+                                        <field name="hotel_online_payment_link_enabled"/>
+                                    </div>
+                                    <div class="col-12 mb-2" invisible="not hotel_online_payment_link_enabled">
+                                        <label for="hotel_online_payment_instruction"/>
+                                        <field name="hotel_online_payment_instruction" placeholder="Paste an online payment URL or payment instruction shown in deposit-required booking emails."/>
+                                    </div>
+                                </div>
+                            </div>
                         </setting>
 
                         <setting id="hotel_deposit_tax_proportional_setting"
@@ -261,6 +285,7 @@
                                 help="Guest-facing payment instructions printed on Reservation Confirmation / Proforma documents.">
                             <field name="hotel_payment_instructions" widget="html"/>
                         </setting>
+
                         <setting id="pre_arrival_automation" string="Pre-Arrival Automation" help="Number of days before check-in to email the secure pre-arrival link.">
                             <field name="pre_arrival_days"/>
                             <div class="text-muted">

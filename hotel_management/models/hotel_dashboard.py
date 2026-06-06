@@ -91,6 +91,9 @@ class HotelDashboard(models.Model):
     repeat_arriving_today_count = fields.Integer(string="Repeat Arriving Today", compute="_compute_repeat_guests")
     repeat_inhouse_count = fields.Integer(string="Repeat In-House Stay", compute="_compute_repeat_guests")
     repeat_future_booking_count = fields.Integer(string="Repeat Future Booking", compute="_compute_repeat_guests")
+    vip_arriving_today_count = fields.Integer(string="VIP/VVIP Arriving Today", compute="_compute_vip_guests")
+    vip_inhouse_count = fields.Integer(string="VIP/VVIP In-House Stay", compute="_compute_vip_guests")
+    vip_future_booking_count = fields.Integer(string="VIP/VVIP Future Booking", compute="_compute_vip_guests")
 
     @api.model
     def get_guest_chat_alert_status(self):
@@ -157,6 +160,38 @@ class HotelDashboard(models.Model):
             'context': {'create': False},
         }
 
+    def _compute_vip_guests(self):
+        for rec in self:
+            rec.vip_arriving_today_count = len(rec._get_vip_reservations('arriving_today'))
+            rec.vip_inhouse_count = len(rec._get_vip_reservations('inhouse'))
+            rec.vip_future_booking_count = len(rec._get_vip_reservations('future_booking'))
+
+    def _get_vip_reservations(self, bucket):
+        self.ensure_one()
+        reservations = self.env['hotel.reservation'].search(self._get_repeat_base_domain(bucket))
+        return reservations.filtered(
+            lambda reservation: any(
+                partner.vip_level in ('vip', 'vvip')
+                for partner in (
+                    reservation.partner_id
+                    | reservation.accompanying_guest_ids
+                    | reservation.stay_guest_ids.mapped('partner_id')
+                )
+            )
+        )
+
+    def _get_vip_guest_action(self, title, bucket):
+        self.ensure_one()
+        reservation_ids = self._get_vip_reservations(bucket).ids
+        return {
+            'name': title,
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.reservation',
+            'view_mode': 'list,form',
+            'domain': [('id', 'in', reservation_ids or [0])],
+            'context': {'create': False},
+        }
+
     def action_view_repeat_arriving_today(self):
         biz_date = self.business_date or fields.Date.context_today(self)
         return self._get_repeat_guest_action(_("Repeat Guests Arriving Today (%s)") % biz_date, 'arriving_today')
@@ -166,6 +201,16 @@ class HotelDashboard(models.Model):
 
     def action_view_repeat_future_booking(self):
         return self._get_repeat_guest_action(_("Repeat Guests Future Bookings"), 'future_booking')
+
+    def action_view_vip_arriving_today(self):
+        biz_date = self.business_date or fields.Date.context_today(self)
+        return self._get_vip_guest_action(_("VIP / VVIP Guests Arriving Today (%s)") % biz_date, 'arriving_today')
+
+    def action_view_vip_inhouse(self):
+        return self._get_vip_guest_action(_("VIP / VVIP Guests In-House"), 'inhouse')
+
+    def action_view_vip_future_booking(self):
+        return self._get_vip_guest_action(_("VIP / VVIP Guests Future Bookings"), 'future_booking')
 
     def action_process_noshow_review(self):
         return self.env['hotel.reservation'].action_process_noshow_review()
@@ -611,9 +656,26 @@ class HotelDashboard(models.Model):
     # NEW FIX: The dashboard buttons now filter exactly by the Business Date column!
     def action_view_today_invoices(self): return self._get_action('Today Invoices', 'account.move', [('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('hotel_business_date', '=', self._get_biz_date())])
     def action_view_today_receipts(self): 
-        action = self._get_action('Today Receipts', 'account.payment', [('hotel_business_date', '=', self._get_biz_date()), ('state', 'in', ('in_process', 'paid')), ('payment_type', '=', 'inbound')])
-        action['context'] = {'search_default_journal_id': 1, 'group_by': 'journal_id'}
-        return action
+        self.ensure_one()
+        receipt_tree = self.env.ref('hotel_management.view_hotel_receipt_tree', raise_if_not_found=False)
+        domain = [
+            ('hotel_business_date', '=', self._get_biz_date()),
+            ('state', 'in', ['in_process', 'paid']),
+            ('payment_type', '=', 'inbound'),
+            ('hotel_reservation_id', '!=', False),
+            ('voids_advance_deposit_payment_id', '=', False),
+            ('advance_deposit_void_payment_ids', '=', False),
+        ]
+        views = [(receipt_tree.id, 'list'), (False, 'form')] if receipt_tree else [(False, 'list'), (False, 'form')]
+        return {
+            'name': _("Today's Receipts"),
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.payment',
+            'view_mode': 'list,form',
+            'views': views,
+            'domain': domain,
+            'context': {'create': False},
+        }
 
     def action_view_req_upcoming(self): return self._get_action('Upcoming Guest Alerts', 'hotel.service.request', [('reservation_id.state', '=', 'confirm'), ('state', 'in', ['new', 'progress'])])
     def action_view_req_inhouse(self): return self._get_action('In-House Guest Alerts', 'hotel.service.request', [('reservation_id.state', 'in', ['checkin', 'checkout_hold']), ('state', 'in', ['new', 'progress'])])

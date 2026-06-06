@@ -410,9 +410,13 @@
                      <field name="folio_count" invisible="1"/>
                      <field name="is_repeat_guest" invisible="1"/>
                      <field name="is_vip" invisible="1"/>
+                     <field name="vip_level" invisible="1"/>
+                     <field name="hotel_deposit_policy_required" invisible="1"/>
+                     <field name="hotel_required_deposit_amount" invisible="1"/>
+                     <field name="hotel_deposit_received_amount" invisible="1"/>
+                     <field name="hotel_remaining_deposit_required" invisible="1"/>
                      
                      <field name="passport_image" widget="image" class="oe_avatar" options="{'size': [128, 128]}"/>
-                    <widget name="web_ribbon" title="VIP GUEST" bg_color="bg-warning" invisible="not is_vip"/>
                     <div class="border rounded bg-white p-3 mb-3">
                         <div class="text-muted fw-bold small mb-2">Financial &amp; Activity</div>
                         <div class="d-flex flex-wrap gap-2">
@@ -453,8 +457,11 @@
                             <span invisible="not is_repeat_guest" class="badge rounded-pill text-bg-warning align-self-center px-3 py-2">
                                 <i class="fa fa-star me-1"/> Repeat Guest
                             </span>
-                            <span invisible="not is_vip" class="badge rounded-pill text-bg-info align-self-center px-3 py-2">
+                            <span invisible="vip_level != 'vip'" class="badge rounded-pill text-bg-info align-self-center px-3 py-2">
                                 <i class="fa fa-diamond me-1"/> VIP
+                            </span>
+                            <span invisible="vip_level != 'vvip'" class="badge rounded-pill text-bg-danger align-self-center px-3 py-2">
+                                <i class="fa fa-diamond me-1"/> VVIP
                             </span>
                         </div>
                     </div>
@@ -480,6 +487,23 @@
                         </div>
                     </div>
 
+                    <div class="alert alert-info d-flex align-items-center justify-content-between flex-wrap gap-4"
+                         role="alert"
+                         invisible="not hotel_deposit_policy_required or is_desk_folio">
+                        <div>
+                            <div class="text-muted small">Required Deposit Amount</div>
+                            <strong class="fw-bold fs-5"><field name="hotel_required_deposit_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/></strong>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Deposit Received</div>
+                            <strong class="fw-bold fs-5"><field name="hotel_deposit_received_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/></strong>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Remaining Deposit Required</div>
+                            <strong class="fw-bold fs-5"><field name="hotel_remaining_deposit_required" widget="monetary" options="{'currency_field': 'currency_id'}"/></strong>
+                        </div>
+                    </div>
+
                     <group>
                         <group string="Guest Info" name="guest_info">
                             <field name="is_desk_folio" widget="boolean_toggle" string="Is a House Account / Desk Folio"/>
@@ -489,6 +513,7 @@
                             
                             <field name="guest_nationality_id" options="{'no_create': True}"/>
                             <field name="guest_country_id" options="{'no_create': True}"/>
+                            <field name="vip_level"/>
                             
                             <field name="accompanying_guest_ids" widget="many2many_tags" placeholder="Add shared guests..."/>
                             <field name="partner_phone" force_save="1"/>
@@ -564,15 +589,22 @@
                     <notebook>
                         <page string="Stay Guests" name="stay_guests">
                             <div class="alert alert-info" role="alert">
-                                Register every person staying in the room. These records drive repeat-guest history for main and accompanying guests.
+                                Master guest information area. Register every person staying in the room and keep identity documents, photos, and signatures here.
                             </div>
+                            <group string="Main Guest Documents">
+                                <field name="passport_image" widget="image" class="oe_avatar" options="{'size': [256, 256]}"/>
+                                <field name="guest_signature" widget="signature"/>
+                            </group>
                             <field name="stay_guest_ids" context="{'default_reservation_id': id}">
                                 <list editable="bottom">
+                                    <button name="action_open_stay_guest" type="object" icon="fa-external-link" title="Open Stay Guest"/>
+                                    <button name="action_open_partner" type="object" icon="fa-user" title="Open Guest Profile" invisible="not partner_id"/>
                                     <field name="is_primary"/>
                                     <field name="guest_type"/>
                                     <field name="partner_id"/>
                                     <field name="visit_count" readonly="1"/>
                                     <field name="is_repeat_guest" widget="badge" readonly="1"/>
+                                    <field name="vip_level" widget="badge"/>
                                     <field name="name"/>
                                     <field name="passport_no"/>
                                     <field name="phone"/>
@@ -582,7 +614,37 @@
                                     <field name="gender"/>
                                     <field name="date_of_birth"/>
                                     <field name="id_document_image" widget="image" optional="show"/>
+                                    <field name="signature" widget="signature" optional="hide"/>
                                 </list>
+                                <form string="Stay Guest">
+                                    <sheet>
+                                        <group>
+                                            <group string="Guest Profile">
+                                                <field name="is_primary"/>
+                                                <field name="guest_type"/>
+                                                <field name="partner_id"/>
+                                                <field name="name"/>
+                                                <field name="phone"/>
+                                                <field name="email"/>
+                                                <field name="visit_count" readonly="1"/>
+                                                <field name="is_repeat_guest" widget="badge" readonly="1"/>
+                                                <field name="vip_level" widget="badge"/>
+                                            </group>
+                                            <group string="Identity">
+                                                <field name="passport_no"/>
+                                                <field name="nationality_id"/>
+                                                <field name="country_id"/>
+                                                <field name="gender"/>
+                                                <field name="date_of_birth"/>
+                                                <field name="relationship"/>
+                                            </group>
+                                        </group>
+                                        <group string="Guest Documents &amp; Signature">
+                                            <field name="id_document_image" widget="image" options="{'size': [256, 256]}"/>
+                                            <field name="signature" widget="signature"/>
+                                        </group>
+                                    </sheet>
+                                </form>
                             </field>
                         </page>
                         <page string="Pre-Arrival &amp; Preferences">
@@ -594,25 +656,6 @@
                                 <group string="Room Configuration">
                                     <field name="smoking_preference" widget="radio" options="{'horizontal': true}"/>
                                     <field name="bed_preference" widget="radio" options="{'horizontal': true}"/>
-                                </group>
-                                <group>
-                                    <field name="passport_image" widget="image" class="oe_avatar" options="{'size': [256, 256]}"/>
-                                </group>
-                                <group string="Guest Documents">
-                                    <field name="stay_guest_ids" nolabel="1" readonly="1">
-                                        <list create="0" edit="0" delete="0">
-                                            <field name="is_primary"/>
-                                            <field name="name"/>
-                                            <field name="visit_count"/>
-                                            <field name="is_repeat_guest" widget="badge"/>
-                                            <field name="passport_no"/>
-                                            <field name="id_document_image" widget="image"/>
-                                        </list>
-                                    </field>
-                                </group>
-                                
-                                <group string="Check-In Documents">
-                                    <field name="guest_signature" widget="signature"/>
                                 </group>
                             </group>
                         </page>
@@ -655,6 +698,17 @@
 
                         <page string="Notes" name="notes_page">
                             <field name="guest_note" placeholder="Guest requests, preferences, etc."/>
+                        </page>
+                        <page string="Email Communication" name="email_communication">
+                            <field name="email_audit_ids" readonly="1">
+                                <list create="0" edit="0" delete="0">
+                                    <field name="create_date" string="Date"/>
+                                    <field name="audit_type" string="Type"/>
+                                    <field name="recipient"/>
+                                    <field name="status" widget="badge"/>
+                                    <field name="subject"/>
+                                </list>
+                            </field>
                         </page>
                         <page string="Daily Rates &amp; Posting" name="other_details" invisible="is_desk_folio">
                             <div class="alert alert-info" role="alert">
@@ -730,6 +784,7 @@
                         <button name="action_send_pre_arrival_link" type="object" string="Send Pre-Arrival Link" class="btn-primary" invisible="pre_arrival_sent == True"/>
                         <button name="action_preview_guest_portal" string="Guest Portal Link" type="object" class="btn-info text-white" icon="fa-globe" invisible="state == 'draft' or is_desk_folio"/>
                         <button name="action_print_reservation_confirmation" string="Print Reservation Confirmation" type="object" class="btn-secondary" icon="fa-print" invisible="state in ['cancel', 'blocked']"/>
+                        <button name="action_print_registration_card" string="Print Registration Card" type="object" class="btn-secondary" icon="fa-id-card-o" invisible="state in ['cancel', 'blocked'] or is_desk_folio"/>
                         
                         <button name="action_confirm" string="Confirm" type="object" class="btn-primary" invisible="state != 'draft' or is_desk_folio"/>
                         <button name="action_checkin" string="Check-In" type="object" class="btn-success" invisible="state != 'confirm' or is_desk_folio"/>
@@ -1052,6 +1107,10 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
                             <field name="reservation_id" invisible="1"/>
                             <field name="currency_id" invisible="1"/>
                             <field name="processed" invisible="1"/>
+                            <field name="deposit_required" invisible="1"/>
+                            <field name="required_deposit_amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" invisible="not deposit_required"/>
+                            <field name="deposit_received_amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" invisible="not deposit_required"/>
+                            <field name="remaining_deposit_required" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" invisible="not deposit_required"/>
                             <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                             <field name="journal_id" widget="selection" domain="[('active', '=', True), ('type', 'in', ['bank', 'cash'])]"/>
                         </group>
@@ -2029,11 +2088,12 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
     <record id="email_template_pre_arrival" model="mail.template">
         <field name="name">Hotel: Pre-Arrival Check-In</field>
         <field name="model_id" ref="hotel_management.model_hotel_reservation"/>
-        <field name="subject">Prepare for your stay at our Hotel, {{ object.partner_id.name }}!</field>
+        <field name="subject">Pre-Arrival Registration - {{ object.name }}</field>
         <field name="email_to">{{ object.partner_id.email }}</field>
         <field name="body_html" type="html">
             <div style="margin: 0px; padding: 0px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333333;">
                 <p>Dear <strong><t t-out="object.partner_id.name"/></strong>,</p>
+                <p><strong>Reservation Reference:</strong> <t t-out="object.name"/></p>
                 <p>We are thrilled to welcome you to our hotel in just two days on <strong><t t-out="object.checkin_date"/></strong>!</p>
                 <p>To ensure your room is perfectly prepared, please take 60 seconds to complete your Contactless Pre-Registration. You can tell us your arrival time, select your room preferences, and upload your ID so you can skip the line at the Front Desk.</p>
                 
@@ -2066,6 +2126,7 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
         <field name="arch" type="xml">
             <xpath expr="//field[@name='vat']" position="after">
                 <field name="passport_number" string="Passport / National ID"/>
+                <field name="vip_level"/>
             </xpath>
         </field>
     </record>

@@ -306,7 +306,7 @@
                                                 <td><strong>Total Stay Amount</strong></td>
                                                 <td class="text-end"><strong><t t-esc="data['total_stay_amount']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></strong></td>
                                             </tr>
-                                            <tr>
+                                            <tr t-if="data['deposit_required']">
                                                 <td>Required Deposit (<t t-esc="data['required_deposit_percent']"/>%)</td>
                                                 <td class="text-end"><t t-esc="data['required_deposit_amount']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
                                             </tr>
@@ -374,6 +374,29 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_registration_card" model="ir.actions.report">
+        <field name="name">Registration Card</field>
+        <field name="model">hotel.reservation</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management.report_registration_card</field>
+        <field name="report_file">hotel_management.report_registration_card</field>
+        <field name="print_report_name">'Registration_Card_%s' % (object.name)</field>
+        <field name="binding_model_id" ref="model_hotel_reservation"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_registration_card">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <t t-raw="doc._render_registration_card_html()"/>
                     </div>
                 </t>
             </t>
@@ -525,11 +548,15 @@
                                     <div class="hotel-receipt-card">
                                         <table class="table table-sm hotel-receipt-summary mb-0">
                                             <tr>
-                                                <td>Deposit Received</td>
+                                                <td>Amount Received</td>
                                                 <td class="text-end"><strong><t t-esc="data['deposit_received']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></strong></td>
                                             </tr>
                                             <tr>
-                                                <td>Total Reservation Value</td>
+                                                <td>Deposit Received To Date</td>
+                                                <td class="text-end"><t t-esc="data['deposit_received_to_date']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Estimated Stay Amount</td>
                                                 <td class="text-end"><t t-esc="data['total_reservation_value']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
                                             </tr>
                                             <tr>

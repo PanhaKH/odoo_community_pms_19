@@ -35,6 +35,11 @@ class HotelReservationGuest(models.Model):
     signature = fields.Binary(attachment=True)
     visit_count = fields.Integer(compute='_compute_guest_history_flags', string='Visit Count')
     is_repeat_guest = fields.Boolean(compute='_compute_guest_history_flags', string='Repeat Guest')
+    vip_level = fields.Selection(
+        related='partner_id.vip_level',
+        readonly=False,
+        string='VIP Level',
+    )
 
     def _compute_guest_history_flags(self):
         for rec in self:
@@ -44,6 +49,30 @@ class HotelReservationGuest(models.Model):
             else:
                 rec.visit_count = 0
                 rec.is_repeat_guest = False
+
+    def action_open_partner(self):
+        self.ensure_one()
+        if not self.partner_id:
+            return False
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Guest Profile'),
+            'res_model': 'res.partner',
+            'res_id': self.partner_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+
+    def action_open_stay_guest(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Stay Guest'),
+            'res_model': 'hotel.reservation.guest',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
 
     @api.onchange('partner_id')
     def _onchange_partner_id(self):
@@ -166,6 +195,11 @@ class HotelReservationGuest(models.Model):
 class ResPartnerHotelStayGuest(models.Model):
     _inherit = 'res.partner'
 
+    vip_level = fields.Selection([
+        ('none', 'None'),
+        ('vip', 'VIP'),
+        ('vvip', 'VVIP'),
+    ], string='VIP Level', default='none')
     hotel_date_of_birth = fields.Date(string='Date of Birth')
     hotel_gender = fields.Selection([
         ('male', 'Male'),

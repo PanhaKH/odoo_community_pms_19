@@ -3,6 +3,7 @@ from odoo.exceptions import AccessError, ValidationError, UserError
 from odoo.fields import Command
 from datetime import datetime, time, timedelta
 from markupsafe import Markup 
+import base64
 import logging
 import uuid  
  
@@ -23,6 +24,11 @@ class ResCompanyHotel(models.Model):
         domain="[('account_type', 'in', ('liability_current', 'liability_non_current', 'liability_payable')), ('deprecated', '=', False)]",
         help="Liability account used for Opera-style advance deposits until the final folio invoice is issued.",
     )
+    hotel_deposit_required = fields.Boolean(
+        string="Deposit Required",
+        default=False,
+        help="When enabled, reservations must collect the configured minimum deposit before accepting a deposit receipt.",
+    )
     hotel_confirmation_deposit_percent = fields.Float(
         string="Reservation Deposit Requirement (%)",
         default=50.0,
@@ -31,6 +37,25 @@ class ResCompanyHotel(models.Model):
     hotel_deposit_tax_proportional = fields.Boolean(
         string="Apply Proportional Taxes to Hotel Deposits",
         help="Apply the accommodation taxes to advance-deposit invoices while treating the collected deposit as tax-inclusive.",
+    )
+    hotel_auto_email_deposit_receipt = fields.Boolean(
+        string="Auto Email Deposit Receipt",
+        default=False,
+        help="Automatically email the Advance Deposit Receipt PDF after a deposit is successfully posted.",
+    )
+    hotel_attach_confirmation_pdf_to_booking_email = fields.Boolean(
+        string="Attach Confirmation / Proforma PDF to Booking Email",
+        default=True,
+        help="Attach the Reservation Confirmation / Proforma PDF to deposit-required booking emails.",
+    )
+    hotel_online_payment_link_enabled = fields.Boolean(
+        string="Online Payment Link Enabled",
+        default=False,
+        help="Show the configured payment URL or instruction in deposit-required booking emails.",
+    )
+    hotel_online_payment_instruction = fields.Html(
+        string="Online Payment URL / Instruction",
+        help="URL or payment instructions shown on deposit-required booking emails when online payment is enabled.",
     )
     hotel_auto_noshow_enabled = fields.Boolean(
         string="Enable Auto No-Show",
@@ -151,7 +176,6 @@ class HotelDailyTransaction(models.Model):
 
     @api.depends('revenue', 'posted_sale_line_id', 'posted_sale_line_id.price_total', 'posted_sale_line_id.price_subtotal')
     def _compute_amounts(self):
-        accommodation_product = self.env['product.product'].search([('name', '=', 'Accommodation')], limit=1)
         for line in self:
             if line.posted_sale_line_id:
                 line.tax_amount = line.posted_sale_line_id.price_total - line.posted_sale_line_id.price_subtotal
@@ -161,13 +185,19 @@ class HotelDailyTransaction(models.Model):
             if line.reservation_id:
                 taxes_res = line.reservation_id._get_confirmation_tax_compute(
                     line.revenue,
-                    product=accommodation_product,
                 )
                 line.tax_amount = taxes_res['total_included'] - taxes_res['total_excluded']
                 line.line_total = taxes_res['total_included']
             else:
                 line.tax_amount = 0.0
                 line.line_total = line.revenue
+
+    @api.model
+    def refresh_unposted_estimated_amounts(self):
+        """Refresh display-only estimate totals for unposted daily room rates."""
+        lines = self.search([('posted_sale_line_id', '=', False)])
+        lines._compute_amounts()
+        return True
 
     def write(self, vals):
         if self.env.context.get('skip_hotel_daily_rate_audit'):
@@ -228,8 +258,15 @@ class HotelReservation(models.Model):
     guest_country_id = fields.Many2one('res.country', related='partner_id.country_id', readonly=False, string='Country')
     guest_signature = fields.Binary(string='Guest Signature', attachment=True)
     stay_guest_ids = fields.One2many('hotel.reservation.guest', 'reservation_id', string='Registered Stay Guests')
+    email_audit_ids = fields.One2many('hotel.email.audit', 'reservation_id', string='Email Communication')
     stay_guest_count = fields.Integer(compute='_compute_stay_guest_count', string='Registered Guests')
     is_repeat_guest = fields.Boolean(compute='_compute_repeat_guest_status', search='_search_is_repeat_guest', string='Repeat Guest')
+    vip_level = fields.Selection(
+        related='partner_id.vip_level',
+        readonly=False,
+        store=True,
+        string='VIP Level',
+    )
 
     # --- PRE-ARRIVAL & PREFERENCES ---
     estimated_arrival = fields.Selection([
@@ -374,11 +411,11 @@ class HotelReservation(models.Model):
                     )
                 )
 
-    # Automatically flags the guest as VIP if they have been here before!
-    @api.depends('guest_visit_count')
+    # Compatibility flag for existing views/reports. VIP is always selected manually.
+    @api.depends('vip_level')
     def _compute_is_vip(self):
         for rec in self:
-            rec.is_vip = rec.is_repeat_guest or rec.guest_visit_count > 1
+            rec.is_vip = rec.vip_level in ('vip', 'vvip')
 
     def _compute_stay_guest_count(self):
         for rec in self:
@@ -639,6 +676,32 @@ class HotelReservation(models.Model):
                 and rec._get_remaining_deposit_capacity() > 0.01
             )
 
+    @api.depends(
+        'company_id.hotel_deposit_required',
+        'company_id.hotel_confirmation_deposit_percent',
+        'advance_deposit_payment_ids.state',
+        'advance_deposit_payment_ids.amount',
+        'advance_deposit_payment_ids.payment_type',
+        'advance_deposit_payment_ids.is_advance_deposit',
+        'checkin_date',
+        'checkout_date',
+        'room_rate',
+        'manual_rate',
+        'is_manual_rate',
+        'rate_id',
+        'rate_plan_id',
+        'currency_id',
+    )
+    def _compute_deposit_policy_amounts(self):
+        for rec in self:
+            percent = rec.company_id.hotel_confirmation_deposit_percent if rec.company_id.hotel_deposit_required else 0.0
+            required_amount = rec._get_required_deposit_amount() if rec.company_id.hotel_deposit_required else 0.0
+            received_amount = rec._get_posted_advance_deposit_amount()
+            rec.hotel_required_deposit_percent = percent or 0.0
+            rec.hotel_required_deposit_amount = required_amount
+            rec.hotel_deposit_received_amount = received_amount
+            rec.hotel_remaining_deposit_required = max(required_amount - received_amount, 0.0)
+
     folio_invoice_status = fields.Selection([
         ('none', 'No Folio'),
         ('to_invoice', 'Pending Invoice'),
@@ -731,6 +794,30 @@ class HotelReservation(models.Model):
     company_city_ledger_ar = fields.Monetary(string="Company City Ledger A/R", compute='_compute_folio_status', store=True)
     guest_balance_button_amount = fields.Monetary(string="Guest Balance Button Amount", compute='_compute_folio_status', store=True)
     guest_balance_button_label = fields.Char(string="Guest Balance Button Label", compute='_compute_folio_status', store=True)
+    hotel_deposit_policy_required = fields.Boolean(
+        string="Deposit Required",
+        related='company_id.hotel_deposit_required',
+        readonly=True,
+    )
+    hotel_required_deposit_percent = fields.Float(
+        string="Required Deposit %",
+        compute='_compute_deposit_policy_amounts',
+    )
+    hotel_required_deposit_amount = fields.Monetary(
+        string="Required Deposit Amount",
+        compute='_compute_deposit_policy_amounts',
+        currency_field='currency_id',
+    )
+    hotel_deposit_received_amount = fields.Monetary(
+        string="Deposit Received",
+        compute='_compute_deposit_policy_amounts',
+        currency_field='currency_id',
+    )
+    hotel_remaining_deposit_required = fields.Monetary(
+        string="Remaining Deposit Required",
+        compute='_compute_deposit_policy_amounts',
+        currency_field='currency_id',
+    )
     
     total_amount = fields.Float(string='Estimated Total', compute='_compute_total_amount', store=True)
     revenue_category = fields.Selection([
@@ -1105,7 +1192,15 @@ class HotelReservation(models.Model):
     def _apply_repeat_guest_classification(self):
         repeat_class = self._get_repeat_guest_classification()
         for rec in self:
-            if rec.partner_id and rec._is_repeat_guest_partner(rec.partner_id) and not rec.guest_classification_id:
+            current_class = rec.guest_classification_id
+            is_normal = bool(
+                current_class
+                and (
+                    current_class.code == 'normal'
+                    or (current_class.name or '').strip().lower() == 'normal'
+                )
+            )
+            if rec.partner_id and rec._is_repeat_guest_partner(rec.partner_id) and (not current_class or is_normal):
                 rec.with_context(skip_repeat_guest_classification=True).guest_classification_id = repeat_class.id
 
     def _sync_stay_guests_from_reservation_partners(self):
@@ -1219,6 +1314,20 @@ class HotelReservation(models.Model):
             payments = rec._get_registered_payment_records()
             rec.payment_count = len(payments)
             rec.payment_registered_total = sum(payments.mapped('amount'))
+
+    def _create_email_audit(self, audit_type, recipient, status, subject, mail=False, attachment=False, failure_reason=False):
+        Audit = self.env['hotel.email.audit'].sudo()
+        for rec in self:
+            Audit.create({
+                'reservation_id': rec.id,
+                'audit_type': audit_type,
+                'recipient': recipient or rec.partner_email or rec.partner_id.email or '-',
+                'status': status,
+                'subject': subject or '-',
+                'mail_id': mail.id if mail else False,
+                'attachment_id': attachment.id if attachment else False,
+                'failure_reason': failure_reason or False,
+            })
 
     @api.depends(
         'sale_order_id.invoice_ids.move_type',
@@ -1689,6 +1798,15 @@ class HotelReservation(models.Model):
 
         # Desk and group-master folios are excluded elsewhere and do not use this flow.
         return max(self.folio_total, self.total_amount, 0.0)
+
+    def _get_required_deposit_amount(self):
+        self.ensure_one()
+        if not self.company_id.hotel_deposit_required:
+            return 0.0
+        currency = self.currency_id or self.company_id.currency_id
+        percent = max(self.company_id.hotel_confirmation_deposit_percent or 0.0, 0.0)
+        amount = self._get_deposit_base_total() * (percent / 100.0)
+        return currency.round(amount) if currency else amount
 
     def _get_remaining_deposit_capacity(self):
         self.ensure_one()
@@ -2165,14 +2283,53 @@ class HotelReservation(models.Model):
                 
             template = self.env.ref('hotel_management.email_template_hotel_reservation_confirm', raise_if_not_found=False)
             if template and rec.partner_email:
-                template.send_mail(rec.id, force_send=True)
+                attachment = False
+                email_values = {}
+                if rec.company_id.hotel_deposit_required and rec.company_id.hotel_attach_confirmation_pdf_to_booking_email:
+                    try:
+                        pdf_content, _content_type = self.env['ir.actions.report'].sudo()._render_qweb_pdf(
+                            'hotel_management.action_report_reservation_confirmation',
+                            res_ids=rec.id,
+                        )
+                        attachment = self.env['ir.attachment'].sudo().create({
+                            'name': 'Reservation_Confirmation_%s.pdf' % (rec.name or rec.id),
+                            'type': 'binary',
+                            'datas': base64.b64encode(pdf_content),
+                            'res_model': 'hotel.reservation',
+                            'res_id': rec.id,
+                            'mimetype': 'application/pdf',
+                        })
+                        email_values['attachment_ids'] = [(4, attachment.id)]
+                    except Exception as error:
+                        _logger.exception("Reservation confirmation PDF attachment failed for reservation_id=%s", rec.id)
+                        rec.message_post(
+                            body=_("Booking Confirmation PDF attachment failed: %s") % str(error),
+                            subtype_xmlid='mail.mt_note',
+                        )
+
+                mail_id = template.send_mail(rec.id, force_send=True, email_values=email_values)
                 email_body = template._render_field('body_html', [rec.id])[rec.id]
+                rec._create_email_audit(
+                    'booking_confirmation',
+                    rec.partner_email,
+                    'sent',
+                    template._render_field('subject', [rec.id])[rec.id],
+                    mail=self.env['mail.mail'].sudo().browse(mail_id).exists(),
+                    attachment=attachment,
+                )
                 
                 rec.message_post(
                     body=Markup(f"<b>Booking Confirmation Sent:</b><br/><br/>{email_body}"), 
                     subtype_xmlid='mail.mt_note'
                 )
             elif not rec.partner_email:
+                rec._create_email_audit(
+                    'booking_confirmation',
+                    rec.partner_email or rec.partner_id.email or '-',
+                    'skipped',
+                    _("Booking Confirmation - %s") % (rec.name or ''),
+                    failure_reason=_("Guest has no email address saved."),
+                )
                 rec.message_post(
                     body=Markup("<b>Email Skipped:</b> Guest has no email address saved!"), 
                     subtype_xmlid='mail.mt_note'
@@ -2474,8 +2631,22 @@ class HotelReservation(models.Model):
             # Queue one checkout email; group checkout must not wait for SMTP for every room.
             template = self.env.ref('hotel_management.email_template_hotel_reservation_checkout', raise_if_not_found=False)
             if template and rec.partner_email:
-                template.send_mail(rec.id, force_send=False)
+                mail_id = template.send_mail(rec.id, force_send=False)
+                rec._create_email_audit(
+                    'final_receipt',
+                    rec.partner_email,
+                    'sent',
+                    template._render_field('subject', [rec.id])[rec.id],
+                    mail=self.env['mail.mail'].sudo().browse(mail_id).exists(),
+                )
             elif not rec.partner_email:
+                rec._create_email_audit(
+                    'final_receipt',
+                    rec.partner_email or rec.partner_id.email or '-',
+                    'skipped',
+                    _("Final Receipt - %s") % (rec.name or ''),
+                    failure_reason=_("Guest has no email address saved."),
+                )
                 rec.message_post(body=_("Email skipped: guest has no email address saved."), subtype_xmlid='mail.mt_note')
             
             if rec.city_ledger_id:
@@ -2804,6 +2975,16 @@ class HotelReservation(models.Model):
     def action_print_reservation_confirmation(self):
         self.ensure_one()
         return self.env.ref('hotel_management.action_report_reservation_confirmation').report_action(self)
+
+    def action_print_registration_card(self):
+        self.ensure_one()
+        self._create_email_audit(
+            'registration_card',
+            self.partner_email or self.partner_id.email or '-',
+            'sent',
+            _("Registration Card - %s") % (self.name or ''),
+        )
+        return self.env.ref('hotel_management.action_report_registration_card').report_action(self)
 
     def action_create_deposit(self):
         self.ensure_one()
@@ -3681,7 +3862,7 @@ class HotelReservation(models.Model):
         if any(f in vals for f in trigger_fields):
             self._generate_daily_transactions()
 
-        if any(f in vals for f in ['partner_id', 'accompanying_guest_ids', 'state']):
+        if any(f in vals for f in ['partner_id', 'accompanying_guest_ids', 'state', 'guest_classification_id']):
             self._sync_stay_guests_from_reservation_partners()
             if not self.env.context.get('skip_repeat_guest_classification'):
                 self._apply_repeat_guest_classification()
@@ -3813,10 +3994,25 @@ class HotelReservation(models.Model):
         self.ensure_one()
         return self._get_daily_rate_description(business_date)
 
+    def _get_accommodation_estimate_product(self):
+        self.ensure_one()
+        setup = self.env['hotel.config.setup'].sudo()
+        product = (
+            setup._get_config_record(self.company_id, 'hotel_accommodation_product_id', 'product.product')
+            or setup._get_config_record(self.company_id, 'hotel_room_charge_product_id', 'product.product')
+        )
+        if product:
+            return product
+        return self.env['product.product'].search([
+            ('name', 'in', ['Accommodation / Room Charge', 'Accommodation', 'Room Charge'])
+        ], limit=1)
+
     def _get_confirmation_tax_compute(self, base_amount, product=False):
         self.ensure_one()
-        product = product or self.env['product.product'].search([('name', '=', 'Accommodation')], limit=1)
-        taxes = product.taxes_id.filtered(lambda tax: tax.company_id == self.company_id) if product else self.env['account.tax']
+        product = product or self._get_accommodation_estimate_product()
+        taxes = product.taxes_id.filtered(
+            lambda tax: not tax.company_id or tax.company_id == self.company_id
+        ) if product else self.env['account.tax']
         if not taxes:
             return {
                 'total_excluded': base_amount,
@@ -3860,7 +4056,7 @@ class HotelReservation(models.Model):
         elif stay_start and not stay_end:
             stay_end = stay_start + timedelta(days=1)
 
-        accommodation_product = self.env['product.product'].search([('name', '=', 'Accommodation')], limit=1)
+        accommodation_product = self._get_accommodation_estimate_product()
         nightly_lines = []
         tax_summary = {}
         untaxed_total = 0.0
@@ -3873,16 +4069,17 @@ class HotelReservation(models.Model):
             taxes_res = self._get_confirmation_tax_compute(room_charge, product=accommodation_product)
             line_tax_amount = taxes_res['total_included'] - taxes_res['total_excluded']
             line_total = taxes_res['total_included']
+            line_untaxed = taxes_res['total_excluded']
 
             nightly_lines.append({
                 'business_date': stay_date,
-                'room_charge': room_charge,
+                'room_charge': line_untaxed,
                 'tax_amount': line_tax_amount,
                 'line_total': line_total,
                 'tax_lines': taxes_res['taxes'],
             })
 
-            untaxed_total += room_charge
+            untaxed_total += line_untaxed
             tax_total += line_tax_amount
             total_stay_amount += line_total
 
@@ -3892,9 +4089,9 @@ class HotelReservation(models.Model):
 
             stay_date += timedelta(days=1)
 
-        required_percent = max(company.hotel_confirmation_deposit_percent or 0.0, 0.0)
+        required_percent = max(company.hotel_confirmation_deposit_percent or 0.0, 0.0) if company.hotel_deposit_required else 0.0
         required_deposit_amount = currency.round(total_stay_amount * (required_percent / 100.0)) if currency else total_stay_amount * (required_percent / 100.0)
-        paid_amount = min(self.folio_paid or 0.0, total_stay_amount)
+        paid_amount = min(self._get_posted_advance_deposit_amount(), total_stay_amount)
         remaining_balance = max(total_stay_amount - paid_amount, 0.0)
 
         return {
@@ -3912,11 +4109,92 @@ class HotelReservation(models.Model):
             'total_stay_amount': total_stay_amount,
             'required_deposit_amount': required_deposit_amount,
             'required_deposit_percent': required_percent,
+            'deposit_required': bool(company.hotel_deposit_required),
+            'remaining_deposit_required': max(required_deposit_amount - paid_amount, 0.0),
             'deposit_received': paid_amount,
             'remaining_balance': remaining_balance,
             'cancellation_policy': company.hotel_cancellation_policy or '',
             'payment_instructions': company.hotel_payment_instructions or '',
         }
+
+    def _get_registration_card_data(self):
+        self.ensure_one()
+        confirmation = self._get_reservation_confirmation_data()
+
+        total_amount = confirmation['total_stay_amount']
+        deposit_received = min(self.guest_deposit_paid_total or 0.0, total_amount)
+
+        signature_attachment = self.env['ir.attachment'].sudo().search([
+            ('res_model', '=', 'hotel.reservation'),
+            ('res_id', '=', self.id),
+            ('res_field', '=', 'guest_signature'),
+        ], order='create_date desc, id desc', limit=1)
+        signature_datetime_display = ''
+        if signature_attachment.create_date:
+            signature_datetime_display = fields.Datetime.context_timestamp(
+                self, signature_attachment.create_date
+            ).strftime('%Y-%m-%d %H:%M:%S')
+
+        stay_guests = self.stay_guest_ids.filtered(
+            lambda guest: not guest.is_primary
+        ).sorted(lambda guest: guest.id)
+        accompanying_guests = [{
+            'name': guest.name or guest.partner_id.name or '',
+            'passport': guest.passport_no or guest.partner_id.passport_number or '',
+            'nationality': guest.nationality_id.name or guest.partner_id.nationality_id.name or '',
+        } for guest in stay_guests]
+        if not accompanying_guests:
+            accompanying_guests = [{
+                'name': partner.name or '',
+                'passport': partner.passport_number or '',
+                'nationality': partner.nationality_id.name or '',
+            } for partner in self.accompanying_guest_ids]
+
+        rate_name = ''
+        if self.is_manual_rate:
+            rate_name = _('Manual Rate')
+        elif self.rate_plan_id:
+            rate_name = self.rate_plan_id.display_name
+        elif self.rate_id:
+            rate_name = self.rate_id.display_name
+
+        return {
+            'generated_on_display': confirmation['generated_on_display'],
+            'nightly_lines': confirmation['nightly_lines'],
+            'tax_summary': confirmation['tax_summary'],
+            'untaxed_amount': confirmation['untaxed_total'],
+            'tax_amount': confirmation['tax_total'],
+            'total_amount': total_amount,
+            'required_deposit_amount': confirmation['required_deposit_amount'],
+            'required_deposit_percent': confirmation['required_deposit_percent'],
+            'deposit_received': deposit_received,
+            'estimated_balance': max(total_amount - deposit_received, 0.0),
+            'rate_name': rate_name,
+            'accompanying_guests': accompanying_guests,
+            'signature_datetime_display': signature_datetime_display,
+            'hotel_terms': _(
+                "The guest agrees to comply with hotel policies, settle all approved charges, "
+                "and accept responsibility for room keys, damages, and registered occupants."
+            ),
+        }
+
+    def _render_registration_card_html(self):
+        self.ensure_one()
+        Template = self.env['hotel.document.template'].sudo()
+        template = Template._get_registration_card_template(self.company_id)
+        if not template:
+            template = Template.new({
+                'name': _('Built-in Registration Card'),
+                'document_type': 'registration_card',
+                'company_id': self.company_id.id,
+                'html_body': Template._default_registration_card_html(),
+                'show_logo': True,
+                'show_company_name': True,
+                'logo_position': 'left',
+                'logo_width': 180,
+                'custom_css': Template._default_registration_card_css(),
+            })
+        return template._render_for_reservation(self)
 
     def _get_hotel_document_total_amount(self):
         self.ensure_one()
@@ -4133,8 +4411,6 @@ class HotelReservation(models.Model):
 
         return overdue_guests
 
-    guest_signature = fields.Binary(string="Guest E-Signature", attachment=True)
-
     @api.model
     def cron_daily_room_charge(self):
         biz_date = self.env.company.hotel_business_date or fields.Date.context_today(self)
@@ -4186,8 +4462,15 @@ class HotelReservation(models.Model):
             raise UserError(message)
         
         try:
-            template.send_mail(self.id, force_send=True)
+            mail_id = template.send_mail(self.id, force_send=True)
         except Exception as error:
+            self._create_email_audit(
+                'pre_arrival',
+                guest_email,
+                'failed',
+                _("Pre-Arrival Registration - %s") % (self.name or ''),
+                failure_reason=str(error),
+            )
             self.message_post(
                 body=_("Pre-arrival email failed for %(email)s: %(reason)s")
                 % {'email': guest_email, 'reason': str(error)},
@@ -4195,6 +4478,13 @@ class HotelReservation(models.Model):
             )
             raise
 
+        self._create_email_audit(
+            'pre_arrival',
+            guest_email,
+            'sent',
+            template._render_field('subject', [self.id])[self.id],
+            mail=self.env['mail.mail'].sudo().browse(mail_id).exists(),
+        )
         safe_message = Markup(
             "<b>Pre-arrival email sent to %s.</b><br/>"
             "Link: <a href='%s' target='_blank'>Click Here</a>"
@@ -4433,6 +4723,25 @@ class HotelDepositWizard(models.TransientModel):
     reservation_id = fields.Many2one('hotel.reservation', string="Reservation", required=True)
     amount = fields.Float(string="Deposit Amount", required=True)
     currency_id = fields.Many2one(related='reservation_id.currency_id')
+    deposit_required = fields.Boolean(related='reservation_id.hotel_deposit_policy_required', readonly=True)
+    required_deposit_amount = fields.Monetary(
+        string="Required Deposit Amount",
+        related='reservation_id.hotel_required_deposit_amount',
+        readonly=True,
+        currency_field='currency_id',
+    )
+    deposit_received_amount = fields.Monetary(
+        string="Deposit Received",
+        related='reservation_id.hotel_deposit_received_amount',
+        readonly=True,
+        currency_field='currency_id',
+    )
+    remaining_deposit_required = fields.Monetary(
+        string="Remaining Deposit Required",
+        related='reservation_id.hotel_remaining_deposit_required',
+        readonly=True,
+        currency_field='currency_id',
+    )
     business_date = fields.Date(
         string="Business Date",
         default=lambda self: self.env.company.hotel_business_date or fields.Date.context_today(self),
@@ -4475,6 +4784,29 @@ class HotelDepositWizard(models.TransientModel):
         )[:1]
         return duplicate_payment
 
+    def _format_deposit_currency(self, amount):
+        self.ensure_one()
+        currency = self.currency_id or self.reservation_id.currency_id or self.env.company.currency_id
+        return "%s%.2f" % (currency.symbol or '', amount or 0.0)
+
+    def _validate_required_deposit_policy(self):
+        self.ensure_one()
+        reservation = self.reservation_id
+        if not reservation.company_id.hotel_deposit_required:
+            return
+
+        currency = reservation.currency_id or reservation.company_id.currency_id
+        rounding = currency.rounding or 0.01
+        required_amount = reservation._get_required_deposit_amount()
+        existing_amount = reservation._get_posted_advance_deposit_amount()
+        cumulative_amount = existing_amount + (self.amount or 0.0)
+
+        if required_amount - cumulative_amount > rounding:
+            raise UserError(
+                _("Deposit amount is less than the required deposit amount of %s.")
+                % self._format_deposit_currency(required_amount)
+            )
+
     def action_confirm_deposit(self):
         self.ensure_one()
         duplicate_error = _("A deposit for this amount and payment method has already been registered today.")
@@ -4495,6 +4827,8 @@ class HotelDepositWizard(models.TransientModel):
             raise UserError(
                 _("Deposit amount cannot exceed the remaining reservation balance of %.2f.") % remaining_capacity
             )
+
+        self._validate_required_deposit_policy()
 
         if self._find_duplicate_deposit_registration():
             raise UserError(duplicate_error)
@@ -5434,6 +5768,8 @@ class AccountPaymentHotelAudit(models.Model):
                     'source_payment_id': pay.id,
                     'folio_billing_target': 'guest',
                 })
+            if pay.payment_type == 'inbound':
+                pay._send_advance_deposit_receipt_email_safely()
         for pay in self.filtered(lambda payment: payment.state in ('in_process', 'paid') and not payment.is_advance_deposit):
             linked_reservations = self.env['hotel.reservation']
             linked_invoices = pay.reconciled_invoice_ids.filtered(lambda move: move.hotel_folio_id)
@@ -6719,8 +7055,16 @@ class ResConfigSettings(models.TransientModel):
         readonly=False,
     )
     hotel_advance_deposit_account_id = fields.Many2one(related='company_id.hotel_advance_deposit_account_id', readonly=False)
+    hotel_deposit_required = fields.Boolean(related='company_id.hotel_deposit_required', readonly=False)
     hotel_confirmation_deposit_percent = fields.Float(related='company_id.hotel_confirmation_deposit_percent', readonly=False)
     hotel_deposit_tax_proportional = fields.Boolean(related='company_id.hotel_deposit_tax_proportional', readonly=False)
+    hotel_auto_email_deposit_receipt = fields.Boolean(related='company_id.hotel_auto_email_deposit_receipt', readonly=False)
+    hotel_attach_confirmation_pdf_to_booking_email = fields.Boolean(
+        related='company_id.hotel_attach_confirmation_pdf_to_booking_email',
+        readonly=False,
+    )
+    hotel_online_payment_link_enabled = fields.Boolean(related='company_id.hotel_online_payment_link_enabled', readonly=False)
+    hotel_online_payment_instruction = fields.Html(related='company_id.hotel_online_payment_instruction', readonly=False)
     hotel_cancellation_policy = fields.Html(related='company_id.hotel_cancellation_policy', readonly=False)
     hotel_payment_instructions = fields.Html(related='company_id.hotel_payment_instructions', readonly=False)
     hotel_business_date = fields.Date(

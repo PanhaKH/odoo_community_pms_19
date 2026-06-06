@@ -38,6 +38,7 @@ class HotelGuestClassification(models.Model):
     _description = 'Guest Classification'
 
     name = fields.Char(required=True)
+    active = fields.Boolean(default=True)
     code = fields.Char(index=True)
     priority = fields.Integer(default=1, help="Higher number means higher priority/VIP status")
     discount_allowed = fields.Float(string='Max Discount %')

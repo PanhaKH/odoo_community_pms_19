@@ -13,6 +13,7 @@ from . import hotel_change_log  # <--- YOU MUST ADD THIS LINE
 from . import hotel_lost_found  # <--- THIS IS CRITICAL
 from . import hotel_service_request # <--- ADD THIS
 from . import hotel_guest_message
+from . import hotel_email_audit
 from . import hotel_payment  # <--- ADD THIS
 from . import pos_hotel  # <--- ADD THIS
 from . import hotel_revenue_report
@@ -21,3 +22,4 @@ from . import hotel_unified_ledger
 from . import hotel_booking_source
 from . import hotel_default_setup
 from . import hotel_guest_duplicate_review
+from . import hotel_document_template
