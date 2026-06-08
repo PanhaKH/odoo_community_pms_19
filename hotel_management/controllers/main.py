@@ -393,7 +393,7 @@ class HotelCustomerPortal(CustomerPortal):
     # =========================================================
     # MAGIC LINK PORTAL (Passwordless access for Guests) - RESTORED!
     # =========================================================
-    @http.route(['/hotel/reservation/<int:res_id>'], type='http', auth="none")
+    @http.route(['/hotel/reservation/<int:res_id>'], type='http', auth="public", website=True)
     def portal_magic_link_reservation(self, res_id, access_token=None, db=None, success=None, **kw):
         ensure_db(db=db)
         db_name = request.session.db or db or request.env.cr.dbname
