@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hotel_reservation_form_website_booking" model="ir.ui.view">
+        <field name="name">hotel.reservation.form.website.booking</field>
+        <field name="model">hotel.reservation</field>
+        <field name="inherit_id" ref="hotel_management.view_hotel_reservation_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='billing_routing']/group" position="inside">
+                <group string="Website Booking Payment">
+                    <field name="website_partner_id" readonly="1"/>
+                    <field name="website_booking_email" readonly="1"/>
+                    <field name="website_booking_phone" readonly="1"/>
+                    <field name="website_payment_status" readonly="1" widget="badge"/>
+                    <field name="website_deposit_amount" readonly="1"/>
+                </group>
+            </xpath>
+            <xpath expr="//page[@name='notes_page']" position="inside">
+                <group string="Website Booking Data">
+                    <field name="website_booking_payload" readonly="1" nolabel="1"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

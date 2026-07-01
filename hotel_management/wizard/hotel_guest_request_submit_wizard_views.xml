@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hotel_guest_request_submit_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.guest.request.submit.wizard.form</field>
+        <field name="model">hotel.guest.request.submit.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Submit Guest Request">
+                <sheet>
+                    <group>
+                        <field name="room_ref"/>
+                        <field name="request_type"/>
+                    </group>
+                    <group>
+                        <field name="description" placeholder="Enter request details..."/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_submit_guest_request" type="object" string="Submit" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_guest_request_submit_wizard" model="ir.actions.act_window">
+        <field name="name">Submit Guest Request</field>
+        <field name="res_model">hotel.guest.request.submit.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_hotel_guest_request_submit_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+</odoo>

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_housekeeping_reservation_review_list" model="ir.ui.view">
+        <field name="name">housekeeping.reservation.review.list</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <list string="Reservation Review" create="false" edit="false" delete="false">
+                <field name="name" string="Reservation No."/>
+                <field name="partner_id" string="Guest"/>
+                <field name="room_id"/>
+                <field name="room_type_id"/>
+                <field name="checkin_date" string="Arrival"/>
+                <field name="checkout_date" string="Departure"/>
+                <field name="estimated_arrival"/>
+                <field name="adults"/>
+                <field name="children"/>
+                <field name="smoking_preference" optional="hide"/>
+                <field name="bed_preference"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_housekeeping_reservation_review_form" model="ir.ui.view">
+        <field name="name">housekeeping.reservation.review.form</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <form string="Reservation Summary" create="false" edit="false" delete="false">
+                <sheet>
+                    <div class="alert alert-info" role="alert">
+                        Housekeeping users can review reservations only and cannot move or modify bookings.
+                    </div>
+                    <group>
+                        <group string="Guest">
+                            <field name="name" readonly="1"/>
+                            <field name="partner_id" readonly="1" options="{'no_open': True}"/>
+                            <field name="partner_phone" readonly="1"/>
+                            <field name="partner_email" readonly="1"/>
+                            <field name="state" readonly="1" widget="badge"/>
+                        </group>
+                        <group string="Stay">
+                            <field name="room_id" readonly="1" options="{'no_open': True}"/>
+                            <field name="room_type_id" readonly="1" options="{'no_open': True}"/>
+                            <field name="checkin_date" readonly="1"/>
+                            <field name="checkout_date" readonly="1"/>
+                            <field name="estimated_arrival" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Housekeeping Notes">
+                        <field name="smoking_preference" readonly="1"/>
+                        <field name="bed_preference" readonly="1"/>
+                        <field name="adults" readonly="1"/>
+                        <field name="children" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_housekeeping_reservation_review_search" model="ir.ui.view">
+        <field name="name">housekeeping.reservation.review.search</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <search string="Reservation Review">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="room_id"/>
+                <field name="room_type_id"/>
+                <field name="state"/>
+                <filter string="Today Arrivals" name="today_arrivals" domain="[('is_business_arrival_today', '=', True)]"/>
+                <filter string="In-House / Stayover" name="inhouse" domain="[('is_business_stayover_today', '=', True)]"/>
+                <filter string="Today Departures" name="today_departures" domain="[('is_business_departure_today', '=', True)]"/>
+                <group>
+                    <filter string="Room" name="group_room" context="{'group_by': 'room_id'}"/>
+                    <filter string="Room Type" name="group_room_type" context="{'group_by': 'room_type_id'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Arrival" name="group_arrival" context="{'group_by': 'checkin_date'}"/>
+                    <filter string="Departure" name="group_departure" context="{'group_by': 'checkout_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_housekeeping_reservation_review" model="ir.actions.act_window">
+        <field name="name">Reservation Review</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', 'not in', ['cancel', 'noshow', 'checkout', 'blocked']), ('is_desk_folio', '=', False)]</field>
+        <field name="search_view_id" ref="view_housekeeping_reservation_review_search"/>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_housekeeping_reservation_review_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_housekeeping_reservation_review_form')})]"/>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_housekeeping_today_arrivals" model="ir.actions.act_window">
+        <field name="name">Today Arrivals</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_business_arrival_today', '=', True)]</field>
+        <field name="search_view_id" ref="view_housekeeping_reservation_review_search"/>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_housekeeping_reservation_review_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_housekeeping_reservation_review_form')})]"/>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_housekeeping_inhouse_stayover" model="ir.actions.act_window">
+        <field name="name">Stayover / In-House Guests</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_business_stayover_today', '=', True)]</field>
+        <field name="search_view_id" ref="view_housekeeping_reservation_review_search"/>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_housekeeping_reservation_review_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_housekeeping_reservation_review_form')})]"/>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_housekeeping_today_departures" model="ir.actions.act_window">
+        <field name="name">Today Departures</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_business_departure_today', '=', True)]</field>
+        <field name="search_view_id" ref="view_housekeeping_reservation_review_search"/>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_housekeeping_reservation_review_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_housekeeping_reservation_review_form')})]"/>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <menuitem id="menu_housekeeping_manager_hotel_review"
+              name="Reservation Review"
+              parent="hotel_housekeeping_app.menu_housekeeping_app_root"
+              sequence="40"
+              groups="hotel_management.group_hotel_housekeeper,hotel_housekeeping_app.group_housekeeping_user,hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+
+    <menuitem id="menu_housekeeping_review_today_arrivals"
+              name="Today Arrivals"
+              parent="menu_housekeeping_manager_hotel_review"
+              action="action_housekeeping_today_arrivals"
+              sequence="10"
+              groups="hotel_management.group_hotel_housekeeper,hotel_housekeeping_app.group_housekeeping_user,hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+
+    <menuitem id="menu_housekeeping_review_inhouse_stayover"
+              name="Stayover / In-House Guests"
+              parent="menu_housekeeping_manager_hotel_review"
+              action="action_housekeeping_inhouse_stayover"
+              sequence="20"
+              groups="hotel_management.group_hotel_housekeeper,hotel_housekeeping_app.group_housekeeping_user,hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+
+    <menuitem id="menu_housekeeping_review_today_departures"
+              name="Today Departures"
+              parent="menu_housekeeping_manager_hotel_review"
+              action="action_housekeeping_today_departures"
+              sequence="30"
+              groups="hotel_management.group_hotel_housekeeper,hotel_housekeeping_app.group_housekeeping_user,hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+
+    <menuitem id="menu_housekeeping_review_reservations"
+              name="Reservation Review"
+              parent="menu_housekeeping_manager_hotel_review"
+              action="action_housekeeping_reservation_review"
+              sequence="40"
+              groups="hotel_management.group_hotel_housekeeper,hotel_housekeeping_app.group_housekeeping_user,hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+
+    <menuitem id="menu_housekeeping_review_room_chart"
+              name="Room Chart"
+              parent="menu_housekeeping_manager_hotel_review"
+              action="hotel_management.action_hotel_tape_chart_client"
+              sequence="50"
+              groups="hotel_management.group_hotel_housekeeper,hotel_housekeeping_app.group_housekeeping_user,hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+
+    <menuitem id="menu_housekeeping_review_floor_plan"
+              name="Floor Plan"
+              parent="menu_housekeeping_manager_hotel_review"
+              action="hotel_management.action_hotel_floor_plan"
+              sequence="60"
+              groups="hotel_management.group_hotel_housekeeper,hotel_housekeeping_app.group_housekeeping_user,hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+
+    <menuitem id="menu_housekeeping_review_availability_grid"
+              name="Availability Grid"
+              parent="menu_housekeeping_manager_hotel_review"
+              action="hotel_management.action_hotel_availability_grid_client"
+              sequence="70"
+              groups="hotel_management.group_hotel_housekeeper,hotel_housekeeping_app.group_housekeeping_user,hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
+</odoo>

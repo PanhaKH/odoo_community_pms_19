@@ -282,47 +282,117 @@ class HotelHousekeepingInspection(models.Model):
 class HotelRoomInspectionMobile(models.Model):
     _inherit = 'hotel.room'
 
+    hk_reclean_required = fields.Boolean(
+        string="Failed / Reclean",
+        compute="_compute_hk_reclean_info",
+        compute_sudo=True,
+    )
+    hk_reclean_reason = fields.Char(
+        string="Reclean Reason",
+        compute="_compute_hk_reclean_info",
+        compute_sudo=True,
+    )
+    hk_reclean_photo_count = fields.Integer(
+        string="Evidence Photos",
+        compute="_compute_hk_reclean_info",
+        compute_sudo=True,
+    )
+
+    def _compute_hk_reclean_info(self):
+        Task = self.env['hotel.housekeeping'].sudo()
+
+        for room in self:
+            task = Task.search([
+                ('room_id', '=', room.id),
+                ('inspection_state', '=', 'failed'),
+            ], order='inspected_datetime desc, write_date desc, id desc', limit=1)
+
+            is_reclean = bool(
+                task
+                and room.housekeeping_status == 'dirty'
+                and not room.release_ready
+            )
+
+            # If the room was cleaned after the failed inspection,
+            # it should no longer show as Failed / Reclean.
+            if (
+                is_reclean
+                and room.cleaned_at
+                and task.inspected_datetime
+                and room.cleaned_at > task.inspected_datetime
+            ):
+                is_reclean = False
+
+            room.hk_reclean_required = is_reclean
+            room.hk_reclean_reason = task.failure_reason if is_reclean else False
+            room.hk_reclean_photo_count = len(task.inspection_attachment_ids) if is_reclean else 0
+
     def _sync_housekeeping_task_records(self):
         biz_date = self.env.company.hotel_business_date or fields.Date.context_today(self)
+        now = fields.Datetime.now()
         Task = self.env['hotel.housekeeping'].sudo()
 
         Task._deduplicate_active_tasks(self.ids)
+
         for room in self:
             active_task = Task._get_open_task_for_room(room)
             reservation = room.inhouse_reservation_id or room.arrival_reservation_id or room.block_id
-            needs_task = any([
-                room.housekeeping_status == 'dirty',
-                room.service_workflow in ['arrival_priority', 'departure_clean', 'inspection_pending', 'stayover_service'],
-                room.do_not_disturb,
-                room.turndown_required,
-                room.minibar_check_required,
-                room.linen_change_required,
-                room.assigned_housekeeper_id,
-                room.assigned_inspector_id,
-            ])
 
             task_state = 'done'
             inspection_state = 'pending'
-            if room.service_workflow == 'inspection_pending':
+            room_ready = room.release_ready
+
+            # 1) Dirty room = housekeeping/reclean task
+            if room.housekeeping_status == 'dirty' or room.service_workflow in [
+                'arrival_priority',
+                'departure_clean',
+                'stayover_service',
+            ]:
+                task_state = 'dirty'
+
+                # If supervisor failed this inspection, keep it as failed.
+                # Do not change it back to pending, because failure reason/photo belongs to this task.
+                if active_task and active_task.inspection_state == 'failed':
+                    inspection_state = 'failed'
+                else:
+                    inspection_state = 'pending'
+
+                room_ready = False
+
+            # 2) Clean room with inspection required = Ready for Inspection
+            elif (
+                room.housekeeping_status == 'clean'
+                and room._effective_release_policy() == 'inspection_required'
+                and not room.release_ready
+            ) or room.service_workflow == 'inspection_pending':
                 task_state = 'inspection'
                 inspection_state = 'ready'
-            elif room.housekeeping_status == 'dirty' or room.service_workflow in ['arrival_priority', 'departure_clean', 'stayover_service']:
-                task_state = 'dirty'
+                room_ready = False
+
+            # 3) Inspected room = Passed Today / Release Ready
+            elif room.housekeeping_status == 'inspected' and room.release_ready:
+                task_state = 'done'
+                inspection_state = 'passed'
+                room_ready = True
+
+            # 4) Clean-only policy room = done / ready
             elif room.housekeeping_status == 'clean':
-                task_state = 'clean'
+                task_state = 'done' if room.release_ready else 'clean'
+                inspection_state = 'pending'
+                room_ready = room.release_ready
 
             task_vals = {
                 'name': f"HK {biz_date} / Room {room.name}",
                 'room_id': room.id,
                 'reservation_id': reservation.id if reservation else False,
-                'maid_id': room.assigned_housekeeper_id.id,
-                'inspector_id': room.assigned_inspector_id.id,
+                'maid_id': room.assigned_housekeeper_id.id if room.assigned_housekeeper_id else False,
+                'inspector_id': room.assigned_inspector_id.id if room.assigned_inspector_id else False,
                 'business_date': biz_date,
                 'service_type': room.service_workflow,
                 'arrival_priority_level': room.arrival_priority_level,
                 'departure_clean_required': room.departure_clean_required,
                 'release_policy': room._effective_release_policy(),
-                'room_ready': room.release_ready,
+                'room_ready': room_ready,
                 'do_not_disturb': room.do_not_disturb,
                 'turndown_required': room.turndown_required,
                 'turndown_completed': room.turndown_completed,
@@ -331,13 +401,49 @@ class HotelRoomInspectionMobile(models.Model):
                 'linen_change_required': room.linen_change_required,
                 'linen_changed': room.linen_changed,
                 'state': task_state,
+                'inspection_state': inspection_state,
             }
-            if inspection_state == 'ready' and (not active_task or active_task.inspection_state != 'failed'):
-                task_vals['inspection_state'] = inspection_state
+
+            # For Passed Today, dashboard needs inspected_datetime.
+            if inspection_state == 'passed':
+                task_vals.update({
+                    'inspected_by': room.inspected_by_id.id or self.env.user.id,
+                    'inspected_datetime': room.inspected_at or now,
+                    'failure_reason': False,
+                    'room_ready': True,
+                })
+
+            # For Ready for Inspection, dashboard needs ready task not done.
+            if inspection_state == 'ready':
+                task_vals.update({
+                    'failure_reason': False,
+                    'cleaning_completed_by_id': room.cleaned_by_id.id or self.env.user.id,
+                    'cleaning_completed_datetime': room.cleaned_at or now,
+                    'room_ready': False,
+                })
+
+            # Find existing passed task if room is already inspected.
+            passed_task = self.env['hotel.housekeeping']
+            if not active_task and inspection_state == 'passed':
+                passed_task = Task.search([
+                    ('room_id', '=', room.id),
+                    ('inspection_state', '=', 'passed'),
+                ], order='write_date desc, create_date desc, id desc', limit=1)
+
+            target_task = active_task or passed_task
+
+            needs_task = inspection_state in ['ready', 'passed'] or task_state == 'dirty' or any([
+                room.do_not_disturb,
+                room.turndown_required,
+                room.minibar_check_required,
+                room.linen_change_required,
+                room.assigned_housekeeper_id,
+                room.assigned_inspector_id,
+            ])
 
             if needs_task:
-                if active_task:
-                    active_task.write(task_vals)
+                if target_task:
+                    target_task.write(task_vals)
                 else:
                     Task.with_context(skip_housekeeping_duplicate_guard=True).create(task_vals)
             elif active_task:
@@ -367,54 +473,65 @@ class HotelDashboardInspection(models.Model):
         compute='_compute_inspection_counts',
     )
     passed_inspection_today = fields.Integer(
-        string='Passed Today',
+        string='Passed / Release Ready',
         compute='_compute_inspection_counts',
     )
 
     def _compute_inspection_counts(self):
-        Task = self.env['hotel.housekeeping'].sudo()
-        today_start = fields.Datetime.to_datetime(fields.Date.context_today(self))
+        Room = self.env['hotel.room'].sudo()
+
         for dashboard in self:
-            dashboard.rooms_ready_for_inspection = Task.search_count([
-                ('is_ready_for_inspection', '=', True),
-                ('state', '!=', 'done'),
+            # Clean rooms waiting for supervisor inspection
+            dashboard.rooms_ready_for_inspection = Room.search_count([
+                ('housekeeping_status', '=', 'clean'),
+                ('release_ready', '=', False),
             ])
-            dashboard.failed_inspection_reclean = Task.search_count([
-                ('inspection_state', '=', 'failed'),
-                ('state', '=', 'dirty'),
+
+            # Dirty rooms that need clean / reclean
+            dashboard.failed_inspection_reclean = Room.search_count([
+                ('housekeeping_status', '=', 'dirty'),
             ])
-            dashboard.passed_inspection_today = Task.search_count([
-                ('inspection_state', '=', 'passed'),
-                ('inspected_datetime', '>=', today_start),
+
+            # Rooms already inspected and released for guest check-in
+            dashboard.passed_inspection_today = Room.search_count([
+                ('housekeeping_status', '=', 'inspected'),
+                ('release_ready', '=', True),
             ])
 
     def action_view_rooms_ready_for_inspection(self):
         return {
-            'name': _('Rooms Ready for Inspection'),
+            'name': _('Ready for Inspection'),
             'type': 'ir.actions.act_window',
-            'res_model': 'hotel.housekeeping',
-            'view_mode': 'list,form',
-            'domain': [('is_ready_for_inspection', '=', True), ('state', '!=', 'done')],
-            'context': {'search_default_ready': 1},
+            'res_model': 'hotel.room',
+            'view_mode': 'kanban,list,form',
+            'domain': [
+                ('housekeeping_status', '=', 'clean'),
+                ('release_ready', '=', False),
+            ],
+            'context': {'create': False},
         }
 
     def action_view_failed_inspection_reclean(self):
         return {
-            'name': _('Failed Inspection / Reclean'),
+            'name': _('Dirty / Reclean Rooms'),
             'type': 'ir.actions.act_window',
-            'res_model': 'hotel.housekeeping',
-            'view_mode': 'list,form',
-            'domain': [('inspection_state', '=', 'failed'), ('state', '=', 'dirty')],
-            'context': {'search_default_failed': 1},
+            'res_model': 'hotel.room',
+            'view_mode': 'kanban,list,form',
+            'domain': [
+                ('housekeeping_status', '=', 'dirty'),
+            ],
+            'context': {'create': False},
         }
 
     def action_view_passed_inspection_today(self):
-        today_start = fields.Datetime.to_datetime(fields.Date.context_today(self))
         return {
-            'name': _('Passed Inspection Today'),
+            'name': _('Passed / Release Ready Rooms'),
             'type': 'ir.actions.act_window',
-            'res_model': 'hotel.housekeeping',
-            'view_mode': 'list,form',
-            'domain': [('inspection_state', '=', 'passed'), ('inspected_datetime', '>=', today_start)],
-            'context': {'search_default_passed_today': 1},
+            'res_model': 'hotel.room',
+            'view_mode': 'kanban,list,form',
+            'domain': [
+                ('housekeeping_status', '=', 'inspected'),
+                ('release_ready', '=', True),
+            ],
+            'context': {'create': False},
         }

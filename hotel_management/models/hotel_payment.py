@@ -4,6 +4,8 @@ import logging
 from markupsafe import Markup
 
 from odoo import models, fields, api, _
+from odoo.osv import expression
+from odoo.exceptions import UserError
 
 
 _logger = logging.getLogger(__name__)
@@ -20,17 +22,61 @@ class AccountPayment(models.Model):
     # --- FIX: Changed store=True so you can SORT by Invoice Number ---
     hotel_invoice_ref = fields.Char(string="Invoice No.", compute='_compute_invoice_ref', store=True)
     hotel_payment_activity_type = fields.Selection(
+        
         [
             ('advance_deposit', 'Advance Deposit'),
+            ('deposit_refund', 'Deposit Refund'),
+            ('deposit_transfer_out', 'Deposit Transfer Out'),
+            ('deposit_transfer_in', 'Deposit Transfer In'),
             ('invoice_payment', 'Invoice Payment'),
-            ('deposit_void', 'Deposit Void / Refund'),
+            ('deposit_void', 'Deposit Void / Correction'),
             ('other', 'Other Hotel Payment'),
         ],
         string="Activity",
         compute='_compute_hotel_payment_activity_type',
         store=True,
     )
+    hotel_net_receipt_amount = fields.Monetary(
+        string="Net Receipt",
+        currency_field="currency_id",
+        compute="_compute_hotel_net_receipt_amount",
+        store=True,
+        readonly=True,
+        help="Hotel cashier reporting amount. Inbound receipts are positive, outbound refunds/voids are negative.",
+    )
 
+    @api.depends('amount', 'payment_type')
+    def _compute_hotel_net_receipt_amount(self):
+        for payment in self:
+            amount = payment.amount or 0.0
+            if payment.payment_type == 'outbound' or amount < 0:
+                payment.hotel_net_receipt_amount = -abs(amount)
+            else:
+                payment.hotel_net_receipt_amount = abs(amount)
+    is_current_hotel_business_date = fields.Boolean(
+        string="Current Hotel Business Date",
+        compute="_compute_is_current_hotel_business_date",
+        search="_search_is_current_hotel_business_date",
+    )
+
+    def _compute_is_current_hotel_business_date(self):
+        for payment in self:
+            company = payment.company_id or self.env.company
+            biz_date = company.hotel_business_date or fields.Date.context_today(payment)
+            payment.is_current_hotel_business_date = (
+                payment.hotel_business_date == biz_date
+            )
+
+    @api.model
+    def _search_is_current_hotel_business_date(self, operator, value):
+        company = self.env.company
+        biz_date = company.hotel_business_date or fields.Date.context_today(self)
+
+        return [
+            ('company_id', '=', company.id),
+            ('hotel_business_date', '=', biz_date),
+        ]
+    
     @api.depends('memo', 'partner_id', 'date', 'reconciled_invoice_ids.invoice_origin', 'reconciled_invoice_ids.invoice_line_ids.sale_line_ids')
     def _compute_hotel_info(self):
         for rec in self:
@@ -83,11 +129,15 @@ class AccountPayment(models.Model):
             else:
                 rec.hotel_invoice_ref = ""
 
-    @api.depends('is_advance_deposit', 'payment_type', 'hotel_invoice_ref')
+    @api.depends('is_advance_deposit', 'payment_type', 'hotel_invoice_ref', 'hotel_payment_activity_type')
     def _compute_hotel_payment_activity_type(self):
         for rec in self:
+            # Keep manual transfer labels if we set them later
+            if rec.hotel_payment_activity_type in ('deposit_transfer_out', 'deposit_transfer_in'):
+                continue
+
             if rec.is_advance_deposit and rec.payment_type == 'outbound':
-                rec.hotel_payment_activity_type = 'deposit_void'
+                rec.hotel_payment_activity_type = 'deposit_refund'
             elif rec.is_advance_deposit:
                 rec.hotel_payment_activity_type = 'advance_deposit'
             elif rec.hotel_invoice_ref:
@@ -172,75 +222,127 @@ class AccountPayment(models.Model):
                 )
                 continue
 
-            try:
-                pdf_content, _content_type = self.env['ir.actions.report'].sudo()._render_qweb_pdf(
-                    'hotel_management.action_report_advance_deposit_receipt',
-                    res_ids=payment.id,
-                )
-                attachment = self.env['ir.attachment'].sudo().create({
-                    'name': 'Deposit_Receipt_%s.pdf' % (payment.name or payment.id),
-                    'type': 'binary',
-                    'datas': base64.b64encode(pdf_content),
-                    'res_model': 'account.payment',
-                    'res_id': payment.id,
-                    'mimetype': 'application/pdf',
-                })
-                template = self.env.ref('hotel_management.email_template_advance_deposit_receipt', raise_if_not_found=False)
-                if template:
-                    mail_id = template.with_context(deposit_receipt_attachment_id=attachment.id).send_mail(
-                        payment.id,
-                        force_send=True,
-                        email_values={'attachment_ids': [(4, attachment.id)]},
-                    )
-                    mail = self.env['mail.mail'].sudo().browse(mail_id).exists()
-                else:
-                    body = _(
-                        "Dear %(guest)s,<br/><br/>"
-                        "Thank you for your deposit payment.<br/><br/>"
-                        "Please find attached your Deposit Receipt.<br/><br/>"
-                        "Reservation: %(reservation)s<br/>"
-                        "Guest: %(guest)s<br/><br/>"
-                        "We look forward to welcoming you.<br/><br/>"
-                        "Best Regards,<br/>%(company)s"
-                    ) % {
-                        'guest': reservation.partner_id.name or payment.partner_id.name or _('Guest'),
-                        'reservation': reservation.name or '',
-                        'company': reservation.company_id.name or '',
-                    }
-                    mail = self.env['mail.mail'].sudo().create({
-                        'subject': subject,
-                        'email_to': recipient,
-                        'body_html': body,
-                        'attachment_ids': [(4, attachment.id)],
-                    })
-                    mail.send()
+            existing_queue = self.env['hotel.email.audit'].sudo().search([
+                ('audit_type', '=', 'deposit_receipt'),
+                ('source_payment_id', '=', payment.id),
+                ('status', '=', 'queued'),
+            ], limit=1)
+            if existing_queue:
+                continue
 
-                reservation._create_email_audit(
-                    'deposit_receipt',
-                    recipient,
-                    'sent',
-                    subject,
-                    mail=mail,
-                    attachment=attachment,
-                )
-                reservation.message_post(
-                    body=Markup("<b>Deposit Receipt emailed to guest.</b><br/>Recipient: %s") % recipient,
-                    subtype_xmlid='mail.mt_note',
-                )
+            self.env['hotel.email.audit'].sudo().create({
+                'reservation_id': reservation.id,
+                'audit_type': 'deposit_receipt',
+                'recipient': recipient,
+                'status': 'queued',
+                'subject': subject,
+                'source_payment_id': payment.id,
+            })
+            reservation.message_post(
+                body=_("Deposit Receipt email queued to guest: %s") % recipient,
+                subtype_xmlid='mail.mt_note',
+            )
+
+    def _send_advance_deposit_receipt_email_now(self, audit=False):
+        self.ensure_one()
+        payment = self
+        reservation = payment._get_hotel_receipt_reservation()
+        recipient = (reservation.partner_email or reservation.partner_id.email or payment.partner_id.email or '').strip() if reservation else ''
+        subject = _("Deposit Receipt - %s") % (reservation.name or payment.name or '')
+
+        if not reservation or not recipient:
+            raise UserError(_("Guest email is missing."))
+
+        pdf_content, _content_type = self.env['ir.actions.report'].sudo()._render_qweb_pdf(
+            'hotel_management.action_report_advance_deposit_receipt',
+            res_ids=payment.id,
+        )
+        attachment = self.env['ir.attachment'].sudo().create({
+            'name': 'Deposit_Receipt_%s.pdf' % (payment.name or payment.id),
+            'type': 'binary',
+            'datas': base64.b64encode(pdf_content),
+            'res_model': 'account.payment',
+            'res_id': payment.id,
+            'mimetype': 'application/pdf',
+        })
+        template = self.env.ref('hotel_management.email_template_advance_deposit_receipt', raise_if_not_found=False)
+        if template:
+            mail_id = template.with_context(deposit_receipt_attachment_id=attachment.id).send_mail(
+                payment.id,
+                force_send=True,
+                email_values={'attachment_ids': [(4, attachment.id)]},
+            )
+            mail = self.env['mail.mail'].sudo().browse(mail_id).exists()
+        else:
+            body = _(
+                "Dear %(guest)s,<br/><br/>"
+                "Thank you for your deposit payment.<br/><br/>"
+                "Please find attached your Deposit Receipt.<br/><br/>"
+                "Reservation: %(reservation)s<br/>"
+                "Guest: %(guest)s<br/><br/>"
+                "We look forward to welcoming you.<br/><br/>"
+                "Best Regards,<br/>%(company)s"
+            ) % {
+                'guest': reservation.partner_id.name or payment.partner_id.name or _('Guest'),
+                'reservation': reservation.name or '',
+                'company': reservation.company_id.name or '',
+            }
+            mail = self.env['mail.mail'].sudo().create({
+                'subject': subject,
+                'email_to': recipient,
+                'body_html': body,
+                'attachment_ids': [(4, attachment.id)],
+            })
+            mail.send()
+
+        if audit:
+            audit.write({
+                'status': 'sent',
+                'mail_id': mail.id if mail else False,
+                'attachment_id': attachment.id,
+                'failure_reason': False,
+            })
+        else:
+            reservation._create_email_audit(
+                'deposit_receipt',
+                recipient,
+                'sent',
+                subject,
+                mail=mail,
+                attachment=attachment,
+            )
+        reservation.message_post(
+            body=Markup("<b>Deposit Receipt emailed to guest.</b><br/>Recipient: %s") % recipient,
+            subtype_xmlid='mail.mt_note',
+        )
+
+    @api.model
+    def cron_send_queued_deposit_receipts(self, limit=20):
+        audits = self.env['hotel.email.audit'].sudo().search([
+            ('audit_type', '=', 'deposit_receipt'),
+            ('status', '=', 'queued'),
+            ('source_payment_id', '!=', False),
+        ], order='create_date asc, id asc', limit=limit)
+        for audit in audits:
+            payment = audit.source_payment_id.exists()
+            reservation = audit.reservation_id.exists()
+            try:
+                if not payment:
+                    raise UserError(_("Source payment is missing."))
+                payment._send_advance_deposit_receipt_email_now(audit=audit)
             except Exception as error:
-                _logger.exception("Deposit receipt email failed for payment_id=%s reservation_id=%s", payment.id, reservation.id)
-                reservation._create_email_audit(
-                    'deposit_receipt',
-                    recipient,
-                    'failed',
-                    subject,
-                    failure_reason=str(error),
-                )
-                reservation.message_post(
-                    body=_("Deposit Receipt email failed for %(email)s: %(reason)s")
-                    % {'email': recipient, 'reason': str(error)},
-                    subtype_xmlid='mail.mt_note',
-                )
+                _logger.exception("Queued deposit receipt email failed for audit_id=%s payment_id=%s", audit.id, payment.id if payment else False)
+                audit.write({
+                    'status': 'failed',
+                    'failure_reason': str(error),
+                })
+                if reservation:
+                    reservation.message_post(
+                        body=_("Deposit Receipt email failed for %(email)s: %(reason)s")
+                        % {'email': audit.recipient or '-', 'reason': str(error)},
+                        subtype_xmlid='mail.mt_note',
+                    )
+        return True
 
 class AccountPaymentRegister(models.TransientModel):
     _inherit = 'account.payment.register'

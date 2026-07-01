@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hk_manager_hotel_zone_read,hotel.zone housekeeping manager,hotel_management.model_hotel_zone,hotel_housekeeping_app.group_housekeeping_manager,1,0,0,0
+access_hk_manager_hotel_floor_element_read,hotel.floor.element housekeeping manager,hotel_management.model_hotel_floor_element,hotel_housekeeping_app.group_housekeeping_manager,1,0,0,0
+access_hk_manager_hotel_rate_plan_read,hotel.rate.plan housekeeping manager,hotel_management.model_hotel_rate_plan,hotel_housekeeping_app.group_housekeeping_manager,1,0,0,0

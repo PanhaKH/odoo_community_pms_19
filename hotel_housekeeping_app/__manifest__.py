@@ -11,8 +11,10 @@
     'installable': True,
     'data': [
         'security/housekeeping_security.xml',
+        'security/ir.model.access.csv',
         'views/housekeeping_inspection_views.xml',
         'views/housekeeping_inspection_templates.xml',
         'views/housekeeping_app_menus.xml',
+        'views/housekeeping_reservation_review_views.xml',
     ],
 }

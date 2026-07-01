@@ -15,6 +15,9 @@
                 <field name="service_workflow"/>
                 <field name="arrival_priority_level"/>
                 <field name="release_ready"/>
+                <field name="hk_reclean_required"/>
+                <field name="hk_reclean_reason"/>
+                <field name="hk_reclean_photo_count"/>
                 <field name="do_not_disturb"/>
                 <field name="floor_plan_color"/>
                 <templates>
@@ -30,15 +33,45 @@
                                     <field name="state"/>
                                 </span>
                             </div>
+
+                            <t t-if="record.hk_reclean_required.raw_value">
+                                <div class="alert alert-danger py-2 my-2" style="border-left: 6px solid #dc3545;">
+                                    <strong>
+                                        <i class="fa fa-undo me-1"/> FAILED / RECLEAN
+                                    </strong>
+
+                                    <t t-if="record.hk_reclean_reason.raw_value">
+                                        <div class="small mt-1">
+                                            Reason:
+                                            <t t-esc="record.hk_reclean_reason.value"/>
+                                        </div>
+                                    </t>
+
+                                    <t t-if="record.hk_reclean_photo_count.raw_value">
+                                        <div class="small mt-1">
+                                            <i class="fa fa-camera me-1"/>
+                                            Evidence photo:
+                                            <t t-esc="record.hk_reclean_photo_count.value"/>
+                                        </div>
+                                    </t>
+                                </div>
+                            </t>
                             <div class="mb-3">
                                 <span t-if="record.arrival_priority_level.raw_value == 'rush_arrival'" class="badge text-bg-danger me-1">Rush Arrival</span>
                                 <span t-if="record.arrival_priority_level.raw_value == 'arrival_today'" class="badge text-bg-warning me-1">Arrival Today</span>
                                 <span t-if="record.release_ready.raw_value" class="badge text-bg-success me-1">Release Ready</span>
                                 <span t-if="record.do_not_disturb.raw_value" class="badge text-bg-dark">DND</span>
                             </div>
-                            <button type="object" name="action_mark_room_clean" class="btn btn-success btn-lg w-100 py-3 shadow-sm fw-bold fs-4">
-                                <i class="fa fa-check-circle me-2"/> CLEANED
-                            </button>
+                            <t t-if="record.hk_reclean_required.raw_value">
+                                <button type="object" name="action_mark_room_clean" class="btn btn-danger btn-lg w-100 py-3 shadow-sm fw-bold fs-4">
+                                    <i class="fa fa-undo me-2"/> RECLEAN COMPLETED
+                                </button>
+                            </t>
+                            <t t-else="">
+                                <button type="object" name="action_mark_room_clean" class="btn btn-success btn-lg w-100 py-3 shadow-sm fw-bold fs-4">
+                                    <i class="fa fa-check-circle me-2"/> CLEANED
+                                </button>
+                            </t>
                         </div>
                     </t>
                 </templates>

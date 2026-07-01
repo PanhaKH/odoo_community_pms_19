@@ -9,7 +9,8 @@
             <!-- SAFE insertion inside first group -->
             <xpath expr="//sheet/group/group" position="inside">
                 <field name="room_id"/>
-                <field name="reservation_id" readonly="1"/>
+                <field name="room_block_id" readonly="1"/>
+                <field name="reservation_id" readonly="1" invisible="not reservation_id"/>
             </xpath>
 
         </field>

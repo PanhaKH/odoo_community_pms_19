@@ -44,7 +44,7 @@
         <record id="group_hotel_front_office_manager" model="res.groups">
             <field name="name">Front office Manager</field>
             <field name="privilege_id" ref="res_groups_privilege_hotel"/>
-            <field name="implied_ids" eval="[(4, ref('hotel_management.group_hotel_night_auditor'))]"/>
+            <field name="implied_ids" eval="[(4, ref('hotel_management.group_hotel_front_office')), (4, ref('hotel_management.group_hotel_night_auditor'))]"/>
         </record>
 
         <record id="group_hotel_account_receivable" model="res.groups">
@@ -66,13 +66,49 @@
             <field name="user_ids" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
         </record>
 
+        <record id="hotel_feature_lost_found_read" model="res.groups">
+            <field name="name">Lost &amp; Found Read</field>
+        </record>
+
+        <record id="hotel_feature_lost_found_create" model="res.groups">
+            <field name="name">Lost &amp; Found Create</field>
+        </record>
+
+        <record id="hotel_feature_lost_found_write" model="res.groups">
+            <field name="name">Lost &amp; Found Edit</field>
+        </record>
+
+        <record id="hotel_feature_lost_found_delete" model="res.groups">
+            <field name="name">Lost &amp; Found Delete</field>
+        </record>
+
+        <record id="hotel_feature_guest_request_read" model="res.groups">
+            <field name="name">Guest Requests Read</field>
+        </record>
+
+        <record id="hotel_feature_guest_request_submit" model="res.groups">
+            <field name="name">Guest Requests Submit</field>
+        </record>
+
+        <record id="hotel_feature_guest_request_create" model="res.groups">
+            <field name="name">Guest Requests Create</field>
+        </record>
+
+        <record id="hotel_feature_guest_request_write" model="res.groups">
+            <field name="name">Guest Requests Edit</field>
+        </record>
+
+        <record id="hotel_feature_guest_request_delete" model="res.groups">
+            <field name="name">Guest Requests Delete</field>
+        </record>
+
         <record id="rule_hotel_reservation_portal_own" model="ir.rule">
             <field name="name">Portal Reservations: Own Only</field>
             <field name="model_id" ref="hotel_management.model_hotel_reservation"/>
             <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
             <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
             <field name="perm_read" eval="True"/>
-            <field name="perm_write" eval="False"/>
+            <field name="perm_write" eval="True"/>
             <field name="perm_create" eval="False"/>
             <field name="perm_unlink" eval="False"/>
         </record>
@@ -107,6 +143,135 @@
             <field name="perm_read" eval="True"/>
             <field name="perm_write" eval="True"/>
             <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_hotel_folio_sale_order_front_office" model="ir.rule">
+            <field name="name">Front Office: Hotel Folio Orders Only</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="groups" eval="[(4, ref('hotel_management.group_hotel_front_office'))]"/>
+            <field name="domain_force">['|', ('hotel_reservation_ids', '!=', False), ('hotel_group_master_ids', '!=', False)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_hotel_folio_sale_order_line_front_office" model="ir.rule">
+            <field name="name">Front Office: Hotel Folio Lines Only</field>
+            <field name="model_id" ref="sale.model_sale_order_line"/>
+            <field name="groups" eval="[(4, ref('hotel_management.group_hotel_front_office'))]"/>
+            <field name="domain_force">['|', ('order_id.hotel_reservation_ids', '!=', False), ('order_id.hotel_group_master_ids', '!=', False)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_hotel_folio_sale_order_front_office_manager" model="ir.rule">
+            <field name="name">Front Office Managers: Hotel Folio Orders Only</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="groups" eval="[(4, ref('hotel_management.group_hotel_front_office_manager'))]"/>
+            <field name="domain_force">['|', ('hotel_reservation_ids', '!=', False), ('hotel_group_master_ids', '!=', False)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_hotel_folio_sale_order_line_front_office_manager" model="ir.rule">
+            <field name="name">Front Office Managers: Hotel Folio Lines Only</field>
+            <field name="model_id" ref="sale.model_sale_order_line"/>
+            <field name="groups" eval="[(4, ref('hotel_management.group_hotel_front_office_manager'))]"/>
+            <field name="domain_force">['|', ('order_id.hotel_reservation_ids', '!=', False), ('order_id.hotel_group_master_ids', '!=', False)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_hotel_account_payment_front_office" model="ir.rule">
+            <field name="name">Front Office: Hotel Payments Only</field>
+            <field name="model_id" ref="account.model_account_payment"/>
+            <field name="groups" eval="[(4, ref('hotel_management.group_hotel_front_office'))]"/>
+            <field name="domain_force">['|', ('hotel_reservation_id', '!=', False), ('folio_id', '!=', False)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_hotel_account_payment_system_all" model="ir.rule">
+            <field name="name">System: All Payments</field>
+            <field name="model_id" ref="account.model_account_payment"/>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <record id="rule_hotel_account_payment_account_manager_all" model="ir.rule">
+            <field name="name">Accounting Managers: All Payments</field>
+            <field name="model_id" ref="account.model_account_payment"/>
+            <field name="groups" eval="[(4, ref('account.group_account_manager'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <record id="rule_hotel_account_journal_front_office" model="ir.rule">
+            <field name="name">Front Office: Cash and Bank Journals Only</field>
+            <field name="active" eval="False"/>
+            <field name="model_id" ref="account.model_account_journal"/>
+            <field name="groups" eval="[(4, ref('hotel_management.group_hotel_front_office'))]"/>
+            <field name="domain_force">[('active', '=', True), ('type', 'in', ['bank', 'cash'])]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_hotel_customer_invoice_front_office" model="ir.rule">
+            <field name="name">Front Office: Hotel Customer Invoices Only</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="groups" eval="[(4, ref('hotel_management.group_hotel_front_office'))]"/>
+            <field name="domain_force">[
+                ('move_type', 'in', ['out_invoice', 'out_refund']),
+                '|', '|', '|', '|', '|',
+                ('hotel_folio_id.hotel_reservation_ids', '!=', False),
+                ('hotel_folio_id.hotel_group_master_ids', '!=', False),
+                ('invoice_line_ids.hotel_reservation_id', '!=', False),
+                ('invoice_line_ids.sale_line_ids.hotel_reservation_id', '!=', False),
+                ('invoice_line_ids.sale_line_ids.order_id.hotel_reservation_ids', '!=', False),
+                ('invoice_line_ids.sale_line_ids.order_id.hotel_group_master_ids', '!=', False)
+            ]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_hotel_customer_invoice_line_front_office" model="ir.rule">
+            <field name="name">Front Office: Hotel Customer Invoice Lines Only</field>
+            <field name="model_id" ref="account.model_account_move_line"/>
+            <field name="groups" eval="[(4, ref('hotel_management.group_hotel_front_office'))]"/>
+            <field name="domain_force">[
+                ('move_id.move_type', 'in', ['out_invoice', 'out_refund']),
+                '|', '|', '|', '|', '|',
+                ('move_id.hotel_folio_id.hotel_reservation_ids', '!=', False),
+                ('move_id.hotel_folio_id.hotel_group_master_ids', '!=', False),
+                ('hotel_reservation_id', '!=', False),
+                ('sale_line_ids.hotel_reservation_id', '!=', False),
+                ('sale_line_ids.order_id.hotel_reservation_ids', '!=', False),
+                ('sale_line_ids.order_id.hotel_group_master_ids', '!=', False)
+            ]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
             <field name="perm_unlink" eval="False"/>
         </record>
 

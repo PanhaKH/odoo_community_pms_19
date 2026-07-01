@@ -1,0 +1,1180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="hotel_header_cart_button" inherit_id="website.placeholder_header_search_box" name="Hotel Header Cart Button" priority="15">
+        <xpath expr="." position="inside">
+            <li t-if="_layout == 'modal'" t-attf-class="#{_item_class}">
+                <t t-set="hotel_session_booking_ids" t-value="[]"/>
+                <t t-set="hotel_user_emails" t-value="[e.strip().lower() for e in (request.env.user.email, request.env.user.partner_id.email) if e]"/>
+                <t t-set="hotel_user_booking_ids" t-value="request.env['hotel.reservation'].sudo().search([('is_desk_folio', '=', False), '|', '|', '|', ('website_partner_id', '=', request.env.user.partner_id.id), ('partner_id', '=', request.env.user.partner_id.id), ('website_booking_email', 'in', hotel_user_emails), ('partner_id.email', 'in', hotel_user_emails)]).ids if not request.env.user._is_public() else []"/>
+                <t t-set="hotel_booking_count" t-value="len(set(hotel_session_booking_ids + hotel_user_booking_ids))"/>
+                <a t-attf-class="btn rounded-circle p-1 lh-1 position-relative #{_button_classes or 'bg-o-color-3'} o_not_editable hotel-header-cart-button"
+                   role="button"
+                   title="My Bookings"
+                   aria-label="My Bookings"
+                   href="/hotel/bookings">
+                    <i class="fa fa-shopping-cart fa-stack lh-lg"/>
+                    <sup t-attf-class="badge bg-primary position-absolute top-0 start-100 translate-middle #{'d-none' if not hotel_booking_count else ''}" t-out="hotel_booking_count"/>
+                </a>
+            </li>
+        </xpath>
+    </template>
+
+    <template id="hotel_guest_registration_fields" name="Hotel Guest Registration Fields">
+        <h4 class="border-bottom pb-2 mb-3 text-secondary">Room Preferences</h4>
+        <div class="mb-3">
+            <label class="fw-bold mb-1">Estimated Arrival Time</label>
+            <select name="estimated_arrival" class="form-select">
+                <option value="morning" t-att-selected="prefill_values.get('estimated_arrival') == 'morning'">Morning (8:00 AM - 12:00 PM)</option>
+                <option value="afternoon" t-att-selected="prefill_values.get('estimated_arrival') == 'afternoon'">Afternoon (12:00 PM - 4:00 PM)</option>
+                <option value="evening" t-att-selected="prefill_values.get('estimated_arrival') == 'evening'">Evening (4:00 PM - 8:00 PM)</option>
+                <option value="late" t-att-selected="prefill_values.get('estimated_arrival') == 'late'">Late Night (After 8:00 PM)</option>
+            </select>
+        </div>
+        <div class="row mb-4">
+            <div class="col-6">
+                <label class="fw-bold mb-1">Smoking</label>
+                <select name="smoking_preference" class="form-select">
+                    <option value="non_smoking" t-att-selected="prefill_values.get('smoking_preference') == 'non_smoking'">Non-Smoking</option>
+                    <option value="smoking" t-att-selected="prefill_values.get('smoking_preference') == 'smoking'">Smoking</option>
+                </select>
+            </div>
+            <div class="col-6">
+                <label class="fw-bold mb-1">Bed Type</label>
+                <select name="bed_preference" class="form-select">
+                    <option value="any" t-att-selected="prefill_values.get('bed_preference') == 'any'">No Preference</option>
+                    <option value="king" t-att-selected="prefill_values.get('bed_preference') == 'king'">1 King Bed</option>
+                    <option value="twin" t-att-selected="prefill_values.get('bed_preference') == 'twin'">2 Twin Beds</option>
+                </select>
+            </div>
+        </div>
+
+        <h4 class="border-bottom pb-2 mb-3 text-secondary mt-4">Guest Registration</h4>
+        <p class="small text-muted mb-3">Please register every guest staying in the room. This helps the Front Desk prepare keys and comply with guest registration rules.</p>
+        <div class="accordion mb-4" id="hotelGuestRegistrationAccordion">
+            <t t-foreach="guest_slots" t-as="guest">
+                <t t-set="idx" t-value="guest['index']"/>
+                <t t-set="guest_required" t-value="require_all_guest_details or guest['is_primary']"/>
+                <div class="accordion-item">
+                    <h2 class="accordion-header" t-att-id="'guest_heading_%s' % idx">
+                        <button class="accordion-button" t-att-class="'accordion-button' if idx == 0 else 'accordion-button collapsed'" type="button" data-bs-toggle="collapse" t-att-data-bs-target="'#guest_collapse_%s' % idx">
+                            <span class="fw-bold"><t t-out="guest['title']"/></span>
+                        </button>
+                    </h2>
+                    <div t-att-id="'guest_collapse_%s' % idx" t-att-class="'accordion-collapse collapse show' if idx == 0 else 'accordion-collapse collapse'" data-bs-parent="#hotelGuestRegistrationAccordion">
+                        <div class="accordion-body">
+                            <div class="mb-3">
+                                <label class="fw-bold mb-1">Full Name</label>
+                                <input type="text" t-att-name="'guest_%s_name' % idx" class="form-control" t-att-value="guest.get('name') or ''" t-att-required="'required' if guest_required else None"/>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="fw-bold mb-1">Phone</label>
+                                    <input type="tel" t-att-name="'guest_%s_phone' % idx" class="form-control" t-att-value="guest.get('phone') or ''"/>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="fw-bold mb-1">Email</label>
+                                    <input type="email" t-att-name="'guest_%s_email' % idx" class="form-control" t-att-value="guest.get('email') or ''"/>
+                                </div>
+                            </div>
+                            <div class="row" t-if="guest['is_primary']">
+                                <div class="col-md-8 mb-3">
+                                    <label class="fw-bold mb-1">Street Address</label>
+                                    <input type="text" name="street" class="form-control" t-att-value="prefill_values.get('street') or ''"/>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="fw-bold mb-1">City</label>
+                                    <input type="text" name="city" class="form-control" t-att-value="prefill_values.get('city') or ''"/>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="fw-bold mb-1">Passport / National ID Number</label>
+                                    <input type="text" t-att-name="'guest_%s_passport_number' % idx" class="form-control" placeholder="e.g., A12345678" t-att-value="guest.get('passport_number') or ''" t-att-required="'required' if guest_required else None"/>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="fw-bold mb-1">Date of Birth</label>
+                                    <input type="date" t-att-name="'guest_%s_date_of_birth' % idx" class="form-control" t-att-value="guest.get('date_of_birth') or ''"/>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="fw-bold mb-1">Gender</label>
+                                    <select t-att-name="'guest_%s_gender' % idx" class="form-select">
+                                        <option value="">Select...</option>
+                                        <option value="male" t-att-selected="guest.get('gender') == 'male'">Male</option>
+                                        <option value="female" t-att-selected="guest.get('gender') == 'female'">Female</option>
+                                        <option value="other" t-att-selected="guest.get('gender') == 'other'">Other</option>
+                                        <option value="undisclosed" t-att-selected="guest.get('gender') == 'undisclosed'">Prefer not to say</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="fw-bold mb-1">Nationality</label>
+                                    <select t-att-name="'guest_%s_nationality_id' % idx" class="form-select">
+                                        <option value="">Select...</option>
+                                        <t t-foreach="nationalities" t-as="n">
+                                            <option t-att-value="n.id" t-att-selected="guest.get('nationality_id') == n.id"><t t-out="n.name"/></option>
+                                        </t>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="fw-bold mb-1">Country</label>
+                                    <select t-att-name="'guest_%s_country_id' % idx" class="form-select">
+                                        <option value="">Select...</option>
+                                        <t t-foreach="countries" t-as="c">
+                                            <option t-att-value="c.id" t-att-selected="guest.get('country_id') == c.id"><t t-out="c.name"/></option>
+                                        </t>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold mb-1">Upload ID / Passport Photo</label>
+                                <input type="file" t-att-name="'guest_%s_passport_image' % idx" class="form-control" accept="image/*" capture="environment" t-att-required="'required' if require_id_checkin and guest_required else None"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </div>
+        <t t-if="udf_fields">
+            <h4 class="border-bottom pb-2 mb-3 text-secondary mt-4">Additional Preferences</h4>
+            <div class="row mb-3">
+                <t t-foreach="udf_fields" t-as="udf">
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold mb-1"><t t-out="udf['label']"/></label>
+                        <select t-att-name="udf['name']" class="form-select">
+                            <option value="">Select...</option>
+                            <t t-foreach="udf['options']" t-as="option">
+                                <option t-att-value="option.id" t-att-selected="udf['value'] == option.id"><t t-out="option.name"/></option>
+                            </t>
+                        </select>
+                    </div>
+                </t>
+            </div>
+        </t>
+    </template>
+
+    <template id="hotel_booking_customer_fields" name="Hotel Booking Customer Fields">
+        <div class="row g-2 mb-2">
+            <div class="col-6">
+                <input name="guest_name" class="form-control" placeholder="Full name" required="required"/>
+            </div>
+            <div class="col-6">
+                <input name="guest_phone" class="form-control" placeholder="Phone" required="required"/>
+            </div>
+        </div>
+        <input name="guest_email" type="email" class="form-control mb-2" placeholder="Email (optional)"/>
+        <textarea name="special_request" class="form-control mb-2" rows="2" placeholder="Special request (optional)"></textarea>
+    </template>
+
+    <template id="portal_pre_arrival_form_reuse_guest_registration" inherit_id="hotel_management.portal_pre_arrival_form" name="Reuse Hotel Guest Registration Fields">
+        <xpath expr="//form" position="replace">
+            <form action="/pre-arrival/submit" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <input type="hidden" name="reservation_id" t-att-value="reservation.id"/>
+                <input type="hidden" name="access_token" t-att-value="access_token"/>
+                <t t-set="require_id_checkin" t-value="reservation.company_id.hotel_require_id_checkin"/>
+                <t t-set="require_all_guest_details" t-value="True"/>
+                <t t-call="hotel_website_booking.hotel_guest_registration_fields"/>
+                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow">Submit Pre-Registration</button>
+            </form>
+        </xpath>
+    </template>
+
+    <template id="hotel_homepage" name="Hotel Website Booking">
+        <t t-call="website.layout">
+            <div id="wrap" class="hotel-website oe_structure">
+                <div class="oe_structure oe_empty hotel-editor-zone" id="hotel_website_top_dropzone"/>
+                
+
+                <t t-if="success">
+                    <div class="hotel-shell">
+                        <div class="hotel-alert hotel-alert-success">
+                            Booking request sent. Reference <strong><t t-out="reservation_ref"/></strong> is now waiting for back office review.
+                        </div>
+                    </div>
+                </t>
+                <t t-if="payment_pending">
+                    <div class="hotel-shell">
+                        <div class="hotel-alert hotel-alert-success">
+                            Reservation <strong><t t-out="reservation_ref"/></strong> is waiting for deposit payment verification.
+                        </div>
+                    </div>
+                </t>
+                <t t-if="error">
+                    <div class="hotel-shell">
+                        <div class="hotel-alert">
+                            <t t-if="error == 'dates'">Check-out date must be later than the check-in date.</t>
+                            <t t-elif="error == 'rate'">A room rate is required before online deposit payment can be collected.</t>
+                            <t t-elif="error == 'contact'">Check-in, check-out, guests, full name, and phone are required to book a room.</t>
+                            <t t-elif="error == 'email'">Please enter a valid email address, or leave email blank.</t>
+                            <t t-else="">Please review your dates, contact details, or selected room. The room may no longer be available.</t>
+                        </div>
+                    </div>
+                </t>
+
+                <section id="rooms" class="hotel-band o_wsale_products_page" data-snippet="hotel_website_booking.hotel_room_listing" data-name="Hotel Room Listing" data-hotel-editable-block="1">
+                    <div id="o_wsale_container" class="hotel-shell hotel-demo-shell oe_website_sale o_wsale_page_contained hotel-shop-container">
+                        <div class="hotel-products-layout">
+                            <header id="o_wsale_products_header" class="hotel-products-header o_wsale_products_header_is_shop">
+                                <h2>All rooms</h2>
+                                <form action="/hotel" method="get" class="products_header hotel-products-tools hotel-date-guard-form">
+                                    <input type="hidden" name="room_type_id" t-att-value="room_type_id"/>
+                                    <input type="hidden" name="adults" t-att-value="adults"/>
+                                    <input type="hidden" name="children" t-att-value="children"/>
+                                    <label class="hotel-date-inline">
+                                        <i class="fa fa-calendar"/>
+                                        <input name="checkin" type="date" t-att-value="checkin"/>
+                                        <span/>
+                                        <input name="checkout" type="date" t-att-value="checkout"/>
+                                    </label>
+                                    <div class="hotel-date-warning" role="alert">
+                                        Check-out date must be later than the check-in date.
+                                    </div>
+                                    <label class="hotel-search-inline">
+                                        <input name="search" placeholder="Search..." t-att-value="search"/>
+                                        <button type="submit" aria-label="Search rooms" data-date-submit="1"><i class="fa fa-search"/></button>
+                                    </label>
+                                    <label class="hotel-sort-inline">
+                                        <span>Sort By:</span>
+                                        <select name="order" onchange="this.form.submit()">
+                                            <t t-foreach="sort_options" t-as="sort_option">
+                                                <option t-att-value="sort_option[0]" t-att-selected="sort_option[0] == order">
+                                                    <t t-out="sort_option[1]"/>
+                                                </option>
+                                            </t>
+                                        </select>
+                                    </label>
+                                </form>
+                            </header>
+                            <div id="products_grid" class="hotel-demo-content">
+                                <div class="o_wsale_products_grid_table_wrapper hotel-products-grid-wrapper">
+                                    <t t-if="not room_cards">
+                                        <div class="hotel-empty">No rooms are available for the selected dates.</div>
+                                    </t>
+                                    <section t-if="room_cards" id="o_wsale_products_grid" class="o_wsale_products_grid_table grid hotel-room-grid" style="--o-wsale-products-grid-gap: 18px;" data-name="Grid">
+                                        <t t-foreach="room_cards" t-as="card">
+                                            <article class="oe_product hotel-room-card" data-name="Product">
+                                                <div class="o_wsale_product_grid_wrapper position-relative h-100 hotel-room-card-inner">
+                                                    <div class="hotel-room-image">
+                                                        <div class="hotel-editable-image"
+                                                             t-att-data-oe-model="card['image']['editable'] and 'hotel.room.type'"
+                                                             t-att-data-oe-id="card['image']['editable'] and card['room_type'].id"
+                                                             t-att-data-oe-field="card['image']['field']"
+                                                             data-oe-type="image"
+                                                             t-att-data-oe-expression="&quot;card['room_type'].%s&quot; % card['image']['field']">
+                                                            <img t-att-src="card['image']['url']" t-att-alt="card['room_type'].name"/>
+                                                        </div>
+                                                        <a class="hotel-image-book-link hotel-date-dependent-link" t-attf-href="/hotel/room/#{card['room_type'].id}?checkin=#{checkin}&amp;checkout=#{checkout}&amp;adults=#{adults}&amp;children=#{children}" t-att-data-room-type-id="card['room_type'].id" data-link-kind="detail" title="View Details &amp; Book Room" aria-label="View Details &amp; Book Room">
+                                                            <i class="fa fa-shopping-cart"/>
+                                                        </a>
+                                                    </div>
+                                                    <div class="hotel-room-body">
+                                                        <h3><t t-out="card['room_type'].name"/></h3>
+                                                        <p class="hotel-room-price">
+                                                            <strong t-if="card['price']"><t t-out="'$%0.2f' % card['price']"/></strong>
+                                                            <strong t-else="">Rate on request</strong>
+                                                            <span t-if="card['price']"> / Night</span>
+                                                        </p>
+                                                        <div class="hotel-room-meta">
+                                                            <span>Capacity: <t t-out="card['capacity']"/> Guests</span>
+                                                            <span>Available Rooms: <t t-out="card['available_count']"/></span>
+                                                        </div>
+                                                        <a class="hotel-book-toggle hotel-date-dependent-link" t-attf-href="/hotel/room/#{card['room_type'].id}?checkin=#{checkin}&amp;checkout=#{checkout}&amp;adults=#{adults}&amp;children=#{children}" t-att-data-room-type-id="card['room_type'].id" data-link-kind="detail">Book Room</a>
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        </t>
+                                    </section>
+                                </div>
+                                <a t-if="has_active_filters" class="hotel-clear-filters" t-att-href="keep_url(room_type_id=0, search=0, adults=2, children=0, order=0)">Clear Filters</a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="oe_structure oe_empty hotel-editor-zone" id="hotel_website_bottom_dropzone"/>
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const dateForm = document.querySelector('.hotel-products-tools.hotel-date-guard-form');
+                    const dependentLinks = Array.from(document.querySelectorAll('.hotel-date-dependent-link'));
+
+                    function listDatesAreValid() {
+                        if (!dateForm) { return true; }
+                        const checkinInput = dateForm.querySelector('input[name="checkin"]');
+                        const checkoutInput = dateForm.querySelector('input[name="checkout"]');
+                        if (!checkinInput || !checkoutInput || !checkinInput.value || !checkoutInput.value) {
+                            return false;
+                        }
+                        return checkinInput.value &lt; checkoutInput.value;
+                    }
+
+                    function updateDependentLinks() {
+                        if (!dateForm) { return; }
+                        const checkinInput = dateForm.querySelector('input[name="checkin"]');
+                        const checkoutInput = dateForm.querySelector('input[name="checkout"]');
+                        const adultsInput = dateForm.querySelector('input[name="adults"]');
+                        const childrenInput = dateForm.querySelector('input[name="children"]');
+                        const valid = listDatesAreValid();
+                        const params = new URLSearchParams({
+                            checkin: checkinInput ? checkinInput.value : '',
+                            checkout: checkoutInput ? checkoutInput.value : '',
+                            adults: adultsInput ? adultsInput.value || '2' : '2',
+                            children: childrenInput ? childrenInput.value || '0' : '0',
+                        });
+                        dependentLinks.forEach(function (link) {
+                            link.classList.toggle('is-disabled', !valid);
+                            link.setAttribute('aria-disabled', valid ? 'false' : 'true');
+                            if (valid &amp;&amp; link.dataset.roomTypeId) {
+                                if (link.dataset.linkKind === 'filter') {
+                                    const filterParams = new URLSearchParams(params);
+                                    filterParams.set('room_type_id', link.dataset.roomTypeId);
+                                    link.href = '/hotel?' + filterParams.toString();
+                                } else if (link.dataset.linkKind === 'detail') {
+                                    link.href = '/hotel/room/' + link.dataset.roomTypeId + '?' + params.toString();
+                                }
+                            }
+                        });
+                    }
+
+                    if (dateForm) {
+                        const checkinInput = dateForm.querySelector('input[name="checkin"]');
+                        const checkoutInput = dateForm.querySelector('input[name="checkout"]');
+                        const warning = dateForm.querySelector('.hotel-date-warning');
+                        const submitButtons = Array.from(dateForm.querySelectorAll('[data-date-submit]'));
+
+                        function validateListDates() {
+                            const valid = listDatesAreValid();
+                            const showWarning = !valid;
+                            if (warning) {
+                                warning.classList.toggle('is-visible', showWarning);
+                            }
+                            [checkinInput, checkoutInput].forEach(function (input) {
+                                if (input) {
+                                    input.classList.toggle('is-invalid', showWarning);
+                                    input.setCustomValidity(showWarning ? 'Check-out date must be later than the check-in date.' : '');
+                                }
+                            });
+                            submitButtons.forEach(function (button) {
+                                button.disabled = !valid;
+                            });
+                            updateDependentLinks();
+                            return valid;
+                        }
+
+                        if (checkinInput &amp;&amp; checkoutInput) {
+                            checkoutInput.min = checkinInput.value || checkoutInput.min;
+                            checkinInput.addEventListener('input', function () {
+                                checkoutInput.min = checkinInput.value;
+                                validateListDates();
+                            });
+                            checkoutInput.addEventListener('input', validateListDates);
+                            checkinInput.addEventListener('change', validateListDates);
+                            checkoutInput.addEventListener('change', validateListDates);
+                        }
+
+                        dateForm.addEventListener('submit', function (event) {
+                            if (!validateListDates()) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                if (checkinInput) {
+                                    checkinInput.focus();
+                                }
+                            }
+                        });
+                        validateListDates();
+                    }
+
+                    dependentLinks.forEach(function (link) {
+                        link.addEventListener('click', function (event) {
+                            if (link.classList.contains('is-disabled') || !listDatesAreValid()) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                updateDependentLinks();
+                                const warning = dateForm ? dateForm.querySelector('.hotel-date-warning') : null;
+                                if (warning) {
+                                    warning.classList.add('is-visible');
+                                }
+                            }
+                        });
+                    });
+                });
+            </script>
+        </t>
+    </template>
+
+    <template id="hotel_room_detail" name="Hotel Room Detail">
+        <t t-call="website.layout">
+            <div id="wrap" class="hotel-website hotel-room-detail-page">
+                <section class="hotel-detail-band" data-snippet="hotel_website_booking.hotel_room_detail" data-name="Hotel Room Detail" data-hotel-editable-block="1">
+                    <div class="hotel-shell hotel-detail-shell">
+                        <nav class="hotel-detail-breadcrumb">
+                            <a href="/hotel#rooms">Rooms</a>
+                            <span>/</span>
+                            <strong id="breadcrumb-room-name"><t t-out="room_type.name"/></strong>
+                        </nav>
+                        
+                        <!-- Hidden data store for room types -->
+                        <t t-set="all_room_types" t-value="request.env['hotel.room.type'].sudo().search([], order='sequence, name')"/>
+                        <t t-set="fallback_images" t-value="[
+                            'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&amp;fit=crop&amp;w=1800&amp;q=95',
+                            'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&amp;fit=crop&amp;w=1800&amp;q=95',
+                            'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&amp;fit=crop&amp;w=1800&amp;q=95',
+                            'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&amp;fit=crop&amp;w=1800&amp;q=95'
+                        ]"/>
+                        
+                        <div class="hotel-room-types-data d-none" style="display:none;">
+                            <t t-foreach="all_room_types" t-as="r_type">
+                                <t t-set="r_rooms" t-value="request.env['hotel.room'].sudo().search([('room_type_id', '=', r_type.id), ('availability_status', '!=', 'out_of_order'), ('state', '!=', 'blocked')])"/>
+                                <t t-set="r_conflicts" t-value="request.env['hotel.reservation'].sudo().search([('room_id', 'in', r_rooms.ids), ('state', 'not in', ['cancel', 'noshow', 'checkout']), ('is_desk_folio', '=', False), ('checkin_date', '&lt;', checkout), ('checkout_date', '&gt;', checkin)])"/>
+                                <t t-set="r_avail_rooms_no_conf" t-value="[r for r in r_rooms if r.id not in r_conflicts.mapped('room_id').ids]"/>
+                                <t t-set="r_blocks" t-value="request.env['hotel.room.block'].sudo().search([('room_id', 'in', [r.id for r in r_avail_rooms_no_conf]), ('state', '=', 'active'), ('date_from', '&lt;', checkout), ('date_to', '&gt;', checkin)])"/>
+                                <t t-set="r_avail_rooms" t-value="[r for r in r_avail_rooms_no_conf if r.id not in r_blocks.mapped('room_id').ids]"/>
+                                <t t-set="r_avail_count" t-value="len(r_avail_rooms)"/>
+                                <t t-set="r_capacity" t-value="max(r_rooms.mapped('capacity') or [2])"/>
+                                
+                                <t t-set="r_pricing" t-value="request.env['hotel.rate.plan.line'].sudo()._get_stay_pricing(r_type, checkin, checkout, adults=adults)"/>
+                                <t t-set="r_price" t-value="r_pricing['nightly_rate']"/>
+                                
+                                <t t-set="seq" t-value="r_type.sequence or 0"/>
+                                <t t-set="img1_url" t-value="'/web/image/hotel.room.type/%s/website_image_1' % r_type.id if r_type.website_image_1 else fallback_images[seq % 4]"/>
+                                <t t-set="img2_url" t-value="'/web/image/hotel.room.type/%s/website_image_2' % r_type.id if r_type.website_image_2 else fallback_images[(seq + 1) % 4]"/>
+                                <t t-set="img3_url" t-value="'/web/image/hotel.room.type/%s/website_image_3' % r_type.id if r_type.website_image_3 else fallback_images[(seq + 2) % 4]"/>
+                                
+                                <div class="room-type-data-item"
+                                     t-att-data-id="r_type.id"
+                                     t-att-data-name="r_type.name"
+                                     t-att-data-price="r_price"
+                                     t-att-data-capacity="r_capacity"
+                                     t-att-data-available="r_avail_count"
+                                     t-att-data-img1="img1_url"
+                                     t-att-data-img2="img2_url"
+                                     t-att-data-img3="img3_url"
+                                     t-att-data-desc="r_type.website_description or description or ''"/>
+                            </t>
+                        </div>
+                        
+                        <div class="hotel-detail-card-wrapper">
+                            <div class="hotel-detail-grid">
+                                <!-- Gallery Column (Left) -->
+                                <div t-attf-class="hotel-detail-gallery #{'is-editor-gallery' if gallery_editor_enabled else ''}"
+                                     t-att-data-room-type-id="room_type.id"
+                                     t-att-data-gallery-editor-enabled="'1' if gallery_editor_enabled else '0'">
+                                    <div class="hotel-detail-thumbs" id="room-detail-thumbs-container">
+                                        <t t-foreach="gallery_images" t-as="image">
+                                            <div t-att-class="'hotel-editable-image is-active' if image_index == 0 else 'hotel-editable-image'"
+                                                 t-att-data-gallery-image-id="image.get('gallery_image_id')"
+                                                 t-att-data-gallery-oe-model="image['editable'] and image.get('record_model', 'hotel.room.type')"
+                                                 t-att-data-gallery-oe-id="image['editable'] and image.get('record_id', room_type.id)"
+                                                 t-att-data-gallery-oe-field="image['field']"
+                                                 data-gallery-oe-type="image"
+                                                 t-att-data-gallery-oe-expression="image.get('expression', 'room_type.%s' % image['field'])"
+                                                 t-att-data-oe-model="image['editable'] and image.get('record_model', 'hotel.room.type')"
+                                                 t-att-data-oe-id="image['editable'] and image.get('record_id', room_type.id)"
+                                                 t-att-data-oe-field="image['field']"
+                                                 data-oe-type="image"
+                                                 t-att-data-oe-expression="image.get('expression', 'room_type.%s' % image['field'])">
+                                                <img t-att-src="image['url']"
+                                                     t-att-alt="room_type.name"
+                                                     t-att-class="'is-active' if image_index == 0 else ''"
+                                                     t-att-aria-current="'true' if image_index == 0 else 'false'"
+                                                     t-att-data-gallery-index="image_index"
+                                                     t-att-data-gallery-src="image['url']"
+                                                     t-att-data-gallery-image-id="image.get('gallery_image_id')"
+                                                     t-att-data-gallery-oe-model="image['editable'] and image.get('record_model', 'hotel.room.type')"
+                                                     t-att-data-gallery-oe-id="image['editable'] and image.get('record_id', room_type.id)"
+                                                     t-att-data-gallery-oe-field="image['field']"
+                                                     data-gallery-oe-type="image"
+                                                     t-att-data-gallery-oe-expression="image.get('expression', 'room_type.%s' % image['field'])"
+                                                     t-att-data-oe-model="image['editable'] and image.get('record_model', 'hotel.room.type')"
+                                                     t-att-data-oe-id="image['editable'] and image.get('record_id', room_type.id)"
+                                                     t-att-data-oe-field="image['field']"
+                                                     data-oe-type="image"
+                                                     t-att-data-oe-expression="image.get('expression', 'room_type.%s' % image['field'])"/>
+                                                <button t-if="image.get('gallery_image_id')"
+                                                        class="hotel-gallery-editor-drag"
+                                                        type="button"
+                                                        title="Drag to reorder"
+                                                        aria-label="Drag to reorder image">
+                                                    <i class="fa fa-arrows" aria-hidden="true"/>
+                                                </button>
+                                                <button t-if="image.get('gallery_image_id')"
+                                                        class="hotel-gallery-editor-delete"
+                                                        type="button"
+                                                        title="Delete image"
+                                                        aria-label="Delete image">
+                                                    <i class="fa fa-trash" aria-hidden="true"/>
+                                                </button>
+                                            </div>
+                                        </t>
+                                    </div>
+                                    <div class="hotel-detail-main-image">
+                                        <button class="hotel-gallery-nav hotel-gallery-prev" type="button" aria-label="Previous image">
+                                            <i class="fa fa-chevron-left"/>
+                                        </button>
+                                        <div class="hotel-editable-image" id="room-detail-main-image-field"
+                                             t-att-data-oe-model="gallery_images[0]['editable'] and gallery_images[0].get('record_model', 'hotel.room.type')"
+                                             t-att-data-oe-id="gallery_images[0]['editable'] and gallery_images[0].get('record_id', room_type.id)"
+                                             t-att-data-oe-field="gallery_images[0]['field']"
+                                             data-oe-type="image"
+                                             t-att-data-oe-expression="gallery_images[0].get('expression', 'room_type.%s' % gallery_images[0]['field'])">
+                                            <img class="hotel-gallery-current"
+                                                 t-att-src="gallery_images[0]['url']"
+                                                 t-att-alt="room_type.name"
+                                                 t-att-data-oe-model="gallery_images[0]['editable'] and gallery_images[0].get('record_model', 'hotel.room.type')"
+                                                 t-att-data-oe-id="gallery_images[0]['editable'] and gallery_images[0].get('record_id', room_type.id)"
+                                                 t-att-data-oe-field="gallery_images[0]['field']"
+                                                 data-oe-type="image"
+                                                 t-att-data-oe-expression="gallery_images[0].get('expression', 'room_type.%s' % gallery_images[0]['field'])"/>
+                                        </div>
+                                        <button class="hotel-gallery-nav hotel-gallery-next" type="button" aria-label="Next image">
+                                            <i class="fa fa-chevron-right"/>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Content / Form Column (Right) -->
+                                <aside class="hotel-detail-panel">
+                                    <h1 id="detail-room-title"><t t-out="room_type.name"/></h1>
+                                    <p class="hotel-room-price hotel-detail-price" id="detail-price-wrapper">
+                                        <strong id="detail-price-amount" t-if="price"><t t-out="'$%0.2f' % price"/></strong>
+                                        <strong id="detail-price-amount" t-else="">Rate on request</strong>
+                                        <span id="detail-price-label" t-if="price"> / Night</span>
+                                    </p>
+                                    <div class="hotel-detail-facts">
+                                        <span id="detail-capacity-fact">
+                                            <i class="fa fa-user-o me-1" style="opacity: 0.7;"/> Capacity: <t t-out="capacity"/> Guests
+                                        </span>
+                                        <span id="detail-available-fact">
+                                            <i class="fa fa-bed me-1" style="opacity: 0.7;"/> Available Rooms: <t t-out="available_count"/>
+                                        </span>
+                                    </div>
+                                    
+                                    <div id="detail-room-description-container">
+                                        <div t-if="room_type.website_description" class="hotel-detail-description" t-field="room_type.website_description"/>
+                                        <p t-else="" class="hotel-detail-description"><t t-out="description"/></p>
+                                    </div>
+                                    
+                                    <t t-set="breakfast_prod" t-value="request.env['hotel.config.setup'].sudo()._get_config_record(request.env.company, 'hotel_breakfast_product_id', 'product.product')"/>
+                                    <t t-set="breakfast_price" t-value="breakfast_prod.lst_price or 0.0"/>
+                                    
+                                    <form action="/hotel/book" method="post" enctype="multipart/form-data" novalidate="novalidate"
+                                          class="hotel-detail-book-form hotel-date-guard-form"
+                                          t-att-data-breakfast-price="breakfast_price" 
+                                          t-att-data-deposit-percent="deposit_percent" 
+                                          t-att-data-currency-symbol="deposit_currency.symbol or '$'"
+                                          t-att-data-deposit-required="'1' if deposit_required else '0'">
+                                        
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <input type="hidden" name="children" t-att-value="children"/>
+                                        <input type="hidden" name="expected_deposit_amount" t-att-value="deposit_amount"/>
+                                        <input t-if="deposit_amount" type="hidden" name="payment_mode" id="payment-mode-input" value="deposit"/>
+                                        <input t-else="" type="hidden" name="payment_mode" id="payment-mode-input" value="draft"/>
+
+                                                <input type="hidden" name="room_type_id" t-att-value="room_type.id"/>
+                                                <input type="hidden" name="breakfast_included" value="0"/>
+
+                                                <!-- Dates row -->
+                                                <div class="row g-3 hotel-booking-row">
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="fw-bold mb-1">Check-in</label>
+                                                        <input name="checkin" type="date" class="form-control" t-att-value="checkin" required="required"/>
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="fw-bold mb-1">Check-out</label>
+                                                        <input name="checkout" type="date" class="form-control" t-att-value="checkout" required="required"/>
+                                                    </div>
+                                                </div>
+
+                                                <div t-attf-class="hotel-date-warning #{'is-visible' if date_error else ''}" role="alert" style="margin-bottom: 12px;">
+                                                    Check-out date must be later than the check-in date.
+                                                </div>
+
+                                                <div class="hotel-booking-field">
+                                                    <label class="fw-bold mb-1">Guests</label>
+                                                    <select name="adults" class="form-select" required="required">
+                                                        <option value="1" t-att-selected="adults == 1">1 Guest</option>
+                                                        <option value="2" t-att-selected="adults == 2">2 Guests</option>
+                                                        <option value="3" t-att-selected="adults == 3">3 Guests</option>
+                                                        <option value="4" t-att-selected="adults &gt;= 4">4 Guests</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Deposit Choice banner -->
+                                                <div class="hotel-deposit-banner-box mb-3"
+                                                     id="hotel-deposit-banner"
+                                                     t-att-style="'display: block;' if deposit_required else 'display: none;'">
+                                                    <div class="fw-bold" id="deposit-banner-percent-label">
+                                                        <t t-out="'%0.2f' % (deposit_percent or 0.0)"/>% deposit required
+                                                    </div>
+                                                    <div class="text-muted" id="deposit-banner-text">
+                                                        <t t-out="'%s%0.2f must be paid before this reservation is confirmed.' % (deposit_currency.symbol or '$', deposit_amount or 0.0)"/>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Customer Details rows -->
+                                                <div class="row g-3 hotel-booking-row">
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="fw-bold mb-1">Full Name</label>
+                                                        <input name="guest_name" class="form-control" placeholder="Enter your full name" required="required"/>
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="fw-bold mb-1">Phone</label>
+                                                        <input name="guest_phone" class="form-control" placeholder="Enter your phone number" required="required"/>
+                                                    </div>
+                                                </div>
+                                                <div class="hotel-booking-field">
+                                                    <label class="fw-bold mb-1">Email <span class="text-muted">(Optional)</span></label>
+                                                    <input name="guest_email" type="email" class="form-control" placeholder="Enter your email"/>
+                                                    <div class="hotel-form-warning" data-email-warning="1" role="alert">
+                                                        Please enter a valid email address, or leave email blank.
+                                                    </div>
+                                                </div>
+                                                <div class="hotel-booking-field">
+                                                    <label class="fw-bold mb-1">Special Request (Optional)</label>
+                                                    <textarea name="special_request" class="form-control" placeholder="Type your request here" rows="3"></textarea>
+                                                </div>
+
+                                                <div t-if="contact_error" class="hotel-date-warning is-visible" role="alert" style="margin-top: 12px; margin-bottom: 12px;">
+                                                    Check-in, check-out, guests, full name, and phone are required to book a room.
+                                                </div>
+                                                <div t-if="email_error" class="hotel-date-warning is-visible" role="alert" style="margin-top: 12px; margin-bottom: 12px;">
+                                                    Please enter a valid email address, or leave email blank.
+                                                </div>
+                                                <div class="hotel-form-warning" data-contact-warning="1" role="alert">
+                                                    Check-in, check-out, guests, full name, and phone are required to book a room.
+                                                </div>
+
+                                                <button type="submit" class="hotel-book-submit-btn mt-3" data-date-submit="1" disabled="disabled">Book Room</button>
+                                    </form>
+                                </aside>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            
+            <script>
+                function initHotelRoomDetailPage() {
+                    function and() {
+                        for (var i = 0; arguments.length > i; i++) {
+                            if (!arguments[i]) { return false; }
+                        }
+                        return arguments[arguments.length - 1];
+                    }
+                    function or() {
+                        for (var i = 0; arguments.length > i; i++) {
+                            if (arguments[i]) { return arguments[i]; }
+                        }
+                        return arguments[arguments.length - 1];
+                    }
+
+                    const isWebsiteEditor = or(
+                        document.body.classList.contains('editor_enable'),
+                        document.documentElement.classList.contains('editor_enable'),
+                        document.body.classList.contains('o_is_editing'),
+                        document.documentElement.classList.contains('o_is_editing'),
+                        Boolean(document.querySelector('.o_we_customize_panel')),
+                        Boolean(document.querySelector('.o_we_customize_panel_wrapper')),
+                        (window.location.search || '').indexOf('enable_editor=1') !== -1,
+                        (window.location.search || '').indexOf('edit_translations') !== -1
+                    );
+                    // Gallery images swap and prev/next logic
+                    const gallery = document.querySelector('.hotel-detail-gallery');
+                    let mainImageField = null;
+                    let thumbsContainer = null;
+                    let currentImageIndex = 0;
+                    if (and(gallery, !isWebsiteEditor)) {
+                        const mainImage = gallery.querySelector('.hotel-gallery-current');
+                        mainImageField = mainImage ? mainImage.closest('.hotel-editable-image') : null;
+                        thumbsContainer = gallery.querySelector('#room-detail-thumbs-container');
+                        const previousButton = gallery.querySelector('.hotel-gallery-prev');
+                        const nextButton = gallery.querySelector('.hotel-gallery-next');
+
+                        function getThumbnails() {
+                            return Array.from(gallery.querySelectorAll('.hotel-detail-thumbs img'));
+                        }
+
+                        function normalizeImageIndex(index, total) {
+                            return ((index % total) + total) % total;
+                        }
+
+                        function setActiveImage(index) {
+                            const thumbnails = getThumbnails();
+                            if (or(!mainImage, !thumbnails.length)) { return; }
+                            currentImageIndex = normalizeImageIndex(index, thumbnails.length);
+                            gallery.dataset.currentImageIndex = String(currentImageIndex);
+                            const thumbnail = thumbnails[currentImageIndex];
+                            const thumbnailField = thumbnail.closest('.hotel-editable-image');
+                            mainImage.src = thumbnail.dataset.gallerySrc || thumbnail.src;
+                            mainImage.alt = thumbnail.alt || mainImage.alt;
+                            if (and(mainImageField, thumbnailField)) {
+                                ['data-oe-model', 'data-oe-id', 'data-oe-field', 'data-oe-type', 'data-oe-expression'].forEach(function (attribute) {
+                                    const galleryAttr = attribute.replace('data-oe-', 'data-gallery-oe-');
+                                    const value = or(thumbnail.getAttribute(galleryAttr), thumbnailField.getAttribute(galleryAttr));
+                                    if (value) {
+                                        mainImageField.setAttribute(attribute, value);
+                                        mainImage.setAttribute(attribute, value);
+                                    } else {
+                                        mainImageField.removeAttribute(attribute);
+                                        mainImage.removeAttribute(attribute);
+                                    }
+                                });
+                            }
+                            thumbnails.forEach(function (item) {
+                                const isActive = item === thumbnail;
+                                item.classList.toggle('is-active', isActive);
+                                item.setAttribute('aria-current', isActive ? 'true' : 'false');
+                                const field = item.closest('.hotel-editable-image');
+                                if (field) {
+                                    field.classList.toggle('is-active', isActive);
+                                }
+                            });
+                        }
+
+                        if (thumbsContainer) {
+                            thumbsContainer.addEventListener('click', function(event) {
+                                const img = event.target.closest('img');
+                                if (and(img, thumbsContainer.contains(img))) {
+                                    const thumbnails = getThumbnails();
+                                    const idx = thumbnails.indexOf(img);
+                                    if (idx !== -1) {
+                                        setActiveImage(idx);
+                                    }
+                                }
+                            });
+                        }
+
+                        if (previousButton) {
+                            previousButton.addEventListener('click', function () {
+                                const storedIndex = parseInt(gallery.dataset.currentImageIndex || '0', 10);
+                                setActiveImage(storedIndex - 1);
+                            });
+                        }
+                        if (nextButton) {
+                            nextButton.addEventListener('click', function () {
+                                const storedIndex = parseInt(gallery.dataset.currentImageIndex || '0', 10);
+                                setActiveImage(storedIndex + 1);
+                            });
+                        }
+                        setActiveImage(currentImageIndex);
+                    }
+
+                    // Main reactive logic
+                    const form = document.querySelector('.hotel-detail-book-form');
+                    if (form) {
+                        const detailTitle = document.getElementById('detail-room-title');
+                        const breadcrumbTitle = document.getElementById('breadcrumb-room-name');
+                        const detailPriceAmount = document.getElementById('detail-price-amount');
+                        const detailPriceLabel = document.getElementById('detail-price-label');
+                        const detailCapacity = document.getElementById('detail-capacity-fact');
+                        const detailAvailable = document.getElementById('detail-available-fact');
+                        const detailDescriptionContainer = document.getElementById('detail-room-description-container');
+
+                        const roomSelect = form.querySelector('[name="room_type_id"]');
+                        const checkinInput = form.querySelector('input[name="checkin"]');
+                        const checkoutInput = form.querySelector('input[name="checkout"]');
+                        const guestsSelect = form.querySelector('select[name="adults"]');
+                        const breakfastInput = form.querySelector('[name="breakfast_included"]');
+
+                        function getSelectedRoomData() {
+                            const selectedId = roomSelect.value;
+                            const item = document.querySelector('.room-type-data-item[data-id="' + selectedId + '"]');
+                            if (!item) return null;
+                            return {
+                                id: item.dataset.id,
+                                name: item.dataset.name,
+                                price: parseFloat(item.dataset.price || 0),
+                                capacity: parseInt(item.dataset.capacity || 2),
+                                available: parseInt(item.dataset.available || 0),
+                                img1: item.dataset.img1,
+                                img2: item.dataset.img2,
+                                img3: item.dataset.img3,
+                                desc: item.dataset.desc
+                            };
+                        }
+
+                        function updateSummary() {
+                            const roomData = getSelectedRoomData();
+                            if (!roomData) return;
+
+                            // Calculate nights
+                            let nights = 0;
+                            if (and(checkinInput.value, checkoutInput.value)) {
+                                const chk = new Date(checkinInput.value);
+                                const cho = new Date(checkoutInput.value);
+                                if (cho > chk) {
+                                    nights = Math.max(1, Math.round((cho - chk) / (1000 * 60 * 60 * 24)));
+                                }
+                            }
+
+                            const pricePerNight = roomData.price;
+                            const roomCharges = pricePerNight * nights;
+                            const adultsCount = parseInt(guestsSelect.value || 1);
+                            
+                            const breakfastPricePerDay = parseFloat(form.dataset.breakfastPrice || 0);
+                            const isBreakfast = breakfastInput.value === '1';
+                            const breakfastCharges = isBreakfast ? (breakfastPricePerDay * adultsCount * nights) : 0;
+                            const grandTotal = roomCharges + breakfastCharges;
+                            const currencySymbol = form.dataset.currencySymbol || '$';
+
+                            const configuredDepositPercent = parseFloat(form.dataset.depositPercent || 0);
+                            const depositPercent = configuredDepositPercent;
+                            const depositRequired = and(form.dataset.depositRequired === '1', configuredDepositPercent > 0);
+                            const depositAmount = depositRequired ? Math.round((grandTotal * configuredDepositPercent / 100) * 100) / 100 : 0;
+
+                            // Update summary elements in DOM:
+                            const sumRoomType = document.getElementById('sum-room-type');
+                            if (sumRoomType) sumRoomType.textContent = roomData.name;
+
+                            const sumCheckin = document.getElementById('sum-checkin');
+                            if (and(sumCheckin, checkinInput.value)) {
+                                const d = new Date(checkinInput.value);
+                                sumCheckin.textContent = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                            }
+                            const sumCheckout = document.getElementById('sum-checkout');
+                            if (and(sumCheckout, checkoutInput.value)) {
+                                const d = new Date(checkoutInput.value);
+                                sumCheckout.textContent = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                            }
+
+                            const sumNights = document.getElementById('sum-nights');
+                            if (sumNights) sumNights.textContent = nights + (nights === 1 ? ' Night' : ' Nights');
+
+                            const sumRoomPrice = document.getElementById('sum-room-price');
+                            if (sumRoomPrice) sumRoomPrice.textContent = '$' + pricePerNight.toFixed(2);
+
+                            const sumRoomTotal = document.getElementById('sum-room-total');
+                            if (sumRoomTotal) sumRoomTotal.textContent = '$' + roomCharges.toFixed(2);
+
+                            const sumBreakfastRow = document.getElementById('sum-breakfast-row');
+                            if (sumBreakfastRow) {
+                                sumBreakfastRow.style.display = isBreakfast ? 'flex' : 'none';
+                            }
+                            const sumBreakfastPrice = document.getElementById('sum-breakfast-price');
+                            if (sumBreakfastPrice) sumBreakfastPrice.textContent = '$' + breakfastPricePerDay.toFixed(2);
+
+                            const sumBreakfastTotal = document.getElementById('sum-breakfast-total');
+                            if (sumBreakfastTotal) sumBreakfastTotal.textContent = '$' + breakfastCharges.toFixed(2);
+
+                            const sumGrandTotal = document.getElementById('sum-grand-total');
+                            if (sumGrandTotal) sumGrandTotal.textContent = '$' + grandTotal.toFixed(2);
+
+                            // Deposit information
+                            const depositBlock = document.getElementById('hotel-deposit-banner');
+                            if (depositBlock) {
+                                depositBlock.style.display = depositRequired ? 'block' : 'none';
+                            }
+                            const depositRequirementText = document.getElementById('deposit-banner-percent-label');
+                            if (depositRequirementText) {
+                                depositRequirementText.textContent = depositPercent.toFixed(2) + '% deposit required';
+                            }
+                            const depositValText = document.getElementById('deposit-banner-text');
+                            if (depositValText) {
+                                depositValText.textContent = currencySymbol + depositAmount.toFixed(2) + ' must be paid before this reservation is confirmed.';
+                            }
+
+                            // Hidden inputs for form submission
+                            const submitDepositInput = form.querySelector('[name="expected_deposit_amount"]');
+                            if (submitDepositInput) {
+                                submitDepositInput.value = depositAmount.toFixed(2);
+                            }
+                            const submitTotalInput = form.querySelector('[name="website_total_amount"]');
+                            if (submitTotalInput) {
+                                submitTotalInput.value = grandTotal.toFixed(2);
+                            }
+                        }
+
+                        function datesAreValid() {
+                            if (or(!checkinInput, !checkoutInput)) { return false; }
+                            if (or(!checkinInput.value, !checkoutInput.value)) { return false; }
+                            return checkoutInput.value > checkinInput.value;
+                        }
+
+                        function updateRoomDetails() {
+                            const roomData = getSelectedRoomData();
+                            if (!roomData) return;
+
+                            // Title and breadcrumb
+                            if (detailTitle) detailTitle.textContent = roomData.name;
+                            if (breadcrumbTitle) breadcrumbTitle.textContent = roomData.name;
+
+                            // Price
+                            if (detailPriceAmount) {
+                                detailPriceAmount.textContent = roomData.price > 0 ? ('$' + roomData.price.toFixed(2)) : 'Rate on request';
+                            }
+                            if (detailPriceLabel) {
+                                detailPriceLabel.style.display = roomData.price > 0 ? 'inline' : 'none';
+                            }
+
+                            // Facts
+                            if (detailCapacity) {
+                                detailCapacity.innerHTML = '<i class="fa fa-user-o me-1" style="opacity: 0.7;"/> Capacity: ' + roomData.capacity + ' Guests';
+                            }
+                            if (detailAvailable) {
+                                detailAvailable.innerHTML = '<i class="fa fa-bed me-1" style="opacity: 0.7;"/> Available Rooms: ' + roomData.available;
+                            }
+
+                            // Description
+                            if (detailDescriptionContainer) {
+                                detailDescriptionContainer.innerHTML = roomData.desc || '';
+                            }
+
+                            // Images Gallery Update
+                            if (and(mainImageField, thumbsContainer, !isWebsiteEditor)) {
+                                const mainImg = mainImageField.querySelector('img');
+                                if (mainImg) {
+                                    mainImg.src = roomData.img1;
+                                    mainImg.alt = roomData.name;
+                                }
+
+                                // Re-render thumbnails
+                                let thumbsHtml = '';
+                                const imgs = [roomData.img1, roomData.img2, roomData.img3];
+                                const fields = ['website_image_1', 'website_image_2', 'website_image_3'];
+                                imgs.forEach(function(url, idx) {
+                                    const activeClass = idx === 0 ? 'is-active' : '';
+                                    const ariaCurrent = idx === 0 ? 'true' : 'false';
+                                    thumbsHtml += '&lt;' + 'div class="hotel-editable-image ' + activeClass + '"' +
+                                             ' data-gallery-oe-model="hotel.room.type"' +
+                                             ' data-gallery-oe-id="' + roomData.id + '"' +
+                                             ' data-gallery-oe-field="' + fields[idx] + '"' +
+                                             ' data-gallery-oe-type="image"' +
+                                             ' data-gallery-oe-expression="room_type.' + fields[idx] + '">' +
+                                            '&lt;' + 'img src="' + url + '"' +
+                                                 ' alt="' + roomData.name + '"' +
+                                                 ' class="' + activeClass + '"' +
+                                                 ' data-gallery-index="' + idx + '"' +
+                                                 ' aria-current="' + ariaCurrent + '"' +
+                                                 ' data-gallery-src="' + url + '"' +
+                                                 ' data-gallery-oe-model="hotel.room.type"' +
+                                                 ' data-gallery-oe-id="' + roomData.id + '"' +
+                                                 ' data-gallery-oe-field="' + fields[idx] + '"' +
+                                                 ' data-gallery-oe-type="image"' +
+                                                 ' data-gallery-oe-expression="room_type.' + fields[idx] + '"/>' +
+                                        '&lt;' + '/div>';
+                                });
+                                thumbsContainer.innerHTML = thumbsHtml;
+                                currentImageIndex = 0;
+                                gallery.dataset.currentImageIndex = '0';
+                            }
+
+                            updateSummary();
+                        }
+
+                        function requiredFieldsAreComplete() {
+                            const fields = Array.from(form.querySelectorAll('[required]'));
+                            return fields.every(function (field) {
+                                return or(field.disabled, String(field.value || '').trim());
+                            });
+                        }
+
+                        function updateRequiredFieldState(showWarning) {
+                            const fields = Array.from(form.querySelectorAll('[required]'));
+                            fields.forEach(function (field) {
+                                const empty = !String(field.value || '').trim();
+                                field.classList.toggle('is-invalid', and(showWarning, empty));
+                            });
+                            const warning = form.querySelector('[data-contact-warning]');
+                            if (warning) {
+                                warning.classList.toggle('is-visible', showWarning);
+                            }
+                        }
+
+                        function emailIsValid() {
+                            const emailInput = form.querySelector('input[name="guest_email"]');
+                            if (!emailInput || !String(emailInput.value || '').trim()) {
+                                return true;
+                            }
+                            return emailInput.checkValidity();
+                        }
+
+                        function updateEmailFieldState(showWarning) {
+                            const emailInput = form.querySelector('input[name="guest_email"]');
+                            const valid = emailIsValid();
+                            if (emailInput) {
+                                emailInput.classList.toggle('is-invalid', and(showWarning, !valid));
+                            }
+                            const warning = form.querySelector('[data-email-warning]');
+                            if (warning) {
+                                warning.classList.toggle('is-visible', and(showWarning, !valid));
+                            }
+                        }
+
+                        function updateFormState() {
+                            const datesValid = datesAreValid();
+                            const requiredComplete = requiredFieldsAreComplete();
+                            const emailValid = emailIsValid();
+                            const warning = form.querySelector('.hotel-date-warning');
+                            const showWarning = and(checkinInput, checkoutInput, checkinInput.value, checkoutInput.value, !datesValid);
+                            if (warning) {
+                                warning.classList.toggle('is-visible', showWarning);
+                            }
+                            [checkinInput, checkoutInput].forEach(function (input) {
+                                if (input) {
+                                    input.classList.toggle('is-invalid', showWarning);
+                                    input.setCustomValidity(showWarning ? 'Check-out date must be later than the check-in date.' : '');
+                                }
+                            });
+                            const submitButton = form.querySelector('[data-date-submit]');
+                            if (submitButton) {
+                                submitButton.disabled = or(!datesValid, !requiredComplete, !emailValid);
+                            }
+                            if (requiredComplete) {
+                                updateRequiredFieldState(false);
+                            }
+                            if (emailValid) {
+                                updateEmailFieldState(false);
+                            }
+                            updateSummary();
+                            return and(datesValid, requiredComplete, emailValid);
+                        }
+
+                        // Attach Event Listeners
+                        if (roomSelect.tagName === 'SELECT') {
+                            roomSelect.addEventListener('change', updateRoomDetails);
+                        }
+                        
+                        if (and(checkinInput, checkoutInput)) {
+                            checkinInput.addEventListener('input', updateFormState);
+                            checkoutInput.addEventListener('input', updateFormState);
+                            checkinInput.addEventListener('change', updateFormState);
+                            checkoutInput.addEventListener('change', updateFormState);
+                        }
+                        guestsSelect.addEventListener('change', updateSummary);
+                        if (breakfastInput.tagName === 'SELECT') {
+                            breakfastInput.addEventListener('change', updateSummary);
+                        }
+
+                        const fieldsToWatch = Array.from(form.querySelectorAll('[required]'));
+                        fieldsToWatch.forEach(function (field) {
+                            field.addEventListener('input', updateFormState);
+                            field.addEventListener('change', updateFormState);
+                        });
+                        const emailInput = form.querySelector('input[name="guest_email"]');
+                        if (emailInput) {
+                            emailInput.addEventListener('input', updateFormState);
+                            emailInput.addEventListener('change', updateFormState);
+                        }
+
+                        // Initial loads
+                        updateRoomDetails();
+                        updateFormState();
+
+                        form.addEventListener('submit', function (event) {
+                            if (!updateFormState()) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                if (and(checkinInput, checkoutInput, checkinInput.value, checkoutInput.value, !datesAreValid())) {
+                                    checkinInput.focus();
+                                } else {
+                                    const required = Array.from(form.querySelectorAll('[required]'));
+                                    const emptyRequired = required.find(function (field) {
+                                        return !String(field.value || '').trim();
+                                    });
+                                    if (emptyRequired) {
+                                        updateRequiredFieldState(true);
+                                        emptyRequired.focus();
+                                    } else if (!emailIsValid()) {
+                                        updateEmailFieldState(true);
+                                        const emailInput = form.querySelector('input[name="guest_email"]');
+                                        if (emailInput) {
+                                            emailInput.focus();
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initHotelRoomDetailPage);
+                } else {
+                    initHotelRoomDetailPage();
+                }
+            </script>
+        </t>
+    </template>
+
+    <template id="hotel_booking_confirmation" name="Hotel Booking Confirmation">
+        <t t-call="website.layout">
+            <div id="wrap" class="hotel-website">
+                <section class="hotel-detail-band">
+                    <div class="hotel-shell hotel-payment-shell">
+                        <div class="hotel-payment-panel">
+                            <h1>Reservation Confirmed</h1>
+                            <p class="hotel-detail-description">
+                                Thank you. Reservation <strong><t t-out="reservation.name"/></strong> is confirmed.
+                            </p>
+                            <div class="hotel-payment-summary">
+                                <div>
+                                    <span>Status</span>
+                                    <strong><t t-out="reservation.state"/></strong>
+                                </div>
+                                <div>
+                                    <span>Deposit</span>
+                                    <strong><t t-out="currency.symbol or ''"/><t t-out="'%0.2f' % (deposit_amount or 0.0)"/></strong>
+                                </div>
+                                <div>
+                                    <span>Payment</span>
+                                    <strong><t t-out="payment_status"/></strong>
+                                </div>
+                            </div>
+                            <a class="hotel-payment-back" href="/hotel">Back to rooms</a>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </t>
+    </template>
+
+    <template id="hotel_booking_basket" name="Hotel Booking Basket">
+        <t t-call="website.layout">
+            <div id="wrap" class="hotel-website">
+                <section class="hotel-detail-band">
+                    <div class="hotel-shell hotel-payment-shell">
+                        <div class="hotel-payment-panel">
+                            <h1>My Bookings</h1>
+                            <p class="hotel-detail-description">Review your booking requests and history.</p>
+                            <t t-if="not reservations">
+                                <div class="hotel-empty">No room booking requests yet.</div>
+                                <a class="hotel-payment-back" href="/hotel#rooms">Browse rooms</a>
+                            </t>
+                            <t t-foreach="reservations" t-as="reservation">
+                                <div class="hotel-payment-summary mb-3">
+                                    <div>
+                                        <span>Reservation</span>
+                                        <strong><t t-out="reservation.name"/></strong>
+                                    </div>
+                                    <div>
+                                        <span>Room</span>
+                                        <strong><t t-out="reservation.room_type_id.name or reservation.room_id.name"/></strong>
+                                    </div>
+                                    <div>
+                                        <span>Stay</span>
+                                        <strong><t t-out="reservation.checkin_date"/> - <t t-out="reservation.checkout_date"/></strong>
+                                    </div>
+                                    <div>
+                                        <span>Status</span>
+                                        <strong t-field="reservation.state"/>
+                                    </div>
+                                </div>
+                                <a t-if="reservation.access_token"
+                                   class="hotel-payment-back"
+                                   t-att-href="'/hotel/confirmation/%s' % reservation.access_token">View booking</a>
+                            </t>
+                            <a class="hotel-payment-back" href="/hotel#rooms">Continue booking rooms</a>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </t>
+    </template>
+
+    <record id="menu_hotel_website_booking" model="website.menu">
+        <field name="name">Rooms</field>
+        <field name="url">/hotel</field>
+        <field name="sequence" eval="20"/>
+    </record>
+</odoo>

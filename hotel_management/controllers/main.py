@@ -393,7 +393,7 @@ class HotelCustomerPortal(CustomerPortal):
     # =========================================================
     # MAGIC LINK PORTAL (Passwordless access for Guests) - RESTORED!
     # =========================================================
-    @http.route(['/hotel/reservation/<int:res_id>'], type='http', auth="public", website=True)
+    @http.route(['/hotel/reservation/<int:res_id>'], type='http', auth="none")
     def portal_magic_link_reservation(self, res_id, access_token=None, db=None, success=None, **kw):
         ensure_db(db=db)
         db_name = request.session.db or db or request.env.cr.dbname
@@ -597,4 +597,6 @@ class HotelCustomerPortal(CustomerPortal):
 
     @http.route(['/hotel/guest_messages/unread_count'], type='jsonrpc', auth="user")
     def guest_message_unread_count(self, **kw):
+        if not request.env.user.has_group('hotel_management.group_hotel_front_office'):
+            return {'count': 0, 'latest_message_id': False, 'has_unread': False, 'allowed': False}
         return request.env['hotel.guest.message'].get_unread_status()

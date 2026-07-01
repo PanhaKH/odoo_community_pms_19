@@ -3,13 +3,15 @@
     
     <menuitem id="menu_housekeeping_app_root"
               name="Housekeeping"
-              sequence="5"/>
+              sequence="5"
+              groups="hotel_management.group_hotel_housekeeper,hotel_housekeeping_app.group_housekeeping_user,hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
 
     <menuitem id="menu_duty_clean"
               name="Duty Clean"
               parent="menu_housekeeping_app_root"
               sequence="10"
-              action="hotel_management.action_hotel_housekeeping_mobile"/>
+              action="hotel_management.action_hotel_housekeeping_mobile"
+              groups="hotel_management.group_hotel_housekeeper,hotel_housekeeping_app.group_housekeeping_user,hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
 
     <menuitem id="menu_supervisor_inspection_mobile"
               name="Supervisor Inspection Mobile"
@@ -29,6 +31,7 @@
               name="Minibar Post"
               parent="menu_housekeeping_app_root"
               sequence="20"
-              action="hotel_management.action_hotel_minibar_mobile"/>
+              action="hotel_management.action_hotel_minibar_mobile"
+              groups="hotel_management.group_hotel_housekeeper,hotel_housekeeping_app.group_housekeeping_user,hotel_housekeeping_app.group_housekeeping_supervisor,hotel_housekeeping_app.group_housekeeping_manager,base.group_system"/>
 
 </odoo>

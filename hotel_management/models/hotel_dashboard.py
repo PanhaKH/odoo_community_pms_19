@@ -1,6 +1,8 @@
 ﻿from odoo import models, fields, api, _
 from datetime import timedelta
 
+from lxml import etree
+
 class ResCompanyHotel(models.Model):
     _inherit = 'res.company'
     
@@ -79,7 +81,7 @@ class HotelDashboard(models.Model):
     inhouse_collected = fields.Float(string="In-House Collected (Paid)", readonly=True)
     
     today_invoiced = fields.Float(string="Today's Invoices (Issued)", readonly=True)
-    today_collected = fields.Float(string="Today's Receipts (Collected)", readonly=True)
+    today_collected = fields.Float(string="Today's Net Receipts", readonly=True)
 
     # --- GUEST SERVICE ALERTS ---
     req_upcoming = fields.Integer(string="Upcoming Alerts", readonly=True)
@@ -106,9 +108,10 @@ class HotelDashboard(models.Model):
 
     def _compute_repeat_guests(self):
         for rec in self:
-            arriving = rec._get_repeat_reservations('arriving_today')
-            inhouse = rec._get_repeat_reservations('inhouse')
-            future = rec._get_repeat_reservations('future_booking')
+            counter_rec = rec.sudo() if rec._is_housekeeping_review_only_user() else rec
+            arriving = counter_rec._get_repeat_reservations('arriving_today')
+            inhouse = counter_rec._get_repeat_reservations('inhouse')
+            future = counter_rec._get_repeat_reservations('future_booking')
             rec.repeat_arriving_today_count = len(arriving)
             rec.repeat_inhouse_count = len(inhouse)
             rec.repeat_future_booking_count = len(future)
@@ -141,7 +144,7 @@ class HotelDashboard(models.Model):
         ]
 
     def _is_repeat_reservation(self, reservation):
-        return reservation._has_any_repeat_stay_guest()
+        return reservation._is_repeat_guest_partner(reservation.partner_id)
 
     def _get_repeat_reservations(self, bucket):
         self.ensure_one()
@@ -162,22 +165,16 @@ class HotelDashboard(models.Model):
 
     def _compute_vip_guests(self):
         for rec in self:
-            rec.vip_arriving_today_count = len(rec._get_vip_reservations('arriving_today'))
-            rec.vip_inhouse_count = len(rec._get_vip_reservations('inhouse'))
-            rec.vip_future_booking_count = len(rec._get_vip_reservations('future_booking'))
+            counter_rec = rec.sudo() if rec._is_housekeeping_review_only_user() else rec
+            rec.vip_arriving_today_count = len(counter_rec._get_vip_reservations('arriving_today'))
+            rec.vip_inhouse_count = len(counter_rec._get_vip_reservations('inhouse'))
+            rec.vip_future_booking_count = len(counter_rec._get_vip_reservations('future_booking'))
 
     def _get_vip_reservations(self, bucket):
         self.ensure_one()
         reservations = self.env['hotel.reservation'].search(self._get_repeat_base_domain(bucket))
         return reservations.filtered(
-            lambda reservation: any(
-                partner.vip_level in ('vip', 'vvip')
-                for partner in (
-                    reservation.partner_id
-                    | reservation.accompanying_guest_ids
-                    | reservation.stay_guest_ids.mapped('partner_id')
-                )
-            )
+            lambda reservation: reservation.vip_level in ('vip', 'vvip')
         )
 
     def _get_vip_guest_action(self, title, bucket):
@@ -230,11 +227,69 @@ class HotelDashboard(models.Model):
                 rec.audit_warning = False
 
     @api.model
+    def _is_housekeeping_review_only_user(self):
+        user_groups = self.env.user.all_group_ids
+
+        def has_any_group(xml_ids):
+            for xml_id in xml_ids:
+                group = self.env.ref(xml_id, raise_if_not_found=False)
+                if group and group in user_groups:
+                    return True
+            return False
+
+        housekeeping_groups = [
+            'hotel_management.group_hotel_housekeeper',
+            'hotel_housekeeping_app.group_housekeeping_user',
+            'hotel_housekeeping_app.group_housekeeping_supervisor',
+            'hotel_housekeeping_app.group_housekeeping_manager',
+        ]
+        operational_groups = [
+            'base.group_system',
+            'hotel_management.group_hotel_system_admin',
+            'hotel_management.group_hotel_manager',
+            'hotel_management.group_hotel_front_office',
+            'hotel_management.group_hotel_front_office_manager',
+            'hotel_management.group_hotel_night_auditor',
+            'hotel_management.group_hotel_account_receivable',
+        ]
+        return has_any_group(housekeeping_groups) and not has_any_group(operational_groups)
+
+    @api.model
+    def get_view(self, view_id=None, view_type='form', **options):
+        result = super().get_view(view_id=view_id, view_type=view_type, **options)
+        if view_type != 'form' or not self._is_housekeeping_review_only_user():
+            return result
+
+        doc = etree.fromstring(result['arch'])
+
+        for button in doc.xpath('//header/button | //button[@type="action"]'):
+            parent = button.getparent()
+            if parent is not None:
+                parent.remove(button)
+
+        for header in doc.xpath('//header[not(*)]'):
+            parent = header.getparent()
+            if parent is not None:
+                parent.remove(header)
+
+        for button in doc.xpath('//button[@type="object"]'):
+            button.tag = 'div'
+            for attr in ('name', 'type', 'icon', 'data-hotkey', 'special'):
+                button.attrib.pop(attr, None)
+            css_class = button.get('class', '')
+            button.set('class', f'{css_class} pe-none o_hotel_dashboard_readonly_card'.strip())
+            button.set('aria-disabled', 'true')
+            button.set('tabindex', '-1')
+
+        result['arch'] = etree.tostring(doc, encoding='unicode')
+        return result
+
+    @api.model
     def get_main_dashboard(self):
         dashboard = self.search([], limit=1)
         if not dashboard:
             dashboard = self.create({'name': 'Hotel Overview'})
-        dashboard.action_refresh() 
+        dashboard.action_refresh()
         return dashboard.id
 
     def _get_hotel_posted_receivable_invoice_domain(self, partner_ids, billing_target):
@@ -416,6 +471,9 @@ class HotelDashboard(models.Model):
         return [('id', 'in', payment_ids or [0])]
 
     def action_refresh(self):
+        if not self.env.su:
+            return self.sudo().action_refresh()
+
         company = self.env.company
         biz_date = company.hotel_business_date or fields.Date.context_today(self)
         RevenueReport = self.env['hotel.revenue.report'].sudo()
@@ -528,26 +586,29 @@ class HotelDashboard(models.Model):
                 rec.guest_ledger_display_amount = 0.0
                 rec.guest_ledger_display_label = _('Settled')
 
-            routed_company_reservations = self.env['hotel.reservation'].search([
-                ('sale_order_id', '!=', False),
-                ('state', '!=', 'cancel'),
-                ('city_ledger_id', '!=', False),
-            ])
+            # Company Pending Billing = company-routed charges not yet posted as invoice.
+            pending_company_lines = rec._get_company_pending_billing_lines()
+            rec.company_pending_billing = sum(pending_company_lines.mapped('price_total'))
 
-            # Company Pending Billing = company-routed charges not yet posted.
-            rec.company_pending_billing = sum(
-                res._get_company_pending_billing_amount() for res in routed_company_reservations
-            )
-
-            # City Ledger = posted unpaid company receivables only.
-            rec.city_ledger = sum(res._get_company_outstanding_amount() for res in routed_company_reservations)
+            # City Ledger A/R = posted company invoices not yet paid.
+            city_ledger_moves = rec._get_city_ledger_ar_moves()
+            rec.city_ledger = sum(city_ledger_moves.mapped('amount_residual'))
 
             # 7. NEW FIX: Querying the new Business Date column on Accounting!
             invoices_today = self.env['account.move'].search([('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('hotel_business_date', '=', biz_date)])
             rec.today_invoiced = sum(invoices_today.mapped('amount_total'))
 
-            payments_today = self.env['account.payment'].search([('hotel_business_date', '=', biz_date), ('state', 'in', ('in_process', 'paid')), ('payment_type', '=', 'inbound')])
-            rec.today_collected = sum(payments_today.mapped('amount'))
+            payments_today = self.env['account.payment'].search([
+                ('hotel_business_date', '=', biz_date),
+                ('state', 'in', ('in_process', 'paid')),
+                ('company_id', '=', rec.company_id.id),
+                ('hotel_reservation_id', '!=', False),
+            ])
+
+            rec.today_collected = sum(
+                abs(payment.amount) if payment.payment_type == 'inbound' else -abs(payment.amount)
+                for payment in payments_today
+            )
 
             # 8. GUEST PORTAL ALERTS
             rec.req_upcoming = self.env['hotel.service.request'].search_count([('reservation_id.state', '=', 'confirm'), ('state', 'in', ['new', 'progress'])])
@@ -643,32 +704,112 @@ class HotelDashboard(models.Model):
         return self._get_action('Desk Folio Net', 'hotel.reservation', [('id', 'in', reservation_ids or [0])])
 
     def action_view_company_pending_billing(self):
-        return self._get_action(
-            'Company Pending Billing',
-            'hotel.reservation',
-            [('state', '!=', 'cancel'), ('company_pending_billing', '>', 0)],
+        self.ensure_one()
+        pending_lines = self._get_company_pending_billing_lines()
+        pending_tree = self.env.ref(
+            'hotel_management.view_hotel_company_pending_billing_tree',
+            raise_if_not_found=False
         )
+
+        views = [(pending_tree.id, 'list'), (False, 'form')] if pending_tree else [(False, 'list'), (False, 'form')]
+
+        return {
+            'name': _('Company Pending Billing'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'sale.order.line',
+            'view_mode': 'list,form',
+            'views': views,
+            'domain': [('id', 'in', pending_lines.ids)],
+            'context': {'create': False, 'edit': False},
+        }
+
+
     def action_view_city_ledger(self):
-        action = self.env['ir.actions.actions']._for_xml_id('hotel_management.action_hotel_city_ledger_invoices')
-        action['domain'] = self._get_city_ledger_invoice_domain()
-        return action
+        self.ensure_one()
+        moves = self._get_city_ledger_ar_moves()
+
+        return {
+            'name': _('City Ledger (A/R)'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.move',
+            'view_mode': 'list,form',
+            'domain': [('id', 'in', moves.ids)],
+            'context': {
+                'create': False,
+                'default_move_type': 'out_invoice',
+            },
+        }
     
     # NEW FIX: The dashboard buttons now filter exactly by the Business Date column!
-    def action_view_today_invoices(self): return self._get_action('Today Invoices', 'account.move', [('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('hotel_business_date', '=', self._get_biz_date())])
+    def action_view_today_invoices(self):
+        action = self.env['ir.actions.actions']._for_xml_id('hotel_management.action_hotel_customer_invoices')
+        action.update({
+            'name': _("Today's Invoices"),
+            'domain': [
+                ('move_type', '=', 'out_invoice'),
+                ('state', '=', 'posted'),
+                ('hotel_business_date', '=', self._get_biz_date()),
+                '|', '|', '|', '|', '|',
+                ('hotel_folio_id.hotel_reservation_ids', '!=', False),
+                ('hotel_folio_id.hotel_group_master_ids', '!=', False),
+                ('invoice_line_ids.hotel_reservation_id', '!=', False),
+                ('invoice_line_ids.sale_line_ids.hotel_reservation_id', '!=', False),
+                ('invoice_line_ids.sale_line_ids.order_id.hotel_reservation_ids', '!=', False),
+                ('invoice_line_ids.sale_line_ids.order_id.hotel_group_master_ids', '!=', False),
+            ],
+        })
+        return action
+
+    def _get_company_pending_billing_lines(self):
+        self.ensure_one()
+        company = self.company_id or self.env.company
+
+        lines = self.env['sale.order.line'].search([
+            ('display_type', '=', False),
+            ('hotel_reservation_id', '!=', False),
+            ('hotel_reservation_id.company_id', '=', company.id),
+            ('billing_target', '=', 'company'),
+            ('order_id.state', 'in', ['sale', 'done']),
+            ('price_total', '!=', 0),
+        ])
+
+        pending_lines = self.env['sale.order.line']
+        for line in lines:
+            posted_company_invoices = line.invoice_lines.mapped('move_id').filtered(
+                lambda move: move.state == 'posted'
+                and move.move_type == 'out_invoice'
+            )
+            if not posted_company_invoices:
+                pending_lines |= line
+
+        return pending_lines
+
+    def _get_city_ledger_ar_moves(self):
+        self.ensure_one()
+        company = self.company_id or self.env.company
+        rounding = company.currency_id.rounding or 0.01
+
+        return self.env['account.move'].search([
+            ('company_id', '=', company.id),
+            ('state', '=', 'posted'),
+            ('move_type', '=', 'out_invoice'),
+            ('amount_residual', '>', rounding),
+            ('invoice_line_ids.sale_line_ids.billing_target', '=', 'company'),
+            ('invoice_line_ids.sale_line_ids.hotel_reservation_id', '!=', False),
+        ])
+
     def action_view_today_receipts(self): 
         self.ensure_one()
         receipt_tree = self.env.ref('hotel_management.view_hotel_receipt_tree', raise_if_not_found=False)
         domain = [
             ('hotel_business_date', '=', self._get_biz_date()),
             ('state', 'in', ['in_process', 'paid']),
-            ('payment_type', '=', 'inbound'),
+            ('company_id', '=', self.company_id.id),
             ('hotel_reservation_id', '!=', False),
-            ('voids_advance_deposit_payment_id', '=', False),
-            ('advance_deposit_void_payment_ids', '=', False),
         ]
         views = [(receipt_tree.id, 'list'), (False, 'form')] if receipt_tree else [(False, 'list'), (False, 'form')]
         return {
-            'name': _("Today's Receipts"),
+            'name': _("Today's Net Receipts"),
             'type': 'ir.actions.act_window',
             'res_model': 'account.payment',
             'view_mode': 'list,form',

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hotel_room_type_form_website_booking" model="ir.ui.view">
+        <field name="name">hotel.room.type.form.website.booking</field>
+        <field name="model">hotel.room.type</field>
+        <field name="inherit_id" ref="hotel_management.view_hotel_room_type_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <notebook>
+                    <page string="Website">
+                        <field name="website_gallery_image_ids">
+                            <list editable="bottom">
+                                <field name="sequence" widget="handle"/>
+                                <field name="image" widget="image"/>
+                                <field name="name"/>
+                            </list>
+                        </field>
+                        <group>
+                            <field name="website_description" widget="html"/>
+                        </group>
+                        <group string="Legacy Fallback Images" invisible="1">
+                            <field name="website_image_1" widget="image"/>
+                            <field name="website_image_2" widget="image"/>
+                            <field name="website_image_3" widget="image"/>
+                        </group>
+                    </page>
+                </notebook>
+            </xpath>
+        </field>
+    </record>
+</odoo>

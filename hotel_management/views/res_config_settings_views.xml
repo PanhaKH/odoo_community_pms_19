@@ -286,10 +286,10 @@
                             <field name="hotel_payment_instructions" widget="html"/>
                         </setting>
 
-                        <setting id="pre_arrival_automation" string="Pre-Arrival Automation" help="Number of days before check-in to email the secure pre-arrival link.">
+                        <setting id="pre_arrival_automation" string="Pre-Arrival Automation" help="Number of days before arrival to automatically send the pre-arrival link. If a reservation is confirmed within this window, the link is queued immediately.">
                             <field name="pre_arrival_days"/>
                             <div class="text-muted">
-                                Days before arrival
+                                Number of days before arrival to automatically send the pre-arrival link. If a reservation is confirmed within this window, the link is queued immediately.
                             </div>
                         </setting>
                     </block>

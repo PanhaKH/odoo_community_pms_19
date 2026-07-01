@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_product_template_form_hotel_minibar" model="ir.ui.view">
+        <field name="name">product.template.form.hotel.minibar</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <span name="sale_option" position="after">
+                <span name="minibar_option" class="d-inline-flex">
+                    <field name="is_minibar_item"/>
+                    <label for="is_minibar_item"/>
+                </span>
+            </span>
+        </field>
+    </record>
+</odoo>

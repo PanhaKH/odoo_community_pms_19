@@ -1,12 +1,16 @@
 /** @odoo-module **/
+import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
-import { Component, onWillStart, useState, xml } from "@odoo/owl";
+import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
+import { escape } from "@web/core/utils/strings";
+import { Component, markup, onWillStart, useState, xml } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 
 export class HotelFloorPlan extends Component {
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
+        this.dialogService = useService("dialog");
         this.notification = useService("notification");
         
         this.state = useState({
@@ -21,13 +25,28 @@ export class HotelFloorPlan extends Component {
             elements: [],
             connections: [], 
             bgUrl: null,
+            canManageReservations: false,
         });
 
         this.dragState = { active: false, id: null };
         onWillStart(async () => { await this.initData(); });
     }
 
+    async loadReservationAccess() {
+        try {
+            this.state.canManageReservations = !!await this.orm.call(
+                "hotel.reservation",
+                "user_can_manage_reservations",
+                []
+            );
+        } catch (error) {
+            console.warn("Reservation access check failed; using review-only mode.", error);
+            this.state.canManageReservations = false;
+        }
+    }
+
     async initData() {
+        await this.loadReservationAccess();
         const zones = await this.orm.searchRead("hotel.zone", [], ['id', 'name', 'sequence', 'pos_x', 'pos_y']);
         this.state.zones = zones.sort((a, b) => a.sequence - b.sequence);
         this.state.floors = await this.orm.searchRead("hotel.floor", [], ['id', 'display_name', 'sequence', 'zone_id']);
@@ -127,6 +146,10 @@ export class HotelFloorPlan extends Component {
     }
 
     toggleEditMode() {
+        if (!this.state.canManageReservations) {
+            this.showReviewOnlyMessage();
+            return;
+        }
         this.state.editMode = !this.state.editMode;
         if (!this.state.editMode) this.notification.add("Saved!", { type: "success" });
     }
@@ -201,24 +224,89 @@ export class HotelFloorPlan extends Component {
         await this.selectFloor(this.state.currentFloorId);
     }
     
-    onRoomClick(room) {
+    showReviewOnlyMessage() {
+        this.dialogService.add(AlertDialog, {
+            title: _t("Reservation Review Only"),
+            body: _t("Housekeeping users can review reservations only and cannot move or modify bookings."),
+        });
+    }
+
+    async showReservationSummary(model, targetId) {
+        if (model === 'hotel.room.block') {
+            const blocks = await this.orm.searchRead(
+                "hotel.room.block",
+                [["id", "=", targetId]],
+                ["name", "room_id", "date_from", "date_to", "reason"],
+                { limit: 1 }
+            );
+            const block = blocks && blocks[0];
+            if (block) {
+                this.dialogService.add(AlertDialog, {
+                    title: _t("Room Block"),
+                    body: markup(`
+                        <div><strong>${escape(block.name || _t("Room Block"))}</strong></div>
+                        <div class="mt-2">${escape(block.room_id ? block.room_id[1] : "")}</div>
+                        <div>${escape(block.date_from || "")} &rarr; ${escape(block.date_to || "")}</div>
+                        <div class="text-muted mt-2">${escape(block.reason || "")}</div>
+                    `),
+                });
+                return;
+            }
+        }
+
+        const reservations = await this.orm.searchRead(
+            "hotel.reservation",
+            [["id", "=", targetId]],
+            ["name", "partner_id", "room_id", "checkin_date", "checkout_date", "state"],
+            { limit: 1 }
+        );
+        const reservation = reservations && reservations[0];
+        if (!reservation) {
+            this.showReviewOnlyMessage();
+            return;
+        }
+        this.dialogService.add(AlertDialog, {
+            title: _t("Reservation Review Only"),
+            body: markup(`
+                <div><strong>${escape(reservation.partner_id ? reservation.partner_id[1] : reservation.name || "")}</strong></div>
+                <div class="mt-2">${escape(reservation.name || "")}</div>
+                <div>${escape(reservation.room_id ? reservation.room_id[1] : _t("Unassigned"))}</div>
+                <div>${escape(reservation.checkin_date || "")} &rarr; ${escape(reservation.checkout_date || "")}</div>
+                <div class="text-muted mt-2">${escape(_t("Housekeeping users can review reservations only and cannot move or modify bookings."))}</div>
+            `),
+        });
+    }
+
+    async onRoomClick(room) {
         if (this.state.editMode) return;
         
         let targetId = false;
-        if (room.is_blocked_today && room.block_id) targetId = room.block_id[0];
+        let targetModel = 'hotel.reservation';
+        if (room.is_blocked_today && room.block_id) {
+            targetId = room.block_id[0];
+            targetModel = 'hotel.room.block';
+        }
         else if (room.is_occupied && room.inhouse_reservation_id) targetId = room.inhouse_reservation_id[0];
         else if (room.is_arrival_today && room.arrival_reservation_id) targetId = room.arrival_reservation_id[0];
 
         if (targetId) {
+            if (!this.state.canManageReservations) {
+                await this.showReservationSummary(targetModel, targetId);
+                return;
+            }
             // OPEN EXISTING RESERVATION
             this.action.doAction({
                 type: 'ir.actions.act_window',
-                res_model: 'hotel.reservation',
+                res_model: targetModel,
                 res_id: targetId,
                 views: [[false, 'form']],
                 target: 'current'
             });
         } else {
+            if (!this.state.canManageReservations) {
+                this.showReviewOnlyMessage();
+                return;
+            }
             // OPEN NEW RESERVATION POPUP
             this.action.doAction({ 
                 type: 'ir.actions.act_window', 
@@ -257,7 +345,7 @@ HotelFloorPlan.template = xml`
                 </select>
             </div>
             <div class="d-flex">
-                <button class="btn" t-att-class="state.editMode ? 'btn-danger' : 'btn-outline-primary'" t-on-click="toggleEditMode">
+                <button t-if="state.canManageReservations" class="btn" t-att-class="state.editMode ? 'btn-danger' : 'btn-outline-primary'" t-on-click="toggleEditMode">
                     <i t-att-class="state.editMode ? 'fa fa-save' : 'fa fa-pencil'"/>
                     <t t-esc="state.editMode ? ' Save Layout' : ' Design Mode'"/>
                 </button>

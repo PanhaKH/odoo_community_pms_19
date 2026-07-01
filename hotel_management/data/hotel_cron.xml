@@ -41,5 +41,35 @@
             <field name="active" eval="True"/>
         </record>
 
+        <record id="ir_cron_send_queued_deposit_receipts" model="ir.cron">
+            <field name="name">Hotel: Send Queued Deposit Receipts</field>
+            <field name="model_id" ref="account.model_account_payment"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_send_queued_deposit_receipts()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <record id="ir_cron_send_queued_booking_confirmation_pdfs" model="ir.cron">
+            <field name="name">Hotel: Send Queued Booking Confirmations with PDF</field>
+            <field name="model_id" ref="model_hotel_reservation"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_send_queued_booking_confirmation_pdfs()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <record id="ir_cron_send_queued_pre_arrival_emails" model="ir.cron">
+            <field name="name">Hotel: Send Queued Pre-Arrival Emails</field>
+            <field name="model_id" ref="model_hotel_reservation"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_send_queued_pre_arrival_emails()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+
     </data>
 </odoo>

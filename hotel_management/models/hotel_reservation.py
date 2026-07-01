@@ -1,5 +1,5 @@
 ﻿from odoo import models, fields, api, _
-from odoo.exceptions import AccessError, ValidationError, UserError
+from odoo.exceptions import AccessError, MissingError, ValidationError, UserError
 from odoo.fields import Command
 from datetime import datetime, time, timedelta
 from markupsafe import Markup 
@@ -257,6 +257,72 @@ class HotelReservation(models.Model):
     guest_nationality_id = fields.Many2one('hotel.nationality', related='partner_id.nationality_id', readonly=False, string='Nationality')
     guest_country_id = fields.Many2one('res.country', related='partner_id.country_id', readonly=False, string='Country')
     guest_signature = fields.Binary(string='Guest Signature', attachment=True)
+    registration_staff_signature = fields.Binary(
+        string='Registration Staff Signature',
+        attachment=True,
+        copy=False,
+        readonly=True,
+    )
+    registration_signed_by_id = fields.Many2one(
+        'res.users',
+        string='Registration Signed By',
+        copy=False,
+        readonly=True,
+    )
+    registration_signed_by_name = fields.Char(
+        string='Registration Signed By Name',
+        copy=False,
+        readonly=True,
+    )
+    registration_signed_at = fields.Datetime(
+        string='Registration Signed At',
+        copy=False,
+        readonly=True,
+    )
+    tax_invoice_staff_signature = fields.Binary(
+        string='Tax Invoice Staff Signature',
+        attachment=True,
+        copy=False,
+        readonly=True,
+    )
+    tax_invoice_signed_by_id = fields.Many2one(
+        'res.users',
+        string='Tax Invoice Signed By',
+        copy=False,
+        readonly=True,
+    )
+    tax_invoice_signed_by_name = fields.Char(
+        string='Tax Invoice Signed By Name',
+        copy=False,
+        readonly=True,
+    )
+    tax_invoice_signed_at = fields.Datetime(
+        string='Tax Invoice Signed At',
+        copy=False,
+        readonly=True,
+    )
+    commercial_invoice_staff_signature = fields.Binary(
+        string='Commercial Invoice Staff Signature',
+        attachment=True,
+        copy=False,
+        readonly=True,
+    )
+    commercial_invoice_signed_by_id = fields.Many2one(
+        'res.users',
+        string='Commercial Invoice Signed By',
+        copy=False,
+        readonly=True,
+    )
+    commercial_invoice_signed_by_name = fields.Char(
+        string='Commercial Invoice Signed By Name',
+        copy=False,
+        readonly=True,
+    )
+    commercial_invoice_signed_at = fields.Datetime(
+        string='Commercial Invoice Signed At',
+        copy=False,
+        readonly=True,
+    )
     stay_guest_ids = fields.One2many('hotel.reservation.guest', 'reservation_id', string='Registered Stay Guests')
     email_audit_ids = fields.One2many('hotel.email.audit', 'reservation_id', string='Email Communication')
     stay_guest_count = fields.Integer(compute='_compute_stay_guest_count', string='Registered Guests')
@@ -309,18 +375,49 @@ class HotelReservation(models.Model):
     ], string="Relationship to Master", tracking=True)
 
     @api.model
+    def _is_housekeeping_reservation_review_user(self):
+        if self.env.su or self.env.user.has_group('base.group_system'):
+            return False
+        housekeeping_group_xmlids = (
+            'hotel_housekeeping_app.group_housekeeping_user',
+            'hotel_housekeeping_app.group_housekeeping_supervisor',
+            'hotel_housekeeping_app.group_housekeeping_manager',
+        )
+        return any(
+            self.env.user.has_group(xmlid)
+            for xmlid in housekeeping_group_xmlids
+            if self.env.ref(xmlid, raise_if_not_found=False)
+        )
+
+    @api.model
     def _has_reservation_write_access(self):
+        if self._is_housekeeping_reservation_review_user():
+            return False
         return (
             self.env.su
             or self.env.context.get('install_mode')
             or self.env.context.get('hotel_reservation_security_bypass')
             or self.env.user.has_group('hotel_management.group_hotel_front_office')
+            or self.env.user.has_group('hotel_management.group_hotel_front_office_manager')
+            or self.env.user.has_group('hotel_management.group_hotel_manager')
+            or self.env.user.has_group('base.group_system')
         )
+
+    @api.model
+    def user_can_manage_reservations(self):
+        if self._is_housekeeping_reservation_review_user():
+            return False
+        return bool(self._has_reservation_write_access())
 
     @api.model
     def _check_reservation_write_access(self, operation='modify'):
         if self._has_reservation_write_access():
             return
+
+        if self.env.user.has_group('hotel_management.group_hotel_housekeeper'):
+            raise AccessError(_(
+                "Housekeeping users can review reservations only and cannot move or modify bookings."
+            ))
 
         operation_label = {
             'create': _('create'),
@@ -330,6 +427,16 @@ class HotelReservation(models.Model):
         raise AccessError(
             _("Only Front Office can %s reservations. Housekeeping has read-only access.") % operation_label
         )
+
+    @api.model
+    def _check_reservation_movement_access(self):
+        if self._has_reservation_write_access():
+            return
+        if self.env.user.has_group('hotel_management.group_hotel_housekeeper'):
+            raise AccessError(_(
+                "Housekeeping users can review reservations only and cannot move or modify bookings."
+            ))
+        self._check_reservation_write_access('write')
 
     def _sync_room_state(self):
         """
@@ -345,7 +452,7 @@ class HotelReservation(models.Model):
             room = rec.room_id
 
             if rec.state in ['checkin', 'checkout_hold']:
-                room.write({
+                room.with_context(hotel_reservation_room_workflow=True).write({
                     'occupancy_status': 'occupied',
                     'availability_status': 'available',
                     'minibar_check_required': True,
@@ -353,7 +460,7 @@ class HotelReservation(models.Model):
                     'turndown_completed': False,
                 })
             elif rec.state == 'checkout':
-                room.write({
+                room.with_context(hotel_reservation_room_workflow=True).write({
                     'occupancy_status': 'vacant',
                     'housekeeping_status': 'dirty',
                     'availability_status': 'available',
@@ -366,7 +473,7 @@ class HotelReservation(models.Model):
                     'linen_changed': False,
                 })
             elif rec.state == 'blocked':
-                room.write({'availability_status': 'out_of_order'})
+                room.with_context(hotel_reservation_room_workflow=True).write({'availability_status': 'out_of_order'})
 
         self._reconcile_room_operational_status()
 
@@ -390,13 +497,47 @@ class HotelReservation(models.Model):
     def _get_other_active_block(self, room):
         self.ensure_one()
         biz_date = self.env.company.hotel_business_date or fields.Date.context_today(self)
-        return self.search([
+        legacy_block = self.search([
             ('id', '!=', self.id),
             ('room_id', '=', room.id),
             ('state', '=', 'blocked'),
             ('checkin_date', '<=', biz_date),
             ('checkout_date', '>', biz_date),
         ], limit=1)
+        if legacy_block:
+            return legacy_block
+        return self.env['hotel.room.block'].sudo().search([
+            ('room_id', '=', room.id),
+            ('state', '=', 'active'),
+            ('date_from', '<=', biz_date),
+            ('date_to', '>', biz_date),
+        ], limit=1)
+
+    def _get_overlapping_room_block(self, room=None, checkin_date=None, checkout_date=None):
+        self.ensure_one()
+        room = room or self.room_id
+        checkin_date = fields.Date.to_date(checkin_date or self.checkin_date)
+        checkout_date = fields.Date.to_date(checkout_date or self.checkout_date)
+        if not room or not checkin_date or not checkout_date:
+            return self.env['hotel.room.block']
+        return self.env['hotel.room.block'].sudo().search([
+            ('room_id', '=', room.id),
+            ('state', '=', 'active'),
+            ('date_from', '<', checkout_date),
+            ('date_to', '>', checkin_date),
+        ], limit=1)
+
+    def _get_room_block_message(self, block):
+        self.ensure_one()
+        reason = _("maintenance") if block.source == 'maintenance' else _("room block")
+        return _(
+            "Room %(room)s is blocked for %(reason)s from %(date_from)s to %(date_to)s."
+        ) % {
+            'room': block.room_id.display_name,
+            'reason': reason,
+            'date_from': fields.Date.to_string(block.date_from),
+            'date_to': fields.Date.to_string(block.date_to),
+        }
 
     @api.constrains('city_ledger_id', 'billing_routing')
     def _check_city_ledger_routing_logic(self):
@@ -423,20 +564,24 @@ class HotelReservation(models.Model):
 
     def _compute_repeat_guest_status(self):
         for rec in self:
-            rec.is_repeat_guest = rec._is_repeat_guest_partner(rec.partner_id)
+            rec.is_repeat_guest = rec._get_partner_visit_count(rec.partner_id) > 1
 
     def _search_is_repeat_guest(self, operator, value):
         reservations = self.search([
             ('partner_id', '!=', False),
             ('state', 'not in', ['cancel', 'noshow', 'blocked']),
             ('is_desk_folio', '=', False),
-        ]).filtered(lambda reservation: reservation._is_repeat_guest_partner(reservation.partner_id))
-        is_positive = (operator in ('=', '==') and value) or (operator in ('!=', '<>') and not value)
+        ]).filtered(lambda reservation: reservation._get_partner_visit_count(reservation.partner_id) > 1)
+        is_positive = (
+            (operator in ('=', '==') and value)
+            or (operator in ('!=', '<>') and not value)
+            or (operator == 'in' and True in value)
+        )
         return [('id', 'in' if is_positive else 'not in', reservations.ids or [0])]
 
     accompanying_guest_ids = fields.Many2many('res.partner', string="Accompanying Guests")
-    partner_phone = fields.Char(related='partner_id.phone', string="Phone", readonly=True)
-    partner_email = fields.Char(related='partner_id.email', string="Email", readonly=True)
+    partner_phone = fields.Char(related='partner_id.phone', string="Phone", readonly=False)
+    partner_email = fields.Char(related='partner_id.email', string="Email", readonly=False)
     reference = fields.Char(string="Reference", help="External booking reference.")
     group_id = fields.Many2one('hotel.group.master', string="Group Block", readonly=True, ondelete='set null')
     rate_plan_id = fields.Many2one('hotel.rate.plan', string='Master Rate Plan')
@@ -581,8 +726,9 @@ class HotelReservation(models.Model):
             if not rec.sale_order_id:
                 rec.folio_invoice_status = 'none'
             else:
-                invoices = rec.sale_order_id.invoice_ids.filtered(lambda inv: inv.move_type == 'out_invoice')
-                billable_lines = rec.sale_order_id.order_line.filtered(lambda line: not line.display_type)
+                order = rec.sale_order_id.sudo()
+                invoices = order.invoice_ids.filtered(lambda inv: inv.move_type == 'out_invoice')
+                billable_lines = order.order_line.filtered(lambda line: not line.display_type)
                 invoiceable_lines = billable_lines.filtered(lambda line: line.qty_to_invoice > 0)
 
                 if invoiceable_lines:
@@ -623,8 +769,9 @@ class HotelReservation(models.Model):
                 rec.desk_folio_status = 'draft'
                 continue
 
-            billable_lines = rec.sale_order_id.order_line.filtered(lambda line: not line.display_type)
-            customer_invoices = rec._get_folio_customer_invoices()
+            order = rec.sale_order_id.sudo()
+            billable_lines = order.order_line.filtered(lambda line: not line.display_type)
+            customer_invoices = rec.sudo()._get_folio_customer_invoices()
             invoiceable_lines = billable_lines.filtered(lambda line: line.qty_to_invoice > 0)
 
             if not customer_invoices:
@@ -658,12 +805,29 @@ class HotelReservation(models.Model):
         'deposit_application_line_ids.is_advance_deposit_application',
         'deposit_application_line_ids.price_total',
         'deposit_application_line_ids.move_id.state',
+        'sale_order_id.invoice_ids.payment_state',
+        'sale_order_id.invoice_ids.state',
+        'guest_credit_balance',
     )
     def _compute_can_void_deposit(self):
         for rec in self:
+            if not (
+                rec.env.su
+                or rec.env.user.has_group('hotel_management.group_hotel_front_office_manager')
+                or rec.env.user.has_group('hotel_management.group_hotel_manager')
+                or rec.env.user.has_group('account.group_account_manager')
+                or rec.env.user.has_group('base.group_system')
+                or rec.env.user.has_group('hotel_management.group_hotel_night_auditor')
+            ):
+                rec.can_void_deposit = False
+                continue
+            calc_rec = rec.sudo()
+            rounding = calc_rec.currency_id.rounding or 0.01
             rec.can_void_deposit = bool(
-                rec._get_voidable_deposit_invoices()
-                or rec._get_voidable_advance_deposit_payments()
+                calc_rec._get_voidable_deposit_invoices()
+                or calc_rec._get_voidable_advance_deposit_payments()
+                or calc_rec._get_operational_advance_deposit_credit_amount() > rounding
+                or calc_rec.guest_credit_balance > rounding
             )
 
     @api.depends('is_desk_folio', 'folio_type', 'state', 'folio_paid', 'folio_total', 'total_amount')
@@ -853,11 +1017,119 @@ class HotelReservation(models.Model):
         ('cancel', 'Cancelled'),
         ('blocked', 'Maintenance Block'), 
     ], string='Status', default='draft', tracking=True)
+    is_business_arrival_today = fields.Boolean(
+        string="Business Arrival Today",
+        compute='_compute_business_today_flags',
+        search='_search_is_business_arrival_today',
+    )
+    is_business_departure_today = fields.Boolean(
+        string="Business Departure Today",
+        compute='_compute_business_today_flags',
+        search='_search_is_business_departure_today',
+    )
+    is_business_stayover_today = fields.Boolean(
+        string="Business Stayover Today",
+        compute='_compute_business_today_flags',
+        search='_search_is_business_stayover_today',
+    )
     no_show_datetime = fields.Datetime(string="No-Show Date/Time", copy=False, readonly=True)
     no_show_source = fields.Selection([
         ('auto', 'Automatic'),
         ('manual', 'Manual'),
     ], string="No-Show Source", copy=False, readonly=True)
+
+    @api.model
+    def _get_hotel_business_date(self):
+        return self.env.company.hotel_business_date or fields.Date.context_today(self)
+
+    @api.model
+    def get_hotel_business_date_for_ui(self):
+        business_date = self._get_hotel_business_date()
+        return fields.Date.to_string(business_date)
+
+    @api.model
+    def _business_arrival_today_domain(self):
+        biz_date = self._get_hotel_business_date()
+        return [
+            ('checkin_date', '=', biz_date),
+            ('state', '=', 'confirm'),
+            ('is_desk_folio', '=', False),
+        ]
+
+    @api.model
+    def _business_departure_today_domain(self):
+        biz_date = self._get_hotel_business_date()
+        return [
+            ('checkout_date', '=', biz_date),
+            ('state', 'in', ['checkin', 'checkout_hold']),
+            ('is_desk_folio', '=', False),
+        ]
+
+    @api.model
+    def _business_stayover_today_domain(self):
+        biz_date = self._get_hotel_business_date()
+        return [
+            ('checkin_date', '<=', biz_date),
+            ('checkout_date', '>', biz_date),
+            ('state', 'in', ['checkin', 'confirm']),
+            ('is_desk_folio', '=', False),
+        ]
+
+    def _compute_business_today_flags(self):
+        biz_date = self._get_hotel_business_date()
+        for rec in self:
+            rec.is_business_arrival_today = (
+                rec.checkin_date == biz_date
+                and rec.state == 'confirm'
+                and not rec.is_desk_folio
+            )
+            rec.is_business_departure_today = (
+                rec.checkout_date == biz_date
+                and rec.state in ['checkin', 'checkout_hold']
+                and not rec.is_desk_folio
+            )
+            rec.is_business_stayover_today = (
+                rec.checkin_date
+                and rec.checkout_date
+                and rec.checkin_date <= biz_date
+                and rec.checkout_date > biz_date
+                and rec.state in ['checkin', 'confirm']
+                and not rec.is_desk_folio
+            )
+
+    @api.model
+    def _business_today_search_domain(self, operator, value, domain):
+        positive = (operator in ('=', '==') and bool(value)) or (operator == '!=' and not bool(value))
+        negative = (operator in ('=', '==') and not bool(value)) or (operator == '!=' and bool(value))
+        if positive:
+            return domain
+        if negative:
+            return list(~fields.Domain(domain))
+        raise UserError(_("Unsupported operator for business-date filter: %s") % operator)
+
+    @api.model
+    def _search_is_business_arrival_today(self, operator, value):
+        return self._business_today_search_domain(
+            operator,
+            value,
+            self._business_arrival_today_domain(),
+        )
+
+    @api.model
+    def _search_is_business_departure_today(self, operator, value):
+        return self._business_today_search_domain(
+            operator,
+            value,
+            self._business_departure_today_domain(),
+        )
+
+    @api.model
+    def _search_is_business_stayover_today(self, operator, value):
+        return self._business_today_search_domain(
+            operator,
+            value,
+            self._business_stayover_today_domain(),
+        )
 
     udf_label_1 = fields.Char(related='company_id.hotel_udf_label_1')
     udf_value_1 = fields.Many2one('hotel.guest.attribute', domain="[('udf_number', '=', '1')]")
@@ -956,9 +1228,9 @@ class HotelReservation(models.Model):
             ])
 
     def _compute_folio_count(self):
-        Order = self.env['sale.order']
+        Order = self.env['sale.order'].sudo()
         for rec in self:
-            orders = rec.sale_order_id | Order.search([
+            orders = rec.sale_order_id.sudo() | Order.search([
                 ('hotel_reservation_ids', 'in', rec.id),
             ])
             rec.folio_count = len(orders.exists())
@@ -985,6 +1257,9 @@ class HotelReservation(models.Model):
         'sale_order_id.invoice_ids.invoice_line_ids.price_total',
         'sale_order_id.invoice_ids.invoice_line_ids.display_type',
         'sale_order_id.invoice_ids.invoice_line_ids.is_advance_deposit_application',
+        'sale_order_id.invoice_ids.reversal_move_ids.state',
+        'sale_order_id.invoice_ids.reversal_move_ids.payment_state',
+        'sale_order_id.invoice_ids.reversal_move_ids.amount_residual',
         'deposit_invoice_ids.state',
         'deposit_invoice_ids.payment_state',
         'deposit_invoice_ids.amount_residual',
@@ -1006,14 +1281,15 @@ class HotelReservation(models.Model):
             # Operational PMS balance is always transaction based:
             # guest debit activity minus real credits. Invoice documents only
             # change invoice status; they do not pay the folio.
-            position = rec._get_operational_folio_position()
+            calc_rec = rec.sudo()
+            position = calc_rec._get_operational_folio_position()
             rec.folio_total = position['folio_total_debit']
             rec.folio_paid = position['folio_total_credit']
-            rec.deposit_balance = rec._get_deposit_balance_amount()
+            rec.deposit_balance = calc_rec._get_deposit_balance_amount()
             rec.guest_total_charges = position['folio_total_debit']
             rec.guest_tax_included_amount = position['folio_total_debit']
             rec.advance_deposit_credit = position['deposit_credit']
-            rec.remaining_deposit_available = rec._get_operational_advance_deposit_credit_amount()
+            rec.remaining_deposit_available = calc_rec._get_operational_advance_deposit_credit_amount()
             rec.guest_invoice_payments = position['payments_received']
             rec.guest_deposit_paid_total = position['folio_total_credit']
             rec.guest_balance_due = position['balance_due']
@@ -1027,8 +1303,37 @@ class HotelReservation(models.Model):
             else:
                 rec.guest_balance_button_label = _('Settled')
             rec.folio_balance = rec.guest_balance_due
-            rec.company_pending_billing = rec._get_company_pending_billing_amount()
-            rec.company_city_ledger_ar = rec._get_company_outstanding_amount()
+            rec.company_pending_billing = calc_rec._get_company_pending_billing_amount()
+            rec.company_city_ledger_ar = calc_rec._get_company_outstanding_amount()
+
+    def _refresh_operational_folio_status(self):
+        """Recompute stored folio balance fields after posting-journal-only activity."""
+        records = self.exists()
+        if not records:
+            return
+        field_names = [
+            'folio_total',
+            'folio_paid',
+            'folio_balance',
+            'deposit_balance',
+            'guest_total_charges',
+            'guest_tax_included_amount',
+            'advance_deposit_credit',
+            'remaining_deposit_available',
+            'guest_invoice_payments',
+            'guest_deposit_paid_total',
+            'guest_balance_due',
+            'guest_net_position',
+            'guest_credit_balance',
+            'guest_balance_button_amount',
+            'guest_balance_button_label',
+            'company_pending_billing',
+            'company_city_ledger_ar',
+        ]
+        for field_name in field_names:
+            records.env.add_to_compute(records._fields[field_name], records)
+        records._recompute_recordset(field_names)
+        records.flush_recordset(field_names)
 
     @api.depends('checkin_date', 'checkout_date')
     def _compute_duration(self):
@@ -1113,6 +1418,14 @@ class HotelReservation(models.Model):
                 booked_room_ids = conflicts.mapped('room_id').ids
 
                 rooms = rooms.filtered(lambda r: r.id not in booked_room_ids)
+                room_blocks = self.env['hotel.room.block'].sudo().search([
+                    ('room_id', 'in', rooms.ids),
+                    ('state', '=', 'active'),
+                    ('date_from', '<', rec.checkout_date),
+                    ('date_to', '>', rec.checkin_date),
+                ])
+                blocked_room_ids = room_blocks.mapped('room_id').ids
+                rooms = rooms.filtered(lambda r: r.id not in blocked_room_ids)
 
             rec.available_room_ids = rooms
 
@@ -1381,6 +1694,14 @@ class HotelReservation(models.Model):
             conflicts = self.env['hotel.reservation'].search(conflict_domain)
             blocked_room_ids = conflicts.mapped('room_id').ids
             rooms = rooms.filtered(lambda r: r.id not in blocked_room_ids)
+            room_blocks = self.env['hotel.room.block'].sudo().search([
+                ('room_id', 'in', rooms.ids),
+                ('state', '=', 'active'),
+                ('date_from', '<', self.checkout_date),
+                ('date_to', '>', self.checkin_date),
+            ])
+            blocked_room_ids = room_blocks.mapped('room_id').ids
+            rooms = rooms.filtered(lambda r: r.id not in blocked_room_ids)
 
         # Step 3: for future booking, trust reservation overlap/block logic first.
         # Do NOT exclude a room just because it is occupied today.
@@ -1476,6 +1797,16 @@ class HotelReservation(models.Model):
             if rec._origin and rec._origin.id:
                 domain.append(('id', '!=', rec._origin.id))
 
+            block = rec._get_overlapping_room_block()
+            if block:
+                rec.room_id = False
+                return {
+                    'warning': {
+                        'title': "Room Not Available",
+                        'message': rec._get_room_block_message(block),
+                    }
+                }
+
             conflict = self.env['hotel.reservation'].search(domain, limit=1)
 
             if conflict:
@@ -1508,6 +1839,10 @@ class HotelReservation(models.Model):
 
             if rec.id:
                 domain.append(('id', '!=', rec.id))
+
+            block = rec._get_overlapping_room_block()
+            if block:
+                raise ValidationError(rec._get_room_block_message(block))
 
             conflict = self.search(domain, limit=1)
 
@@ -1585,14 +1920,34 @@ class HotelReservation(models.Model):
     def _get_folio_customer_invoices(self):
         self.ensure_one()
         if not self.sale_order_id:
-            return self.env['account.move']
-        return self.sale_order_id.invoice_ids.filtered(
+            return self.env['account.move'].sudo()
+        return self.sudo().sale_order_id.invoice_ids.filtered(
             lambda inv: inv.move_type == 'out_invoice' and inv.state != 'cancel'
+        )
+
+    def _is_invoice_linked_to_reservation_folio(self, invoice):
+        self.ensure_one()
+        invoice = invoice.sudo()
+        if invoice.move_type not in ('out_invoice', 'out_refund'):
+            return False
+        if invoice.hotel_folio_id and invoice.hotel_folio_id.id == self.sale_order_id.id:
+            return True
+        invoice_lines = invoice.invoice_line_ids
+        if invoice_lines.filtered(lambda line: line.hotel_reservation_id.id == self.id):
+            return True
+        sale_lines = invoice_lines.mapped('sale_line_ids')
+        return bool(
+            sale_lines.filtered(
+                lambda line: line.hotel_reservation_id.id == self.id
+                or line.order_id.id == self.sale_order_id.id
+            )
         )
 
     def _get_deposit_customer_invoices(self):
         self.ensure_one()
-        return (self.deposit_invoice_ids | self.env['account.move'].search([
+        Move = self.env['account.move'].sudo()
+        reservation = self.sudo()
+        return (reservation.deposit_invoice_ids | Move.search([
             ('invoice_origin', '=', self.name),
             ('move_type', '=', 'out_invoice'),
             ('state', '!=', 'cancel'),
@@ -1616,14 +1971,27 @@ class HotelReservation(models.Model):
 
     def _get_posted_advance_deposit_amount(self):
         self.ensure_one()
-        return sum(
+
+        payment_total = sum(
             pay.amount if pay.payment_type == 'inbound' else -pay.amount
             for pay in self._get_advance_deposit_payments(posted_only=True)
         )
 
+        transfer_entries = self.env['hotel.posting.journal'].search([
+            ('reservation_id', '=', self.id),
+            ('journal_type', '=', 'payment'),
+            '|',
+            ('description', 'ilike', 'Deposit Transfer Out%'),
+            ('description', 'ilike', 'Deposit Transfer In%'),
+        ])
+
+        transfer_total = sum(-entry.amount for entry in transfer_entries)
+
+        return payment_total + transfer_total
+
     def _get_active_advance_deposit_application_lines(self):
         self.ensure_one()
-        return self.deposit_application_line_ids.filtered(
+        return self.sudo().deposit_application_line_ids.filtered(
             lambda line: (
                 line.is_advance_deposit_application
                 and line.move_id.state != 'cancel'
@@ -1733,10 +2101,12 @@ class HotelReservation(models.Model):
         if (
             self.env.su
             or self.env.user.has_group('hotel_management.group_hotel_manager')
+            or self.env.user.has_group('hotel_management.group_hotel_front_office_manager')
             or self.env.user.has_group('account.group_account_manager')
+            or self.env.user.has_group('hotel_management.group_hotel_night_auditor')
         ):
             return
-        raise AccessError(_("Only Hotel Managers or Accounting Managers can void deposits."))
+        raise AccessError(_("Only Front Office Managers, Hotel Managers, or Accounting Managers can settle deposits."))
 
     def _get_linked_deposit_order_lines(self, deposit_invoice):
         self.ensure_one()
@@ -2049,18 +2419,37 @@ class HotelReservation(models.Model):
 
     def _get_operational_payment_credit_amount(self, billing_target='guest'):
         self.ensure_one()
-        invoices = self._get_routed_folio_invoices(billing_target).filtered(
-            lambda inv: inv.move_type == 'out_invoice' and inv.state == 'posted'
+        all_folio_invoices = self._get_routed_folio_invoices(billing_target)
+
+        # Count payments on normal invoices (out_invoice)
+        invoices = all_folio_invoices.filtered(
+            lambda inv: inv.move_type == 'out_invoice' and inv.state in ('posted', 'draft')
         )
         payments = self.env['account.payment']
         for invoice in invoices:
             payments |= invoice._get_reconciled_payments().filtered(
                 lambda pay: pay.state in ('in_process', 'paid') and not pay.is_advance_deposit
             )
-        return sum(
+        inbound_total = sum(
             payment.amount if payment.payment_type == 'inbound' else -payment.amount
             for payment in payments
         )
+
+        # Subtract payments on credit notes (out_refund) linked to folio invoices
+        credit_notes = self.sale_order_id.invoice_ids.filtered(
+            lambda inv: inv.move_type == 'out_refund' and inv.state == 'posted'
+        ) if self.sale_order_id else self.env['account.move']
+        refund_payments = self.env['account.payment']
+        for cn in credit_notes:
+            refund_payments |= cn._get_reconciled_payments().filtered(
+                lambda pay: pay.state in ('in_process', 'paid')
+            )
+        refund_total = sum(
+            pay.amount if pay.payment_type == 'outbound' else -pay.amount
+            for pay in refund_payments
+        )
+
+        return inbound_total - refund_total
 
     def _get_operational_folio_position(self, billing_target='guest'):
         self.ensure_one()
@@ -2261,12 +2650,17 @@ class HotelReservation(models.Model):
                 if rec.city_ledger_id and (rec.is_desk_folio or rec.billing_routing == 'master_all'):
                     target_partner = rec.city_ledger_id.id
 
-                order = self.env['sale.order'].create({
+                SaleOrder = self.env['sale.order']
+                order_vals = {
                     'partner_id': target_partner,
                     'reference': f"{'Desk Folio' if rec.is_desk_folio else 'Stay'}: {rec.name}",
                     # Keep sale.order on normal sale states; never leak reservation lifecycle states.
                     'date_order': rec._get_hotel_business_datetime(),
-                })
+                    'hotel_reservation_ids': [(4, rec.id)],
+                }
+                if 'quotation_document_ids' in SaleOrder._fields:
+                    order_vals['quotation_document_ids'] = [(6, 0, [])]
+                order = SaleOrder.create(order_vals)
                 order = rec._ensure_folio_order_ready(order)
 
                 rec.sale_order_id = order.id
@@ -2283,43 +2677,27 @@ class HotelReservation(models.Model):
                 
             template = self.env.ref('hotel_management.email_template_hotel_reservation_confirm', raise_if_not_found=False)
             if template and rec.partner_email:
-                attachment = False
-                email_values = {}
-                if rec.company_id.hotel_deposit_required and rec.company_id.hotel_attach_confirmation_pdf_to_booking_email:
-                    try:
-                        pdf_content, _content_type = self.env['ir.actions.report'].sudo()._render_qweb_pdf(
-                            'hotel_management.action_report_reservation_confirmation',
-                            res_ids=rec.id,
-                        )
-                        attachment = self.env['ir.attachment'].sudo().create({
-                            'name': 'Reservation_Confirmation_%s.pdf' % (rec.name or rec.id),
-                            'type': 'binary',
-                            'datas': base64.b64encode(pdf_content),
-                            'res_model': 'hotel.reservation',
-                            'res_id': rec.id,
-                            'mimetype': 'application/pdf',
-                        })
-                        email_values['attachment_ids'] = [(4, attachment.id)]
-                    except Exception as error:
-                        _logger.exception("Reservation confirmation PDF attachment failed for reservation_id=%s", rec.id)
-                        rec.message_post(
-                            body=_("Booking Confirmation PDF attachment failed: %s") % str(error),
-                            subtype_xmlid='mail.mt_note',
-                        )
-
-                mail_id = template.send_mail(rec.id, force_send=True, email_values=email_values)
                 email_body = template._render_field('body_html', [rec.id])[rec.id]
-                rec._create_email_audit(
-                    'booking_confirmation',
-                    rec.partner_email,
-                    'sent',
-                    template._render_field('subject', [rec.id])[rec.id],
-                    mail=self.env['mail.mail'].sudo().browse(mail_id).exists(),
-                    attachment=attachment,
-                )
+                subject = template._render_field('subject', [rec.id])[rec.id]
+                if rec.company_id.hotel_deposit_required and rec.company_id.hotel_attach_confirmation_pdf_to_booking_email:
+                    rec._create_email_audit(
+                        'booking_confirmation',
+                        rec.partner_email,
+                        'queued',
+                        subject,
+                    )
+                else:
+                    mail_id = template.send_mail(rec.id, force_send=False)
+                    rec._create_email_audit(
+                        'booking_confirmation',
+                        rec.partner_email,
+                        'queued',
+                        subject,
+                        mail=self.env['mail.mail'].sudo().browse(mail_id).exists(),
+                    )
                 
                 rec.message_post(
-                    body=Markup(f"<b>Booking Confirmation Sent:</b><br/><br/>{email_body}"), 
+                    body=Markup(f"<b>Booking Confirmation email queued to guest.</b><br/><br/>{email_body}"), 
                     subtype_xmlid='mail.mt_note'
                 )
             elif not rec.partner_email:
@@ -2334,6 +2712,8 @@ class HotelReservation(models.Model):
                     body=Markup("<b>Email Skipped:</b> Guest has no email address saved!"), 
                     subtype_xmlid='mail.mt_note'
                 )
+            if rec._is_inside_pre_arrival_automation_window() and not rec._has_existing_pre_arrival_communication():
+                rec.action_send_pre_arrival_link()
 
     def action_checkin(self):
         for rec in self:
@@ -2355,7 +2735,7 @@ class HotelReservation(models.Model):
                 skip_required_checkin_validation=True,
             ).write({'state': 'checkin'})
             if rec.room_id: 
-                rec.room_id.write({
+                rec.room_id.with_context(hotel_reservation_room_workflow=True).write({
                     'occupancy_status': 'occupied',
                     'availability_status': 'available',
                     'do_not_disturb': False,
@@ -2368,6 +2748,68 @@ class HotelReservation(models.Model):
             # --- THE MISSING LINK: Automatically create the financial Folio on Check-In! ---
             if not rec.sale_order_id:
                 rec.action_create_folio()
+
+    @api.model
+    def cron_send_queued_booking_confirmation_pdfs(self, limit=20):
+        audits = self.env['hotel.email.audit'].sudo().search([
+            ('audit_type', '=', 'booking_confirmation'),
+            ('status', '=', 'queued'),
+            ('mail_id', '=', False),
+        ], order='create_date asc, id asc', limit=limit)
+        template = self.env.ref('hotel_management.email_template_hotel_reservation_confirm', raise_if_not_found=False)
+        for audit in audits:
+            reservation = audit.reservation_id.exists()
+            if not reservation or not template:
+                audit.write({
+                    'status': 'failed',
+                    'failure_reason': _("Reservation or booking confirmation template is missing."),
+                })
+                continue
+            try:
+                pdf_content, _content_type = self.env['ir.actions.report'].sudo()._render_qweb_pdf(
+                    'hotel_management.action_report_reservation_confirmation',
+                    res_ids=reservation.id,
+                )
+                attachment = self.env['ir.attachment'].sudo().create({
+                    'name': 'Reservation_Confirmation_%s.pdf' % (reservation.name or reservation.id),
+                    'type': 'binary',
+                    'datas': base64.b64encode(pdf_content),
+                    'res_model': 'hotel.reservation',
+                    'res_id': reservation.id,
+                    'mimetype': 'application/pdf',
+                })
+                mail_id = template.send_mail(
+                    reservation.id,
+                    force_send=True,
+                    email_values={'attachment_ids': [(4, attachment.id)]},
+                )
+                mail = self.env['mail.mail'].sudo().browse(mail_id).exists()
+                audit.write({
+                    'status': 'sent',
+                    'mail_id': mail.id if mail else False,
+                    'attachment_id': attachment.id,
+                    'failure_reason': False,
+                })
+                reservation.message_post(
+                    body=_("Booking Confirmation email sent to guest with PDF attachment: %s") % audit.recipient,
+                    subtype_xmlid='mail.mt_note',
+                )
+            except Exception as error:
+                _logger.exception(
+                    "Queued booking confirmation email failed for audit_id=%s reservation_id=%s",
+                    audit.id,
+                    reservation.id,
+                )
+                audit.write({
+                    'status': 'failed',
+                    'failure_reason': str(error),
+                })
+                reservation.message_post(
+                    body=_("Booking Confirmation email failed for %(email)s: %(reason)s")
+                    % {'email': audit.recipient or '-', 'reason': str(error)},
+                    subtype_xmlid='mail.mt_note',
+                )
+        return True
 
     def _validate_checkin_business_date(self):
         for rec in self:
@@ -2581,7 +3023,7 @@ class HotelReservation(models.Model):
             
             rec.write({'state': 'checkin'})
             if rec.room_id:
-                rec.room_id.write({
+                rec.room_id.with_context(hotel_reservation_room_workflow=True).write({
                     'occupancy_status': 'occupied',
                     'housekeeping_status': 'dirty',
                     'availability_status': 'available',
@@ -2599,13 +3041,24 @@ class HotelReservation(models.Model):
             if rec.state not in ['checkin', 'checkout_hold']: 
                 raise UserError(_("Only In-House or Hold guests can check out."))
             
-            outstanding_balance = rec._get_checkout_outstanding_balance()
-            if outstanding_balance > 0.01:
-                if rec.city_ledger_id and not rec.is_desk_folio:
-                    raise UserError(
-                        _("Please settle the guest-routed balance of %s before checking out. Company-routed charges can stay on City Ledger.") % outstanding_balance
-                    )
-                raise UserError(_("Please settle balance of %s before checking out.") % outstanding_balance)
+            position = rec._get_operational_folio_position()
+            net_balance = position['operational_balance']
+
+            if net_balance > 0.01:
+                raise UserError(_("Please settle balance of %s before checking out.") % net_balance)
+
+            if net_balance < -0.01:
+                return {
+                    'name': _('Deposit Settlement Required'),
+                    'type': 'ir.actions.act_window',
+                    'res_model': 'hotel.deposit.void.wizard',
+                    'view_mode': 'form',
+                    'target': 'new',
+                    'context': {
+                        'default_reservation_id': rec.id,
+                        'default_deposit_source_type': 'payment',
+                    },
+                }
             
             if rec.city_ledger_id and rec.sale_order_id:
                 guest_target_lines = rec.sale_order_id.order_line.filtered(
@@ -2618,9 +3071,9 @@ class HotelReservation(models.Model):
             if rec.checkout_date > biz_date and rec.checkin_date < biz_date:
                 rec.write({'checkout_date': biz_date})
             
-            rec.write({'state': 'checkout'})
+            rec.with_context(hotel_allow_checkout_state_write=True).write({'state': 'checkout'})
             if rec.room_id:
-                rec.room_id.write({
+                rec.room_id.with_context(hotel_reservation_room_workflow=True).write({
                     'occupancy_status': 'vacant',
                     'housekeeping_status': 'dirty',
                     'availability_status': 'available',
@@ -2635,9 +3088,13 @@ class HotelReservation(models.Model):
                 rec._create_email_audit(
                     'final_receipt',
                     rec.partner_email,
-                    'sent',
+                    'queued',
                     template._render_field('subject', [rec.id])[rec.id],
                     mail=self.env['mail.mail'].sudo().browse(mail_id).exists(),
+                )
+                rec.message_post(
+                    body=_("Final Receipt email queued to guest: %s") % rec.partner_email,
+                    subtype_xmlid='mail.mt_note',
                 )
             elif not rec.partner_email:
                 rec._create_email_audit(
@@ -2731,6 +3188,7 @@ class HotelReservation(models.Model):
 
     def _validate_room_move_target(self, new_room):
         self.ensure_one()
+        self._check_reservation_movement_access()
         if self.state not in ['checkin', 'checkout_hold']:
             raise UserError(_("Only In-House or Checkout Hold reservations can be moved from the Room Chart."))
         if not self.room_id:
@@ -2762,7 +3220,7 @@ class HotelReservation(models.Model):
             'room_id': new_room.id,
         })
 
-        old_room.write({
+        old_room.with_context(hotel_reservation_room_workflow=True).write({
             'occupancy_status': 'vacant',
             'housekeeping_status': 'dirty',
             'availability_status': 'available',
@@ -2774,7 +3232,7 @@ class HotelReservation(models.Model):
             'linen_change_required': False,
             'linen_changed': False,
         })
-        new_room.write({
+        new_room.with_context(hotel_reservation_room_workflow=True).write({
             'occupancy_status': 'occupied',
             'availability_status': 'available',
             'minibar_check_required': True,
@@ -2823,6 +3281,7 @@ class HotelReservation(models.Model):
 
     def _prepare_room_chart_drag_preview(self, target_room, target_checkin_date):
         self.ensure_one()
+        self._check_reservation_movement_access()
         biz_date = self.env.company.hotel_business_date or fields.Date.context_today(self)
 
         if self.state in ['checkin', 'checkout_hold']:
@@ -2976,7 +3435,7 @@ class HotelReservation(models.Model):
         self.ensure_one()
         return self.env.ref('hotel_management.action_report_reservation_confirmation').report_action(self)
 
-    def action_print_registration_card(self):
+    def _action_print_registration_card_report(self):
         self.ensure_one()
         self._create_email_audit(
             'registration_card',
@@ -2985,6 +3444,142 @@ class HotelReservation(models.Model):
             _("Registration Card - %s") % (self.name or ''),
         )
         return self.env.ref('hotel_management.action_report_registration_card').report_action(self)
+
+    def _snapshot_registration_staff_signature(self):
+        self.ensure_one()
+        if self.registration_staff_signature:
+            return False
+        if not self.env.user.hotel_staff_signature:
+            raise UserError(_("Please add your Staff E-Signature on your user profile before signing the Registration Card."))
+
+        self.write({
+            'registration_staff_signature': self.env.user.hotel_staff_signature,
+            'registration_signed_by_id': self.env.user.id,
+            'registration_signed_by_name': self.env.user.name,
+            'registration_signed_at': fields.Datetime.now(),
+        })
+        return True
+
+    def action_print_registration_card(self):
+        self.ensure_one()
+        if self.registration_staff_signature:
+            return self._action_print_registration_card_report()
+        view = self.env.ref('hotel_management.view_registration_card_sign_print_wizard_form')
+        return {
+            'name': _('Print Registration Card'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.registration.card.sign.print.wizard',
+            'view_mode': 'form',
+            'view_id': view.id,
+            'target': 'new',
+            'context': {
+                'default_reservation_id': self.id,
+            },
+        }
+
+    def action_sign_registration_card(self):
+        self.ensure_one()
+        if self.registration_staff_signature:
+            raise UserError(_("This Registration Card is already signed. Reprinting will keep the existing staff signature."))
+
+        self._snapshot_registration_staff_signature()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Registration Card Signed'),
+                'message': _('The Registration Card staff signature snapshot has been saved.'),
+                'type': 'success',
+                'sticky': False,
+            },
+        }
+
+    def _action_print_tax_invoice_report(self):
+        self.ensure_one()
+        return self.env.ref('hotel_management.action_report_hotel_tax_invoice').report_action(self)
+
+    def _snapshot_tax_invoice_staff_signature(self):
+        self.ensure_one()
+        if self.tax_invoice_staff_signature:
+            return False
+        if not self.env.user.hotel_staff_signature:
+            raise UserError(_("Please add your Staff E-Signature on your user profile before signing the Tax Invoice."))
+
+        self.write({
+            'tax_invoice_staff_signature': self.env.user.hotel_staff_signature,
+            'tax_invoice_signed_by_id': self.env.user.id,
+            'tax_invoice_signed_by_name': self.env.user.name,
+            'tax_invoice_signed_at': fields.Datetime.now(),
+        })
+        return True
+
+    def action_print_tax_invoice(self):
+        self.ensure_one()
+        if self.tax_invoice_staff_signature:
+            return self._action_print_tax_invoice_report()
+        view = self.env.ref('hotel_management.view_tax_invoice_sign_print_wizard_form')
+        return {
+            'name': _('Print Tax Invoice'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.tax.invoice.sign.print.wizard',
+            'view_mode': 'form',
+            'view_id': view.id,
+            'target': 'new',
+            'context': {
+                'default_reservation_id': self.id,
+            },
+        }
+
+    def _action_print_commercial_invoice_report(self):
+        self.ensure_one()
+        return self.env.ref('hotel_management.action_report_hotel_commercial_invoice').report_action(self)
+
+    def _snapshot_commercial_invoice_staff_signature(self):
+        self.ensure_one()
+        if self.commercial_invoice_staff_signature:
+            return False
+        if not self.env.user.hotel_staff_signature:
+            raise UserError(_("Please add your Staff E-Signature on your user profile before signing the Commercial Invoice."))
+
+        self.write({
+            'commercial_invoice_staff_signature': self.env.user.hotel_staff_signature,
+            'commercial_invoice_signed_by_id': self.env.user.id,
+            'commercial_invoice_signed_by_name': self.env.user.name,
+            'commercial_invoice_signed_at': fields.Datetime.now(),
+        })
+        return True
+
+    def action_print_commercial_invoice(self):
+        self.ensure_one()
+        if self.commercial_invoice_staff_signature:
+            return self._action_print_commercial_invoice_report()
+        view = self.env.ref('hotel_management.view_commercial_invoice_sign_print_wizard_form')
+        return {
+            'name': _('Print Commercial Invoice'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.commercial.invoice.sign.print.wizard',
+            'view_mode': 'form',
+            'view_id': view.id,
+            'target': 'new',
+            'context': {
+                'default_reservation_id': self.id,
+            },
+        }
+
+    def action_open_print_documents_wizard(self):
+        self.ensure_one()
+        view = self.env.ref('hotel_management.view_reservation_document_print_wizard_form')
+        return {
+            'name': _('Print Documents'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.reservation.document.print.wizard',
+            'view_mode': 'form',
+            'view_id': view.id,
+            'target': 'new',
+            'context': {
+                'default_reservation_id': self.id,
+            },
+        }
 
     def action_create_deposit(self):
         self.ensure_one()
@@ -3007,10 +3602,15 @@ class HotelReservation(models.Model):
     def action_open_void_deposit_wizard(self):
         self.ensure_one()
         self._check_deposit_void_access()
-        if not (self._get_voidable_deposit_invoices() or self._get_voidable_advance_deposit_payments()):
-            raise UserError(_("There are no voidable advance deposits on this reservation."))
+        if not (
+            self._get_voidable_deposit_invoices()
+            or self._get_voidable_advance_deposit_payments()
+            or self._get_operational_advance_deposit_credit_amount() > 0.01
+            or self.guest_credit_balance > 0.01
+        ):
+            raise UserError(_("There is no credit balance to settle on this reservation."))
         return {
-            'name': _('Void Deposit'),
+            'name': _('Deposit Settlement'),
             'type': 'ir.actions.act_window',
             'res_model': 'hotel.deposit.void.wizard',
             'view_mode': 'form',
@@ -3027,7 +3627,8 @@ class HotelReservation(models.Model):
         action.update({
             'res_id': self.sale_order_id.id,
             'view_mode': 'form',
-            'views': [(False, 'form')],
+            'views': [(self.env.ref('hotel_management.view_hotel_folio_order_form').id, 'form')],
+            'view_id': self.env.ref('hotel_management.view_hotel_folio_order_form').id,
             'target': 'current',
         })
         return action
@@ -3068,7 +3669,8 @@ class HotelReservation(models.Model):
                 'name': 'Folio',
                 'res_id': ready_orders.id,
                 'view_mode': 'form',
-                'views': [(False, 'form')],
+                'views': [(self.env.ref('hotel_management.view_hotel_folio_order_form').id, 'form')],
+                'view_id': self.env.ref('hotel_management.view_hotel_folio_order_form').id,
                 'target': 'current',
             })
             return action
@@ -3076,6 +3678,10 @@ class HotelReservation(models.Model):
         action.update({
             'name': _('Folios'),
             'view_mode': 'list,form',
+            'views': [
+                (self.env.ref('hotel_management.view_hotel_folio_order_tree').id, 'list'),
+                (self.env.ref('hotel_management.view_hotel_folio_order_form').id, 'form'),
+            ],
             'domain': [('id', 'in', ready_orders.ids)],
             'target': 'current',
         })
@@ -3083,6 +3689,16 @@ class HotelReservation(models.Model):
 
     def action_create_invoice_from_reservation(self):
         self.ensure_one()
+        user = self.env.user
+        if not (
+            user.has_group('hotel_management.group_hotel_front_office')
+            or user.has_group('hotel_management.group_hotel_front_office_manager')
+            or user.has_group('hotel_management.group_hotel_manager')
+            or user.has_group('account.group_account_manager')
+            or user.has_group('base.group_system')
+        ):
+            raise AccessError(_("You are not allowed to create invoices from reservations."))
+
         if not self.sale_order_id:
             self.action_create_folio()
         order = self._ensure_folio_order_ready(self.sale_order_id)
@@ -3125,10 +3741,19 @@ class HotelReservation(models.Model):
                     _("Please select City Ledger / Bill To company before invoicing company-routed folio lines.")
                 )
 
-            invoices = order._create_hotel_routed_invoices()
+            invoices = order.sudo()._create_hotel_routed_invoices()
+            if not (
+                user.has_group('hotel_management.group_hotel_manager')
+                or user.has_group('account.group_account_manager')
+                or user.has_group('base.group_system')
+            ):
+                return self._action_open_safe_hotel_customer_invoices(invoices, name=_("Customer Invoice"))
             return order.action_view_invoice(invoices=invoices)
 
         raise UserError(_("All folio transactions are already invoiced."))
+
+    def _action_open_safe_hotel_customer_invoices(self, invoices, name=None):
+        return invoices._action_open_hotel_safe_invoice_view(name=name)
 
     def action_view_change_logs(self):
         self.ensure_one()
@@ -3160,7 +3785,17 @@ class HotelReservation(models.Model):
 
     def action_view_invoices(self):
         self.ensure_one()
+        user = self.env.user
+        can_open_full_invoice = (
+            user.has_group('hotel_management.group_hotel_manager')
+            or user.has_group('account.group_account_manager')
+            or user.has_group('base.group_system')
+        )
+        if not (can_open_full_invoice or user.has_group('hotel_management.group_hotel_front_office')):
+            raise AccessError(_("Only Hotel Front Office, Hotel Managers, or Accounting Managers can open hotel invoice records."))
         invoices = self._get_reservation_customer_invoices()
+        if not can_open_full_invoice:
+            return self._action_open_safe_hotel_customer_invoices(invoices)
         return {
             'name': _('Invoices'),
             'type': 'ir.actions.act_window',
@@ -3272,36 +3907,52 @@ class HotelReservation(models.Model):
                     folio_billing_target='guest',
                 )
 
-            payments = rec._get_advance_deposit_payments(posted_only=True) | self.env['account.payment']
-            for invoice in rec._get_folio_customer_invoices().filtered(lambda inv: inv.state == 'posted'):
-                payments |= invoice._get_reconciled_payments()
+            payments = rec._get_advance_deposit_payments(posted_only=True).sudo()
+            posted_invoices = rec._get_folio_customer_invoices().filtered(
+                lambda inv: inv.state == 'posted' and rec._is_invoice_linked_to_reservation_folio(inv)
+            )
+            for invoice in posted_invoices:
+                payments |= invoice.sudo()._get_reconciled_payments().sudo()
 
-            for payment in payments.filtered(lambda pay: pay.state in ('in_process', 'paid')):
-                linked_invoices = payment.reconciled_invoice_ids.filtered(
-                    lambda move: move.hotel_folio_id == rec.sale_order_id
+            for payment in payments.sudo().filtered(lambda pay: pay.state in ('in_process', 'paid')):
+                linked_invoices = payment.reconciled_invoice_ids.sudo().filtered(
+                    lambda move: move.hotel_folio_id.id == rec.sale_order_id.id
+                    and rec._is_invoice_linked_to_reservation_folio(move)
                 )
+                if not (
+                    payment.hotel_reservation_id.id == rec.id
+                    or payment.folio_id.id == rec.sale_order_id.id
+                    or linked_invoices
+                ):
+                    continue
+                journal_name = payment.journal_id.name or payment.name
+                payment_type = payment.payment_type
+                payment_amount = payment.amount
+                payment_business_date = payment.hotel_business_date or payment.date or rec.company_id.hotel_business_date
+                payment_create_date = payment.create_date
+                is_advance_deposit = payment.is_advance_deposit
                 billing_target = 'guest'
                 if linked_invoices:
                     billing_target = linked_invoices[:1].hotel_billing_target or 'guest'
-                if payment.is_advance_deposit:
+                if is_advance_deposit:
                     description = (
-                        _("Advance Deposit Voided (%s)") % (payment.journal_id.name or payment.name)
-                        if payment.payment_type == 'outbound'
-                        else _("Advance Deposit Received (%s)") % (payment.journal_id.name or payment.name)
+                        _("Advance Deposit Refunded (%s)") % journal_name
+                        if payment_type == 'outbound'
+                        else _("Advance Deposit Received (%s)") % journal_name
                     )
                 else:
-                    description = _("Payment Received (%s)") % (payment.journal_id.name or payment.name)
-                amount = payment.amount if payment.payment_type == 'inbound' else -payment.amount
+                    description = _("Payment Received (%s)") % journal_name
+                amount = -payment_amount if payment_type == 'inbound' else payment_amount
                 rec._ensure_posting_journal_entry(
                     'payment',
                     description,
                     amount,
-                    payment.hotel_business_date or payment.date or rec.company_id.hotel_business_date,
-                    entry_datetime=payment.create_date,
+                    payment_business_date,
+                    entry_datetime=payment_create_date,
                     source_order=rec.sale_order_id,
                     source_payment=payment,
                     source_move=linked_invoices[:1] if linked_invoices else False,
-                    folio_billing_target='guest' if payment.is_advance_deposit else billing_target,
+                    folio_billing_target='guest' if is_advance_deposit else billing_target,
                 )
         return True
 
@@ -3515,12 +4166,13 @@ class HotelReservation(models.Model):
                 
     @api.model
     def get_availability_matrix(self, start_date_str, days=14):
+        biz_date = self.env.company.hotel_business_date or fields.Date.today()
         try: 
-            start_date = fields.Date.from_string(start_date_str) if start_date_str else fields.Date.today()
+            start_date = fields.Date.from_string(start_date_str) if start_date_str else biz_date
         except: 
-            start_date = fields.Date.today()
+            start_date = biz_date
             
-        today = fields.Date.today()
+        today = biz_date
         
         dates = []
         for i in range(days):
@@ -3531,7 +4183,9 @@ class HotelReservation(models.Model):
                 'is_today': current_date == today, 'date_obj': current_date 
             })
 
-        room_types = self.env['hotel.room.type'].search([], order='sequence, name')
+        room_types = self.env['hotel.room.type'].search([
+            ('name', '!=', 'Desk Folio'),
+        ], order='sequence, name')
         rate_plans = self.env['hotel.rate.plan'].search([('active', '=', True)])
         type_data = []
         
@@ -3566,7 +4220,14 @@ class HotelReservation(models.Model):
                 domain_type = ['|', ('room_type_id', '=', t_data['id']), '&', ('room_type_id', '=', False), ('room_id.room_type_id', '=', t_data['id'])]
                 
                 booked_count = self.env['hotel.reservation'].search_count([('state', 'in', ['draft', 'confirm', 'checkin', 'checkout_hold']), ('is_desk_folio', '=', False)] + domain_date + domain_type)
-                blocked_count = self.env['hotel.reservation'].search_count([('state', '=', 'blocked')] + domain_date + domain_type)
+                legacy_blocked_count = self.env['hotel.reservation'].search_count([('state', '=', 'blocked')] + domain_date + domain_type)
+                room_blocked_count = self.env['hotel.room.block'].sudo().search_count([
+                    ('state', '=', 'active'),
+                    ('date_from', '<=', date_str),
+                    ('date_to', '>', date_str),
+                    ('room_type_id', '=', t_data['id']),
+                ])
+                blocked_count = legacy_blocked_count + room_blocked_count
                 
                 # --- THE FIX: ONLY COUNT GROUPS THAT ARE IN 'DRAFT' ---
                 group_blocks = self.env['hotel.group.room.line'].search([
@@ -3745,6 +4406,13 @@ class HotelReservation(models.Model):
     def write(self, vals):
         if vals:
             self._check_reservation_write_access('write')
+        # SECURITY: prevent any code from bypassing checkout balance protection
+        if vals.get('state') == 'checkout' and not self.env.context.get('hotel_allow_checkout_state_write'):
+            for rec in self:
+                if rec.state != 'checkout':
+                    rec.action_checkout()
+            return True  
+          
         if self.filtered('is_desk_folio'):
             if vals.get('room_id'):
                 raise ValidationError(_("Desk Folios cannot carry a room assignment."))
@@ -4098,10 +4766,16 @@ class HotelReservation(models.Model):
             'generated_on_display': generated_on_display,
             'business_date': business_date,
             'guest_name': self.partner_id.name or '',
+            'passport': self.partner_passport or self.partner_id.passport_number or '',
+            'phone': self.partner_phone or self.partner_id.phone or '',
+            'email': self.partner_email or self.partner_id.email or '',
             'account_name': self._get_hotel_document_account_name(),
             'bill_to_name': self.city_ledger_id.name if self.city_ledger_id else '',
             'room_type_name': self.room_type_id.name or '',
             'room_name': self.room_id.name or '',
+            'checkin_date_display': self.checkin_date.strftime('%m/%d/%Y') if self.checkin_date else '',
+            'checkout_date_display': self.checkout_date.strftime('%m/%d/%Y') if self.checkout_date else '',
+            'status_display': dict(self._fields['state'].selection).get(self.state, self.state or ''),
             'nightly_lines': nightly_lines,
             'tax_summary': sorted(tax_summary.items(), key=lambda item: item[0]),
             'untaxed_total': untaxed_total,
@@ -4324,7 +4998,7 @@ class HotelReservation(models.Model):
                 'message': "No room rate was found for this business date.",
             }
 
-        new_line = self.env['sale.order.line'].create({
+        new_line = self.env['sale.order.line'].with_context(skip_procurement=True).create({
             'order_id': target_order.id,
             'product_id': product.id,
             'name': daily_line.description if daily_line else self._get_night_audit_charge_line_name(business_date),
@@ -4438,8 +5112,45 @@ class HotelReservation(models.Model):
             if not res.access_token:
                 res.access_token = str(uuid.uuid4())
 
+    def _is_inside_pre_arrival_automation_window(self):
+        self.ensure_one()
+        if not self.checkin_date:
+            return False
+        days = max(self.company_id.pre_arrival_days or self.env.company.pre_arrival_days or 0, 0)
+        today = fields.Date.to_date(
+            self.company_id.hotel_business_date
+            or self.env.company.hotel_business_date
+            or fields.Date.context_today(self)
+        )
+        target_date = today + timedelta(days=days)
+        checkin_date = fields.Date.to_date(self.checkin_date)
+        return bool(checkin_date and today <= checkin_date <= target_date)
+
+    def _has_existing_pre_arrival_communication(self):
+        self.ensure_one()
+        audit = self.env['hotel.email.audit'].sudo().search_count([
+            ('reservation_id', '=', self.id),
+            ('audit_type', '=', 'pre_arrival'),
+            ('status', 'in', ['queued', 'sent', 'failed']),
+        ])
+        if audit:
+            return True
+        queued_mail = self.env['mail.mail'].sudo().search_count([
+            ('model', '=', 'hotel.reservation'),
+            ('res_id', '=', self.id),
+            ('state', 'in', ['outgoing', 'sent', 'exception']),
+            ('subject', 'ilike', 'Pre-Arrival'),
+        ])
+        return bool(queued_mail)
+
     def action_send_pre_arrival_link(self):
         self.ensure_one()
+        if self._has_existing_pre_arrival_communication():
+            self.message_post(
+                body=_("Pre-arrival email was not queued again because one already exists for this reservation."),
+                subtype_xmlid='mail.mt_note',
+            )
+            return False
         self._generate_access_token()
         link = self._get_pre_arrival_absolute_url()
         guest_email = (self.partner_email or self.partner_id.email or '').strip()
@@ -4462,7 +5173,7 @@ class HotelReservation(models.Model):
             raise UserError(message)
         
         try:
-            mail_id = template.send_mail(self.id, force_send=True)
+            mail_id = template.send_mail(self.id, force_send=False)
         except Exception as error:
             self._create_email_audit(
                 'pre_arrival',
@@ -4481,12 +5192,12 @@ class HotelReservation(models.Model):
         self._create_email_audit(
             'pre_arrival',
             guest_email,
-            'sent',
+            'queued',
             template._render_field('subject', [self.id])[self.id],
             mail=self.env['mail.mail'].sudo().browse(mail_id).exists(),
         )
         safe_message = Markup(
-            "<b>Pre-arrival email sent to %s.</b><br/>"
+            "<b>Pre-arrival email queued to guest: %s.</b><br/>"
             "Link: <a href='%s' target='_blank'>Click Here</a>"
         ) % (guest_email, link)
         self.message_post(body=safe_message, subtype_xmlid='mail.mt_note')
@@ -4495,17 +5206,125 @@ class HotelReservation(models.Model):
     @api.model
     def cron_send_pre_arrival_links(self):
         days = self.env.company.pre_arrival_days or 3
-        target_date = fields.Date.context_today(self) + timedelta(days=days)
+        today = fields.Date.context_today(self)
+        target_date = today + timedelta(days=days)
         
         reservations = self.search([
             ('state', 'in', ['draft', 'confirm']), 
-            ('checkin_date', '=', target_date),
+            ('checkin_date', '>=', today),
+            ('checkin_date', '<=', target_date),
             ('pre_arrival_sent', '=', False),
             ('partner_id.email', '!=', False) # Safely ensure the guest has an email
         ])
         
         for res in reservations:
+            if res._has_existing_pre_arrival_communication():
+                continue
             res.action_send_pre_arrival_link()
+
+    @api.model
+    def cron_send_queued_pre_arrival_emails(self, limit=50):
+        deleted_mail_audits = self.env['hotel.email.audit'].sudo().search([
+            ('audit_type', '=', 'pre_arrival'),
+            ('status', '=', 'failed'),
+            ('failure_reason', 'ilike', 'mail.mail'),
+            ('failure_reason', 'ilike', 'deleted'),
+        ], limit=limit)
+        deleted_mail_audits.write({
+            'status': 'sent',
+            'mail_id': False,
+            'failure_reason': False,
+        })
+        sent_audits = self.env['hotel.email.audit'].sudo().search([
+            ('audit_type', '=', 'pre_arrival'),
+            ('status', 'in', ['queued', 'failed']),
+            ('mail_id', '!=', False),
+            ('mail_id.state', '=', 'sent'),
+        ], limit=limit)
+        sent_audits.write({
+            'status': 'sent',
+            'failure_reason': False,
+        })
+        audits = self.env['hotel.email.audit'].sudo().search([
+            ('audit_type', '=', 'pre_arrival'),
+            ('status', '=', 'queued'),
+        ], order='create_date asc, id asc', limit=limit)
+        template = self.env.ref('hotel_management.email_template_pre_arrival', raise_if_not_found=False)
+        for audit in audits:
+            reservation = audit.reservation_id.exists()
+            try:
+                if not reservation:
+                    raise UserError(_("Reservation is missing."))
+                if not template and not audit.mail_id:
+                    raise UserError(_("Pre-arrival email template was not found."))
+
+                reservation._generate_access_token()
+                recipient = (audit.recipient or reservation.partner_email or reservation.partner_id.email or '').strip()
+                if not recipient or recipient == '-':
+                    raise UserError(_("Guest email is required before sending pre-arrival link."))
+
+                try:
+                    mail = audit.mail_id.sudo().exists()
+                except MissingError:
+                    audit.write({
+                        'status': 'sent',
+                        'mail_id': False,
+                        'failure_reason': False,
+                    })
+                    reservation.message_post(
+                        body=_("Pre-arrival email sent to guest: %s") % recipient,
+                        subtype_xmlid='mail.mt_note',
+                    )
+                    continue
+                if mail and mail.state != 'sent':
+                    mail.send()
+                    mail.invalidate_recordset()
+                elif not mail:
+                    mail_id = template.send_mail(reservation.id, force_send=True)
+                    mail = self.env['mail.mail'].sudo().browse(mail_id).exists()
+
+                if mail and mail.state == 'exception':
+                    raise UserError(mail.failure_reason or _("Mail delivery failed."))
+
+                audit.write({
+                    'status': 'sent',
+                    'mail_id': mail.id if mail else False,
+                    'failure_reason': False,
+                })
+                reservation.message_post(
+                    body=_("Pre-arrival email sent to guest: %s") % recipient,
+                    subtype_xmlid='mail.mt_note',
+                )
+            except Exception as error:
+                sent_mail = audit.mail_id.sudo().exists()
+                if sent_mail:
+                    sent_mail.invalidate_recordset()
+                if sent_mail and sent_mail.state == 'sent':
+                    audit.write({
+                        'status': 'sent',
+                        'failure_reason': False,
+                    })
+                    if reservation:
+                        reservation.message_post(
+                            body=_("Pre-arrival email sent to guest: %s") % (audit.recipient or reservation.partner_email or reservation.partner_id.email or ''),
+                            subtype_xmlid='mail.mt_note',
+                        )
+                    continue
+                _logger.exception(
+                    "Queued pre-arrival email failed for audit_id=%s reservation_id=%s",
+                    audit.id,
+                    reservation.id if reservation else False,
+                )
+                audit.write({
+                    'status': 'failed',
+                    'failure_reason': str(error),
+                })
+                if reservation:
+                    reservation.message_post(
+                        body=_("Pre-arrival email failed: %s") % str(error),
+                        subtype_xmlid='mail.mt_note',
+                    )
+        return True
 
 class HotelRoomMoveWizard(models.TransientModel):
     _name = 'hotel.room.move.wizard'
@@ -4679,7 +5498,7 @@ class HotelNightAuditWizard(models.TransientModel):
                 skipped_count += 1
                         
         next_day = audit_date + timedelta(days=1)
-        self.company_id.hotel_business_date = next_day
+        self._roll_hotel_business_date(next_day)
 
         self.env.cr.commit()
 
@@ -4715,6 +5534,29 @@ class HotelNightAuditWizard(models.TransientModel):
         """
         self.write({'result_log': html, 'state': 'done'})
         return {'type': 'ir.actions.act_window', 'res_model': 'hotel.night.audit.wizard', 'res_id': self.id, 'view_mode': 'form', 'target': 'new'}
+
+    def _roll_hotel_business_date(self, next_day):
+        self.ensure_one()
+        if not (
+            self.env.su
+            or self.env.user.has_group('hotel_management.group_hotel_night_auditor')
+            or self.env.user.has_group('hotel_management.group_hotel_manager')
+            or self.env.user.has_group('base.group_system')
+        ):
+            raise AccessError(_("Only Night Auditor, Hotel Manager, or Administrator can roll the hotel business date."))
+
+        company = self.company_id
+        old_date = company.hotel_business_date
+        company.sudo().write({'hotel_business_date': next_day})
+        _logger.info(
+            "Night Audit rolled hotel_business_date for company_id=%s from %s to %s by user_id=%s (%s)",
+            company.id,
+            old_date,
+            next_day,
+            self.env.user.id,
+            self.env.user.login,
+        )
+        return True
     
 class HotelDepositWizard(models.TransientModel):
     _name = 'hotel.deposit.wizard'
@@ -4768,17 +5610,19 @@ class HotelDepositWizard(models.TransientModel):
         amount = self.amount or 0.0
         rounding = reservation.currency_id.rounding or 0.01
         business_date = fields.Date.to_date(self.business_date or self.env.company.hotel_business_date or fields.Date.context_today(self))
-        payment_date = fields.Date.to_date(self.payment_date or fields.Date.context_today(self))
+        duplicate_window_start = fields.Datetime.now() - timedelta(seconds=60)
         duplicate_payment = self.env['account.payment'].search([
             ('is_advance_deposit', '=', True),
             ('state', 'in', ('in_process', 'paid')),
             ('payment_type', '=', 'inbound'),
+            ('hotel_reservation_id', '=', reservation.id),
             ('journal_id', '=', self.journal_id.id),
-            ('memo', '=', reservation.name),
-        ], order='id desc', limit=20).filtered(
+            ('create_uid', '=', self.env.user.id),
+            ('create_date', '>=', duplicate_window_start),
+            ('hotel_business_date', '=', business_date),
+        ], order='create_date desc, id desc', limit=20).filtered(
             lambda pay: (
                 abs((pay.amount or 0.0) - amount) <= rounding
-                and (pay.hotel_business_date == business_date or pay.date == payment_date)
                 and not pay.advance_deposit_void_payment_ids.filtered(lambda void: void.state != 'cancel')
             )
         )[:1]
@@ -4809,7 +5653,7 @@ class HotelDepositWizard(models.TransientModel):
 
     def action_confirm_deposit(self):
         self.ensure_one()
-        duplicate_error = _("A deposit for this amount and payment method has already been registered today.")
+        duplicate_error = _("This deposit appears to have just been submitted. Please wait a moment before trying again.")
         if self.processed:
             raise UserError(duplicate_error)
         if self.amount <= 0:
@@ -4819,14 +5663,12 @@ class HotelDepositWizard(models.TransientModel):
         if res.is_desk_folio or res.folio_type in ['desk', 'group_master']:
             raise UserError(_("Advance deposits are only available for future room reservations."))
 
-        remaining_capacity = res._get_remaining_deposit_capacity()
         rounding = res.currency_id.rounding or 0.01
-        if remaining_capacity <= rounding:
-            raise UserError(_("This reservation is already fully prepaid."))
-        if self.amount - remaining_capacity > rounding:
-            raise UserError(
-                _("Deposit amount cannot exceed the remaining reservation balance of %.2f.") % remaining_capacity
-            )
+        # Allow any deposit amount — hotels commonly collect larger deposits
+        # to cover incidentals, security, or advance payment for multiple stays.
+        # Only block if reservation already has a credit balance (already overpaid).
+        if res.guest_balance_due <= rounding and res.guest_credit_balance > rounding:
+            raise UserError(_("This reservation already has a credit balance of %.2f. Please use Deposit Settlement to refund or transfer it first.") % res.guest_credit_balance)
 
         self._validate_required_deposit_policy()
 
@@ -4864,7 +5706,7 @@ class HotelDepositWizard(models.TransientModel):
             'destination_account_id': deposit_account.id,
         })
         payment.write({'destination_account_id': deposit_account.id})
-        payment.action_post()
+        payment.sudo().action_post()
 
         existing_entry = self.env['hotel.posting.journal'].search([
             ('reservation_id', '=', res.id),
@@ -4875,7 +5717,7 @@ class HotelDepositWizard(models.TransientModel):
             'reservation_id': res.id,
             'journal_type': 'payment',
             'description': _("Advance Deposit Received (%s)") % payment.journal_id.name,
-            'amount': payment.amount,
+            'amount': -payment.amount,
             'business_date': self.business_date,
             'date': payment.create_date or fields.Datetime.now(),
             'source_order_id': res.sale_order_id.id if res.sale_order_id else False,
@@ -4887,7 +5729,7 @@ class HotelDepositWizard(models.TransientModel):
             existing_entry.write(deposit_entry_vals)
         else:
             self.env['hotel.posting.journal'].create(deposit_entry_vals)
-
+        
         res._log_exchange_event(
             _("Advance Deposit Receipt"),
             '',
@@ -4896,12 +5738,14 @@ class HotelDepositWizard(models.TransientModel):
             source_document=payment,
         )
 
-        return self.env.ref('hotel_management.action_report_advance_deposit_receipt').report_action(payment)
+        action = self.env.ref('hotel_management.action_report_advance_deposit_receipt').report_action(payment)
+        action['close_on_report_download'] = True
+        return action
 
 
 class HotelDepositVoidWizard(models.TransientModel):
     _name = 'hotel.deposit.void.wizard'
-    _description = 'Void Advance Deposit Wizard'
+    _description = 'Deposit Settlement Wizard'
 
     reservation_id = fields.Many2one('hotel.reservation', string="Reservation", required=True)
     currency_id = fields.Many2one(related='reservation_id.currency_id')
@@ -4916,6 +5760,27 @@ class HotelDepositVoidWizard(models.TransientModel):
         string="Deposit Source",
         default='payment',
         required=True,
+    )
+    settlement_action = fields.Selection(
+        [
+            ('refund', 'Refund Deposit'),
+            ('transfer', 'Transfer Deposit'),
+            ('apply', 'Apply Deposit to Charge / Fee'),
+            ('void', 'Void Wrong Entry / Correction'),
+        ],
+        string="Settlement Action",
+        default='refund',
+        required=True,
+    )
+    target_reservation_id = fields.Many2one(
+        'hotel.reservation',
+        string="Transfer To Reservation",
+        domain="[('id', '!=', reservation_id), ('state', 'not in', ['checkout', 'cancel'])]",
+    )
+
+    transfer_amount = fields.Monetary(
+        string="Transfer Amount",
+        currency_field='currency_id',
     )
     available_invoice_ids = fields.Many2many('account.move', compute='_compute_available_deposit_docs')
     available_payment_ids = fields.Many2many('account.payment', compute='_compute_available_deposit_docs')
@@ -4936,12 +5801,72 @@ class HotelDepositVoidWizard(models.TransientModel):
     )
     amount = fields.Monetary(string="Deposit Amount", compute='_compute_available_deposit_docs')
     document_state = fields.Selection(
-        [('draft', 'Draft'), ('posted', 'Posted'), ('cancel', 'Cancelled')],
+    [
+        ('draft', 'Draft'),
+        ('posted', 'Posted'),
+        ('in_process', 'In Process'),
+        ('paid', 'Paid'),
+        ('cancel', 'Cancelled'),
+    ],
         string="Status",
         compute='_compute_available_deposit_docs',
     )
     payment_journal_names = fields.Char(string="Payment Journal(s)", compute='_compute_available_deposit_docs')
-    reason = fields.Text(string="Void Reason", required=True)
+
+    settlement_amount = fields.Monetary(
+        string="Settlement Amount",
+        currency_field='currency_id',
+        help="Amount to refund or void. Leave at full amount or enter a partial amount.",
+    )
+    available_credit = fields.Monetary(
+        string="Available Credit",
+        currency_field='currency_id',
+        compute='_compute_available_credit',
+    )
+
+    @api.depends('reservation_id', 'deposit_payment_id', 'deposit_invoice_id', 'deposit_source_type')
+    def _compute_available_credit(self):
+        for wizard in self:
+            if wizard.reservation_id:
+                wizard.available_credit = wizard.reservation_id.guest_credit_balance
+            else:
+                wizard.available_credit = 0.0
+
+    settlement_amount = fields.Monetary(
+        string="Settlement Amount",
+        currency_field='currency_id',
+        help="Amount to refund or void. Defaults to the available credit. You can type a smaller amount for partial settlement.",
+    )
+    available_credit = fields.Monetary(
+        string="Available Credit to Settle",
+        currency_field='currency_id',
+        compute='_compute_available_credit',
+    )
+
+    @api.depends('reservation_id')
+    def _compute_available_credit(self):
+        for wizard in self:
+            if wizard.reservation_id:
+                wizard.available_credit = wizard.reservation_id.guest_credit_balance
+            else:
+                wizard.available_credit = 0.0
+    
+    reason = fields.Text(string="Settlement Reason", required=True)
+
+    @api.onchange('settlement_action', 'amount', 'deposit_payment_id')
+    def _onchange_settlement_action_amount(self):
+        credit = self.reservation_id.guest_credit_balance if self.reservation_id else 0.0
+        if self.settlement_action == 'transfer':
+            self.transfer_amount = self.amount
+            self.settlement_amount = 0.0
+        elif self.settlement_action in ('refund', 'void'):
+            self.target_reservation_id = False
+            self.transfer_amount = 0.0
+            self.settlement_amount = round(credit, 2) if credit > 0 else round(self.amount, 2)
+        else:
+            self.target_reservation_id = False
+            self.transfer_amount = 0.0
+            self.settlement_amount = 0.0
 
     @api.model
     def default_get(self, fields_list):
@@ -4989,7 +5914,7 @@ class HotelDepositVoidWizard(models.TransientModel):
             self.deposit_source_type = 'payment'
             self.deposit_invoice_id = False
 
-    @api.depends('reservation_id', 'deposit_source_type', 'deposit_invoice_id', 'deposit_payment_id')
+    @api.depends('reservation_id', 'deposit_source_type', 'deposit_invoice_id', 'deposit_payment_id', 'settlement_action')
     def _compute_available_deposit_docs(self):
         for wizard in self:
             invoices = wizard.reservation_id._get_voidable_deposit_invoices() if wizard.reservation_id else self.env['account.move']
@@ -5014,6 +5939,8 @@ class HotelDepositVoidWizard(models.TransientModel):
                 amount = wizard.deposit_invoice_id.amount_total
                 state = wizard.deposit_invoice_id.state
                 journal_names = ", ".join(selected_payments.mapped('journal_id.name')) or wizard.deposit_invoice_id.journal_id.name or ""
+            elif wizard.settlement_action == 'transfer' and wizard.reservation_id:
+                amount = wizard.reservation_id._get_operational_advance_deposit_credit_amount()
 
             wizard.deposit_payment_ids = selected_payments
             wizard.amount = amount
@@ -5076,33 +6003,47 @@ class HotelDepositVoidWizard(models.TransientModel):
         self.ensure_one()
         reservation = self.reservation_id
         if payment.advance_deposit_void_payment_ids.filtered(lambda void: void.state != 'cancel'):
-            raise UserError(_("This advance deposit payment has already been voided."))
-        if reservation._is_advance_deposit_payment_applied(payment, include_draft_applications=True):
-            raise UserError(_("This advance deposit has already been applied to a final invoice. Please reverse the final invoice/payment first."))
-        if payment.is_reconciled:
-            raise UserError(_("This advance deposit is already reconciled. Please reverse the final invoice/payment first."))
+            raise UserError(_("This advance deposit payment has already been refunded or corrected."))
+        applied = reservation._get_advance_deposit_payment_application_map(
+            include_draft_applications=True
+        ).get(payment.id, 0.0)
+        rounding = reservation.currency_id.rounding or 0.01
+        if applied >= (payment.amount - rounding) and applied > rounding:
+            raise UserError(_("This advance deposit is fully consumed by an invoice. Please reset the invoice to Draft first, then refund."))
+
+        if payment.state == 'draft':
+            payment.unlink()
+            return self.env['account.payment']
 
         if payment.state == 'draft':
             payment.unlink()
             return self.env['account.payment']
 
         if payment.state not in ('in_process', 'paid'):
-            raise UserError(_("Only draft or processed advance deposit payments can be voided."))
+            raise UserError(_("Only draft or processed advance deposit payments can be refunded or corrected."))
 
         payment_method_line = payment.journal_id.outbound_payment_method_line_ids[:1]
         if not payment_method_line:
             raise UserError(_("The selected payment journal does not have an outbound payment method configured for reversing this deposit."))
 
+        reference_label = (
+            _("Void Wrong Deposit Entry")
+            if self.settlement_action == 'void'
+            else _("Refund Advance Deposit")
+        )
         void_payment = self.env['account.payment'].create({
             'payment_type': 'outbound',
             'partner_type': 'customer',
             'partner_id': payment.partner_id.id,
-            'amount': payment.amount,
+            'amount': self.settlement_amount if self.settlement_amount and self.settlement_amount > 0 else payment.amount,
             'date': self.business_date,
             'journal_id': payment.journal_id.id,
             'payment_method_line_id': payment_method_line.id,
             'memo': reservation.name,
-            'payment_reference': _("Void Advance Deposit - %s") % reservation.name,
+            'payment_reference': _("%(label)s - %(reservation)s") % {
+                'label': reference_label,
+                'reservation': reservation.name,
+            },
             'hotel_business_date': self.business_date,
             'is_advance_deposit': True,
             'destination_account_id': payment.destination_account_id.id,
@@ -5127,14 +6068,15 @@ class HotelDepositVoidWizard(models.TransientModel):
         if lines_to_reconcile:
             lines_to_reconcile.reconcile()
 
-    def _build_void_note_body(self, reservation, amount, journal_names, reason, extra_lines=None):
+    def _build_void_note_body(self, reservation, amount, journal_names, reason, extra_lines=None, title=False):
         self.ensure_one()
         safe_reason = Markup.escape(reason or "")
         safe_user = Markup.escape(self.env.user.name or "")
         safe_journal = Markup.escape(journal_names or _("N/A"))
         safe_date = Markup.escape(fields.Date.to_string(self.business_date) or "")
+        safe_title = Markup.escape(title or _("Deposit Settlement Processed"))
         note_parts = [
-            "<p><strong>Deposit voided</strong></p>",
+            "<p><strong>%s</strong></p>" % safe_title,
             "<p>Amount: <strong>%s%.2f</strong></p>" % ((reservation.currency_id.symbol or ''), amount),
             "<p>Journal: <strong>%s</strong></p>" % safe_journal,
             "<p>Date: <strong>%s</strong></p>" % safe_date,
@@ -5149,6 +6091,109 @@ class HotelDepositVoidWizard(models.TransientModel):
         self.ensure_one()
         reservation = self.reservation_id
         reservation._check_deposit_void_access()
+
+        # Validate settlement amount for refund/void
+        if self.settlement_action in ('refund', 'void') and self.settlement_amount:
+            available = reservation.guest_credit_balance
+            rounding = reservation.currency_id.rounding or 0.01
+            if self.settlement_amount <= 0:
+                raise UserError(_("Settlement amount must be greater than zero."))
+            if self.settlement_amount - available > rounding:
+                raise UserError(_(
+                    "Settlement amount ($%.2f) cannot exceed the available credit balance ($%.2f)."
+                ) % (self.settlement_amount, available))
+
+        if self.settlement_action == 'transfer':
+            if not self.target_reservation_id:
+                raise UserError(_("Please select the target reservation to transfer this deposit."))
+
+            if self.target_reservation_id == reservation:
+                raise UserError(_("You cannot transfer a deposit to the same reservation."))
+
+            amount = self.transfer_amount or self.amount
+            if amount <= 0:
+                raise UserError(_("Transfer amount must be greater than zero."))
+
+            available_credit = reservation._get_operational_advance_deposit_credit_amount()
+            if amount - available_credit > (reservation.currency_id.rounding or 0.01):
+                raise UserError(_("Transfer amount cannot be greater than the available deposit amount."))
+
+            business_date = self.business_date
+            source_desc = _("Deposit Transfer Out to %s") % (self.target_reservation_id.name or '')
+            target_desc = _("Deposit Transfer In from %s") % (reservation.name or '')
+
+            reservation._ensure_posting_journal_entry(
+                'payment',
+                source_desc,
+                amount,
+                business_date,
+                entry_datetime=fields.Datetime.now(),
+                folio_billing_target='guest',
+            )
+
+            self.target_reservation_id._ensure_posting_journal_entry(
+                'payment',
+                target_desc,
+                -amount,
+                business_date,
+                entry_datetime=fields.Datetime.now(),
+                folio_billing_target='guest',
+            )
+
+            note_body = Markup(
+                "<b>Deposit Transferred:</b> %s%s transferred from <b>%s</b> to <b>%s</b>.<br/>"
+                "<b>Reason:</b> %s"
+            ) % (
+                Markup.escape(reservation.currency_id.symbol or ''),
+                Markup.escape("%.2f" % amount),
+                Markup.escape(reservation.name or ''),
+                Markup.escape(self.target_reservation_id.name or ''),
+                Markup.escape(self.reason or ''),
+            )
+
+            reservation.message_post(body=note_body, subtype_xmlid='mail.mt_note')
+            self.target_reservation_id.message_post(body=note_body, subtype_xmlid='mail.mt_note')
+
+            reservation._log_exchange_event(
+                _("Deposit Transfer Out"),
+                _("%s%.2f") % ((reservation.currency_id.symbol or ''), amount),
+                _("Transferred to %s on %s") % (
+                    self.target_reservation_id.name or '',
+                    fields.Date.to_string(business_date),
+                ),
+                change_type='action',
+                reason=self.reason,
+                source_document=self.target_reservation_id,
+            )
+
+            self.target_reservation_id._log_exchange_event(
+                _("Deposit Transfer In"),
+                _("%s%.2f") % ((reservation.currency_id.symbol or ''), amount),
+                _("Transferred from %s on %s") % (
+                    reservation.name or '',
+                    fields.Date.to_string(business_date),
+                ),
+                change_type='action',
+                reason=self.reason,
+                source_document=reservation,
+            )
+
+            (reservation | self.target_reservation_id)._refresh_operational_folio_status()
+
+            return {'type': 'ir.actions.act_window_close'}
+
+        if self.settlement_action == 'apply':
+            raise UserError(_(
+                "Apply Deposit to Charge / Fee is intentionally blocked in Version 1. "
+                "A dedicated auditable fee/charge model is required before this action can safely create cancellation, no-show, early-departure, or manual fee entries."
+            ))
+
+        if self.settlement_action not in ('refund', 'void'):
+            raise UserError(_(
+                "This settlement action is not implemented yet. "
+                "For now, please use Refund Deposit or Transfer Deposit only."
+            ))
+
         refund_move = self.env['account.move']
         refund_payments = self.env['account.payment']
         note_body = Markup("")
@@ -5156,7 +6201,7 @@ class HotelDepositVoidWizard(models.TransientModel):
         if self.deposit_source_type == 'payment':
             payment = self.deposit_payment_id
             if payment not in reservation._get_voidable_advance_deposit_payments():
-                raise UserError(_("Please select a valid active deposit payment to void."))
+                raise UserError(_("Please select a valid active deposit payment to refund or correct."))
             original_state = payment.state
             original_name = payment.name or payment.payment_reference or _("Draft Payment")
             journal_names = payment.journal_id.name or ""
@@ -5179,11 +6224,12 @@ class HotelDepositVoidWizard(models.TransientModel):
                 journal_names,
                 self.reason,
                 extra_lines=extra_lines,
+                title=_("Deposit Void / Correction") if self.settlement_action == 'void' else _("Advance Deposit Refunded"),
             )
         else:
             invoice = self.deposit_invoice_id
             if invoice not in reservation._get_voidable_deposit_invoices():
-                raise UserError(_("Please select a valid active deposit invoice to void."))
+                raise UserError(_("Please select a valid active legacy deposit invoice to refund or correct."))
 
             source_payments = invoice._get_reconciled_payments().filtered(lambda pay: pay.state in ('in_process', 'paid'))
 
@@ -5218,6 +6264,7 @@ class HotelDepositVoidWizard(models.TransientModel):
                 journal_names,
                 self.reason,
                 extra_lines=extra_lines,
+                title=_("Deposit Void / Correction") if self.settlement_action == 'void' else _("Advance Deposit Refunded"),
             )
 
         reservation.message_post(body=note_body, subtype_xmlid='mail.mt_note')
@@ -5232,13 +6279,14 @@ class HotelDepositVoidWizard(models.TransientModel):
             or reservation
         )
         reservation._log_exchange_event(
-            _("Advance Deposit Voided"),
+            _("Advance Deposit Refunded"),
             _("%s%.2f") % ((reservation.currency_id.symbol or ''), void_amount),
-            _("Voided on %s") % fields.Date.to_string(self.business_date),
+            _("Refunded on %s") % fields.Date.to_string(self.business_date),
             change_type='action',
             reason=self.reason,
             source_document=source_doc,
         )
+        reservation._refresh_operational_folio_status()
 
         return {'type': 'ir.actions.act_window_close'}
 
@@ -5349,7 +6397,9 @@ class HotelPostingJournal(models.Model):
             ('invoice', 'Invoice'),
             ('payment', 'Payment'),
             ('deposit_application', 'Invoice Application'),
-            ('refund', 'Refund / Void'),
+            ('refund', 'Deposit Refund'),
+            ('deposit_transfer_out', 'Deposit Transfer Out'),
+            ('deposit_transfer_in', 'Deposit Transfer In'),
             ('correction', 'Void / Correction'),
         ],
         string='Folio Type',
@@ -5444,7 +6494,15 @@ class HotelPostingJournal(models.Model):
                 untaxed = abs(rec.source_sale_line_id.price_subtotal or 0.0)
                 total = abs(rec.source_sale_line_id.price_total or 0.0)
                 tax = max(total - untaxed, 0.0)
-            elif rec.folio_entry_type in ('deposit', 'payment', 'deposit_application', 'refund', 'correction'):
+            elif rec.folio_entry_type in (
+                'deposit',
+                'payment',
+                'deposit_application',
+                'refund',
+                'deposit_transfer_out',
+                'deposit_transfer_in',
+                'correction',
+            ):
                 total = abs(rec.amount or 0.0)
             elif rec.folio_entry_type == 'invoice':
                 total = 0.0
@@ -5500,6 +6558,16 @@ class HotelPostingJournal(models.Model):
                 rec.source_status = _('Deleted')
                 continue
 
+            if description.startswith('deposit transfer out'):
+                rec.folio_entry_type = 'deposit_transfer_out'
+                rec.source_status = _('Transferred')
+                continue
+
+            if description.startswith('deposit transfer in'):
+                rec.folio_entry_type = 'deposit_transfer_in'
+                rec.source_status = _('Transferred')
+                continue
+
             if rec.source_sale_line_id:
                 sale_line_name = rec.source_sale_line_id.name or ''
                 product_name = rec.source_sale_line_id.product_id.display_name if rec.source_sale_line_id.product_id else ''
@@ -5531,14 +6599,14 @@ class HotelPostingJournal(models.Model):
             # while invoice document events stay visible but do not affect balance.
             if rec.folio_entry_type == 'invoice':
                 side = 'info'
-            elif rec.folio_entry_type in ('deposit', 'payment'):
+            elif rec.folio_entry_type in ('deposit', 'payment', 'deposit_transfer_in'):
                 side = 'credit'
             elif rec.folio_entry_type == 'deposit_application':
                 # Show deposit application visibly in the credit column for PMS-style
                 # folio review, but keep it memo-only in the running balance so the
                 # original advance-deposit receipt is not double-counted.
                 side = 'credit'
-            elif rec.folio_entry_type == 'refund':
+            elif rec.folio_entry_type in ('refund', 'deposit_transfer_out'):
                 side = 'debit'
             elif rec.folio_entry_type == 'correction':
                 side = 'credit' if rec.amount <= 0 else 'debit'
@@ -5606,6 +6674,182 @@ class AccountMoveHotelAudit(models.Model):
         copy=False,
     )
 
+    def _is_hotel_checkout_invoice_user(self):
+        user = self.env.user
+        return bool(
+            self.env.su
+            or user.has_group('hotel_management.group_hotel_front_office')
+            or user.has_group('hotel_management.group_hotel_front_office_manager')
+            or user.has_group('hotel_management.group_hotel_manager')
+            or user.has_group('hotel_management.group_hotel_night_auditor')
+            or user.has_group('account.group_account_manager')
+            or user.has_group('base.group_system')
+        )
+
+    def _is_hotel_full_invoice_user(self):
+        user = self.env.user
+        return bool(
+            self.env.su
+            or user.has_group('hotel_management.group_hotel_manager')
+            or user.has_group('account.group_account_manager')
+            or user.has_group('base.group_system')
+        )
+
+    def _is_hotel_operational_customer_invoice(self):
+        self.ensure_one()
+        if self.move_type not in ('out_invoice', 'out_refund'):
+            return False
+        if self.hotel_folio_id and (
+            self.hotel_folio_id.hotel_reservation_ids or self.hotel_folio_id.hotel_group_master_ids
+        ):
+            return True
+        invoice_lines = self.invoice_line_ids
+        if invoice_lines.filtered('hotel_reservation_id'):
+            return True
+        sale_lines = invoice_lines.mapped('sale_line_ids')
+        return bool(
+            sale_lines.filtered('hotel_reservation_id')
+            or sale_lines.mapped('order_id').filtered(
+                lambda order: order.hotel_reservation_ids or order.hotel_group_master_ids
+            )
+        )
+
+    def _check_hotel_operational_invoice_access(self):
+        if not self._is_hotel_checkout_invoice_user():
+            raise AccessError(_("Only hotel checkout roles can operate hotel customer invoices."))
+        invalid_invoices = self.filtered(lambda move: not move._is_hotel_operational_customer_invoice())
+        if invalid_invoices:
+            raise AccessError(_("Only hotel-linked customer invoices can be operated from Hotel Management."))
+
+    def _get_hotel_invoice_primary_reservation(self):
+        self.ensure_one()
+        reservations = self.hotel_folio_id.hotel_reservation_ids.filtered(lambda res: res.state != 'cancel')
+        if not reservations:
+            reservations = self.invoice_line_ids.mapped('hotel_reservation_id').filtered(lambda res: res.state != 'cancel')
+        if not reservations:
+            reservations = self.invoice_line_ids.mapped('sale_line_ids.hotel_reservation_id').filtered(lambda res: res.state != 'cancel')
+        if not reservations:
+            reservations = self.invoice_line_ids.mapped('sale_line_ids.order_id.hotel_reservation_ids').filtered(lambda res: res.state != 'cancel')
+        return reservations[:1]
+
+    def _action_open_hotel_safe_invoice_view(self, name=None):
+        invoices = self.exists()
+        tree_view = self.env.ref('hotel_management.view_hotel_invoice_tree')
+        form_view = self.env.ref('hotel_management.view_hotel_customer_invoice_form')
+        action = self.env['ir.actions.actions']._for_xml_id('hotel_management.action_hotel_customer_invoices')
+        action.update({
+            'name': name or _('Customer Invoices'),
+            'domain': [('id', 'in', invoices.ids or [0])],
+            'context': {
+                'create': False,
+                'edit': True,
+                'delete': False,
+                'default_move_type': 'out_invoice',
+            },
+            'target': 'current',
+        })
+        if len(invoices) == 1:
+            action.update({
+                'res_id': invoices.id,
+                'view_mode': 'form',
+                'views': [(form_view.id, 'form')],
+                'view_id': form_view.id,
+            })
+        else:
+            action.update({
+                'view_mode': 'list,form',
+                'views': [(tree_view.id, 'list'), (form_view.id, 'form')],
+                'view_id': tree_view.id,
+            })
+        return action
+
+    def action_hotel_post_invoice(self):
+        self._check_hotel_operational_invoice_access()
+        draft_invoices = self.filtered(lambda move: move.state == 'draft')
+        if not draft_invoices:
+            raise UserError(_("Only draft hotel customer invoices can be confirmed."))
+        draft_invoices.sudo().with_context(disable_abnormal_invoice_detection=True).action_post()
+        return draft_invoices._action_open_hotel_safe_invoice_view(name=_("Customer Invoice"))
+
+    def action_hotel_print_invoice(self):
+        self._check_hotel_operational_invoice_access()
+        report = self.env.ref('account.account_invoices')
+        return report.report_action(self)
+
+    def action_hotel_register_payment(self):
+        self.ensure_one()
+        self._check_hotel_operational_invoice_access()
+        if self.state != 'posted':
+            raise UserError(_("Please confirm/post the invoice before registering payment."))
+        if self.payment_state in ('paid', 'in_payment') or self.amount_residual <= 0:
+            raise UserError(_("This invoice does not have an open amount to pay."))
+        return {
+            'name': _('Register Hotel Payment'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.invoice.payment.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_invoice_id': self.id},
+        }
+
+    def action_post(self):
+        # Auto-sync: if staff adds a product line directly to a hotel invoice
+        # that does not exist in the folio, automatically create the folio
+        # charge line so both are always in sync. No error — seamless for staff.
+        for move in self:
+            if not move._is_hotel_operational_customer_invoice():
+                continue
+            if move.move_type != 'out_invoice':
+                continue
+            folio = move.hotel_folio_id
+            if not folio:
+                continue
+            reservations = self.env['hotel.reservation'].search([
+                ('sale_order_id', '=', folio.id)
+            ], limit=1)
+            if not reservations:
+                continue
+            reservation = reservations[0]
+            folio_line_products = set(
+                sol.product_id.id
+                for sol in move.invoice_line_ids.mapped('sale_line_ids')
+                if not sol.display_type and sol.product_id
+            )
+            orphan_lines = [
+                line for line in move.invoice_line_ids
+                if not line.display_type
+                and line.product_id
+                and line.product_id.id not in folio_line_products
+            ]
+            for inv_line in orphan_lines:
+                biz_date = (
+                    self.env.company.hotel_business_date
+                    or fields.Date.context_today(self)
+                )
+                new_sol = self.env['sale.order.line'].create({
+                    'order_id': folio.id,
+                    'product_id': inv_line.product_id.id,
+                    'name': inv_line.name or inv_line.product_id.name,
+                    'product_uom_qty': inv_line.quantity,
+                    'price_unit': inv_line.price_unit,
+                    'tax_id': [(6, 0, inv_line.tax_ids.ids)],
+                    'hotel_business_date': biz_date,
+                    'hotel_reservation_id': reservation.id,
+                    'billing_target': 'guest',
+                    'is_night_audit_charge': False,
+                })
+                inv_line.sale_line_ids = [(4, new_sol.id)]
+
+        if (
+            not self.env.su
+            and not self._is_hotel_full_invoice_user()
+            and self._is_hotel_checkout_invoice_user()
+            and self
+            and all(move._is_hotel_operational_customer_invoice() for move in self)
+        ):
+            return self.action_hotel_post_invoice()
+        return super().action_post()
+
     @api.depends('invoice_line_ids.sale_line_ids.order_id')
     def _compute_hotel_folio(self):
         for move in self:
@@ -5654,6 +6898,14 @@ class AccountMoveHotelAudit(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
+        if (
+            not self.env.su
+            and self._is_hotel_checkout_invoice_user()
+            and not self._is_hotel_full_invoice_user()
+        ):
+            self._check_hotel_operational_invoice_access()
+            if any(move.state != 'draft' for move in self):
+                raise AccessError(_("Only draft hotel customer invoices can be edited from Hotel Management."))
         if 'state' in vals:
             for move in self:
                 orders = move.invoice_line_ids.mapped('sale_line_ids.order_id')
@@ -5677,6 +6929,170 @@ class AccountMoveLineHotelAudit(models.Model):
 
     hotel_reservation_id = fields.Many2one('hotel.reservation', string="Hotel Reservation", index=True, copy=False)
     is_advance_deposit_application = fields.Boolean(string="Advance Deposit Application", default=False, index=True, copy=False)
+
+    def _check_hotel_invoice_line_operation(self):
+        moves = self.mapped('move_id')
+        if not moves:
+            return
+        if (
+            not self.env.su
+            and moves._is_hotel_checkout_invoice_user()
+            and not moves._is_hotel_full_invoice_user()
+        ):
+            moves._check_hotel_operational_invoice_access()
+            if any(move.state != 'draft' for move in moves):
+                raise AccessError(_("Only draft hotel invoice lines can be edited from Hotel Management."))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        if not self.env.su:
+            move_ids = [
+                vals.get('move_id') or self.env.context.get('default_move_id')
+                for vals in vals_list
+                if vals.get('move_id') or self.env.context.get('default_move_id')
+            ]
+            moves = self.env['account.move'].browse(move_ids).exists()
+            if (
+                moves
+                and moves._is_hotel_checkout_invoice_user()
+                and not moves._is_hotel_full_invoice_user()
+            ):
+                moves._check_hotel_operational_invoice_access()
+                if any(move.state != 'draft' for move in moves):
+                    raise AccessError(_("Only draft hotel invoice lines can be created from Hotel Management."))
+        return super().create(vals_list)
+
+    def write(self, vals):
+        self._check_hotel_invoice_line_operation()
+        return super().write(vals)
+
+
+class HotelInvoicePaymentWizard(models.TransientModel):
+    _name = 'hotel.invoice.payment.wizard'
+    _description = 'Register Hotel Invoice Payment'
+
+    invoice_id = fields.Many2one('account.move', string="Invoice", required=True, readonly=True)
+    partner_id = fields.Many2one(related='invoice_id.partner_id', readonly=True)
+    company_id = fields.Many2one(related='invoice_id.company_id', readonly=True)
+    currency_id = fields.Many2one(related='invoice_id.currency_id', readonly=True)
+    amount_residual = fields.Monetary(related='invoice_id.amount_residual', currency_field='currency_id', readonly=True)
+    amount = fields.Monetary(string="Payment Amount", currency_field='currency_id', required=True)
+    payment_date = fields.Date(
+        string="Payment Date",
+        required=True,
+        default=lambda self: self.env.company.hotel_business_date or fields.Date.context_today(self),
+    )
+    journal_id = fields.Many2one(
+        'account.journal',
+        string="Payment Journal",
+        required=True,
+        domain="[('type', 'in', ['bank', 'cash']), ('company_id', '=', company_id)]",
+    )
+    available_payment_method_line_ids = fields.Many2many(
+        'account.payment.method.line',
+        compute='_compute_available_payment_method_line_ids',
+    )
+    payment_method_line_id = fields.Many2one(
+        'account.payment.method.line',
+        string="Payment Method",
+        required=True,
+        domain="[('id', 'in', available_payment_method_line_ids)]",
+    )
+    hotel_receipt_number = fields.Char(string="Hotel Receipt No.")
+
+    @api.model
+    def default_get(self, fields_list):
+        values = super().default_get(fields_list)
+        invoice_id = values.get('invoice_id') or self.env.context.get('default_invoice_id')
+        invoice = self.env['account.move'].browse(invoice_id).exists() if invoice_id else self.env['account.move']
+        if invoice:
+            invoice._check_hotel_operational_invoice_access()
+            values.setdefault('invoice_id', invoice.id)
+            values.setdefault('amount', invoice.amount_residual)
+            values.setdefault('payment_date', invoice.hotel_business_date or self.env.company.hotel_business_date or fields.Date.context_today(self))
+            payment_line_field = 'outbound_payment_method_line_ids' if invoice.move_type == 'out_refund' else 'inbound_payment_method_line_ids'
+            journal = self.env['account.journal'].search([
+                ('type', 'in', ['bank', 'cash']),
+                ('company_id', '=', invoice.company_id.id),
+                (payment_line_field, '!=', False),
+            ], limit=1)
+            if journal:
+                values.setdefault('journal_id', journal.id)
+                values.setdefault('payment_method_line_id', journal[payment_line_field][:1].id)
+        return values
+
+    @api.depends('journal_id', 'invoice_id.move_type')
+    def _compute_available_payment_method_line_ids(self):
+        for wizard in self:
+            if not wizard.journal_id:
+                wizard.available_payment_method_line_ids = self.env['account.payment.method.line']
+                continue
+            if wizard.invoice_id.move_type == 'out_refund':
+                wizard.available_payment_method_line_ids = wizard.journal_id.outbound_payment_method_line_ids
+            else:
+                wizard.available_payment_method_line_ids = wizard.journal_id.inbound_payment_method_line_ids
+
+    @api.onchange('journal_id', 'invoice_id')
+    def _onchange_journal_id(self):
+        method_lines = self.available_payment_method_line_ids
+        if self.payment_method_line_id not in method_lines:
+            self.payment_method_line_id = method_lines[:1]
+
+    def action_register_payment(self):
+        self.ensure_one()
+        invoice = self.invoice_id.exists()
+        invoice._check_hotel_operational_invoice_access()
+        if invoice.state != 'posted':
+            raise UserError(_("Please confirm/post the invoice before registering payment."))
+        if invoice.payment_state in ('paid', 'in_payment') or invoice.amount_residual <= 0:
+            raise UserError(_("This invoice does not have an open amount to pay."))
+        if self.amount <= 0:
+            raise UserError(_("Payment amount must be greater than zero."))
+        if self.amount - invoice.amount_residual > (invoice.currency_id.rounding or 0.01):
+            raise UserError(_("Payment amount cannot exceed the invoice amount due."))
+        if self.journal_id.type not in ('bank', 'cash'):
+            raise UserError(_("Only cash or bank journals can be used for hotel invoice payment."))
+        if self.payment_method_line_id not in self.available_payment_method_line_ids:
+            raise UserError(_("Please select a payment method configured on the selected journal."))
+
+        reservation = invoice._get_hotel_invoice_primary_reservation()
+        payment_register = self.env['account.payment.register'].sudo().with_context(
+            active_model='account.move',
+            active_ids=invoice.ids,
+        ).create({
+            'journal_id': self.journal_id.id,
+            'payment_method_line_id': self.payment_method_line_id.id,
+            'amount': self.amount,
+            'payment_date': self.payment_date,
+            'hotel_receipt_number': self.hotel_receipt_number,
+            'hotel_reservation_id': reservation.id if reservation else False,
+            'folio_id': invoice.hotel_folio_id.id if invoice.hotel_folio_id else False,
+            'hotel_business_date': self.payment_date,
+        })
+        payments = payment_register._create_payments()
+        payments = payments.sudo()
+        if hasattr(payments, '_compute_hotel_info'):
+            payments._compute_hotel_info()
+        if hasattr(payments, '_compute_invoice_ref'):
+            payments._compute_invoice_ref()
+        if hasattr(payments, '_compute_hotel_payment_activity_type'):
+            payments._compute_hotel_payment_activity_type()
+
+        for payment in payments:
+            if self.hotel_receipt_number:
+                payment.hotel_receipt_number = self.hotel_receipt_number
+            if reservation:
+                payment.message_post(
+                    body=_("Hotel invoice payment registered from invoice %s by %s.")
+                         % (invoice.name or invoice.display_name, self.env.user.name),
+                    subtype_xmlid='mail.mt_note',
+                )
+                reservation.message_post(
+                    body=_("Payment of %s%.2f registered for invoice %s by %s.")
+                         % (invoice.currency_id.symbol or '', self.amount, invoice.name or invoice.display_name, self.env.user.name),
+                    subtype_xmlid='mail.mt_note',
+                )
+        return invoice._action_open_hotel_safe_invoice_view(name=_("Customer Invoice"))
 
 class AccountPaymentHotelAudit(models.Model):
     _inherit = 'account.payment'
@@ -5730,7 +7146,7 @@ class AccountPaymentHotelAudit(models.Model):
                                 'reservation_id': res.id,
                                 'journal_type': 'payment',
                                 'description': f"Payment Received ({pay.journal_id.name})",
-                                'amount': pay.amount,
+                                'amount': -pay.amount if pay.payment_type == 'inbound' else pay.amount,
                                 'business_date': pay.hotel_business_date,
                                 'date': pay.create_date or fields.Datetime.now(),
                                 'source_order_id': res.sale_order_id.id if res.sale_order_id else False,
@@ -5743,18 +7159,16 @@ class AccountPaymentHotelAudit(models.Model):
     def action_post(self):
         result = super().action_post()
         for pay in self.filtered(lambda payment: payment.is_advance_deposit and payment.hotel_reservation_id):
-            amount = pay.amount if pay.payment_type == 'inbound' else -pay.amount
+            amount = -pay.amount if pay.payment_type == 'inbound' else pay.amount
             description = (
-                f"Advance Deposit Voided ({pay.journal_id.name})"
+                f"Advance Deposit Refunded ({pay.journal_id.name})"
                 if pay.payment_type == 'outbound'
                 else f"Advance Deposit Received ({pay.journal_id.name})"
             )
             existing_entry = self.env['hotel.posting.journal'].search([
                 ('reservation_id', '=', pay.hotel_reservation_id.id),
                 ('journal_type', '=', 'payment'),
-                ('description', '=', description),
-                ('amount', '=', amount),
-                ('business_date', '=', pay.hotel_business_date),
+                ('source_payment_id', '=', pay.id),
             ], limit=1)
             if not existing_entry:
                 self.env['hotel.posting.journal'].create({
@@ -5820,6 +7234,7 @@ class SaleOrderLineHotelAudit(models.Model):
     hotel_business_date = fields.Date(string="Business Date", default=lambda self: self.env.company.hotel_business_date or fields.Date.context_today(self))
     hotel_reservation_id = fields.Many2one('hotel.reservation', string="Hotel Reservation", index=True, copy=False)
     deposit_invoice_id = fields.Many2one('account.move', string="Advance Deposit Invoice", index=True, copy=False, readonly=True)
+    source_payment_id = fields.Many2one('account.payment', string="Source Deposit Payment", index=True, copy=False, readonly=True)
     is_night_audit_charge = fields.Boolean(string="Night Audit Charge", default=False, index=True, copy=False)
     billing_target = fields.Selection(
         [('guest', 'Guest'), ('company', 'Company')],
@@ -5833,6 +7248,25 @@ class SaleOrderLineHotelAudit(models.Model):
         compute='_compute_billing_target_display',
         readonly=True,
     )
+
+    def _is_hotel_operational_folio_line(self):
+        self.ensure_one()
+        order = self.order_id
+        return bool(
+            self.hotel_reservation_id
+            or order.is_hotel_folio
+            or order.hotel_reservation_ids
+            or order.hotel_group_master_ids
+        )
+
+    def _action_launch_stock_rule(self, *, previous_product_uom_qty=False):
+        hotel_lines = self.filtered(lambda line: line._is_hotel_operational_folio_line())
+        regular_lines = self - hotel_lines
+        if regular_lines:
+            return super(SaleOrderLineHotelAudit, regular_lines)._action_launch_stock_rule(
+                previous_product_uom_qty=previous_product_uom_qty,
+            )
+        return True
 
     @api.depends(
         'billing_target',
@@ -6035,7 +7469,7 @@ class ResPartnerHotel(models.Model):
                 partner.hotel_room_name = False
 
 # =========================================================
-#  PHASE 2: GROUP MASTER BOOKING ENGINE (QTELS STYLE)
+#  PHASE 2: GROUP MASTER BOOKING ENGINE 
 # =========================================================
 class HotelGroupMaster(models.Model):
     _name = 'hotel.group.master'
@@ -6552,6 +7986,24 @@ class SaleOrderHotelAudit(models.Model):
     hotel_guest_net_position = fields.Monetary(string="Guest Net Position", compute='_compute_hotel_guest_financial_snapshot')
     hotel_guest_balance_due = fields.Monetary(string="Guest Balance Due", compute='_compute_hotel_guest_financial_snapshot')
     hotel_guest_credit_balance = fields.Monetary(string="Guest Credit Balance", compute='_compute_hotel_guest_financial_snapshot')
+    hotel_all_payment_ids = fields.Many2many(
+        'account.payment',
+        string="Payments & Deposits",
+        compute='_compute_hotel_all_payment_ids',
+    )
+
+    @api.depends(
+        'hotel_reservation_ids.advance_deposit_payment_ids',
+        'hotel_reservation_ids.advance_deposit_payment_ids.state',
+        'invoice_ids.payment_ids',
+        'invoice_ids.state',
+    )
+    def _compute_hotel_all_payment_ids(self):
+        for order in self:
+            payments = self.env['account.payment']
+            for res in order.hotel_reservation_ids:
+                payments |= res._get_registered_payment_records()
+            order.hotel_all_payment_ids = payments
 
     @api.depends('hotel_reservation_ids', 'hotel_group_master_ids')
     def _compute_is_hotel_folio(self):
@@ -6899,14 +8351,38 @@ class SaleOrderHotelAudit(models.Model):
             invoices |= hotel_orders._create_hotel_routed_invoices(final=final, date=date)
         return invoices
 
+    def _is_hotel_invoice_linked_to_order(self, invoice):
+        self.ensure_one()
+        invoice = invoice.sudo()
+        if invoice.move_type not in ('out_invoice', 'out_refund'):
+            return False
+        if invoice.hotel_folio_id and invoice.hotel_folio_id.id == self.id:
+            return True
+        return bool(
+            invoice.invoice_line_ids.mapped('sale_line_ids.order_id').filtered(
+                lambda order: order.id == self.id
+            )
+        )
+
     def _compute_hotel_audit_docs(self):
         for order in self:
-            invoices = order.invoice_ids.filtered(lambda i: i.state == 'posted' and i.move_type == 'out_invoice')
+            if not (order.hotel_reservation_ids or order.hotel_group_master_ids):
+                order.hotel_invoice_numbers = ""
+                order.hotel_receipt_numbers = ""
+                order.hotel_payment_journals = ""
+                order.hotel_payment_dates = ""
+                continue
+
+            invoices = order.sudo().invoice_ids.filtered(
+                lambda i: i.state == 'posted'
+                and i.move_type == 'out_invoice'
+                and order._is_hotel_invoice_linked_to_order(i)
+            )
             order.hotel_invoice_numbers = ", ".join(invoices.mapped('name')) if invoices else ""
             
-            payments = self.env['account.payment']
+            payments = self.env['account.payment'].sudo()
             for inv in invoices:
-                payments |= inv._get_reconciled_payments()
+                payments |= inv.sudo()._get_reconciled_payments().sudo()
             
             order.hotel_receipt_numbers = ", ".join(payments.mapped('name')) if payments else ""
             order.hotel_payment_journals = ", ".join(set(payments.mapped('journal_id.name'))) if payments else ""

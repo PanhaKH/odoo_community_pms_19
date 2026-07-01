@@ -341,7 +341,7 @@
                                         <div class="col-md-6">
                                             <button name="action_view_today_receipts" type="object" class="btn p-0 w-100 border-0 h-100">
                                                 <div class="card text-white text-center shadow-sm h-100" style="background-color: #20c997;">
-                                                    <div class="card-header fw-bold border-0 pb-0 pt-3">Today's Receipts (Collected)</div>
+                                                    <div class="card-header fw-bold border-0 pb-0 pt-3">Today's Net Receipts</div>
                                                     <div class="card-body d-flex flex-column align-items-center justify-content-center pt-1">
                                                         <h2 class="m-0"><field name="today_collected" widget="monetary"/></h2>
                                                         <small class="opacity-75">Click to view &amp; print Cashier Shift Report</small>
@@ -364,16 +364,14 @@
         <field name="name">Hotel Dashboard</field>
         <field name="model_id" ref="model_hotel_dashboard"/>
         <field name="state">code</field>
-        <field name="code">
-            action = {
-                'type': 'ir.actions.act_window',
-                'view_mode': 'form',
-                'res_model': 'hotel.dashboard',
-                'res_id': model.get_main_dashboard(),
-                'target': 'current',
-                'view_id': env.ref('hotel_management.view_hotel_dashboard_form').id,
-            }
-        </field>
+        <field name="code">action = {
+    'type': 'ir.actions.act_window',
+    'view_mode': 'form',
+    'res_model': 'hotel.dashboard',
+    'res_id': model.get_main_dashboard(),
+    'target': 'current',
+    'view_id': env.ref('hotel_management.view_hotel_dashboard_form').id,
+}</field>
     </record>
 
     <record id="view_hotel_room_status_graph" model="ir.ui.view">
@@ -433,6 +431,25 @@
         <field name="view_id" ref="view_hotel_manager_daily_pivot"/>
         <field name="domain">[('state', 'in', ['checkin', 'checkout'])]</field>
     </record>
-    
+    <record id="view_hotel_company_pending_billing_tree" model="ir.ui.view">
+    <field name="name">hotel.company.pending.billing.list</field>
+    <field name="model">sale.order.line</field>
+    <field name="arch" type="xml">
+        <list string="Company Pending Billing" create="0" edit="0" delete="0">
+            <field name="hotel_business_date" string="Biz Date"/>
+            <field name="hotel_reservation_id" string="Reservation"/>
+            <field name="order_partner_id" string="Guest"/>
+            <field name="name" string="Description"/>
+            <field name="billing_target" string="Bill To"/>
+            <field name="price_total"
+                   string="Amount"
+                   widget="monetary"
+                   options="{'currency_field': 'currency_id'}"
+                   sum="Total"/>
+            <field name="invoice_status"/>
+            <field name="currency_id" column_invisible="True"/>
+        </list>
+    </field>
+</record>
 </odoo>
 

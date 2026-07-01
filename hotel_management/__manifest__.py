@@ -1,6 +1,6 @@
 {
     'name': 'Hotel Management System',
-    'version': '19.0.1.0.1',
+    'version': '19.0.1.0.0',
     'summary': 'Complete Hotel Reservation, Front Desk, and Housekeeping System',
     'sequence': -100,
     'description': """Hotel Management Solution""",
@@ -25,6 +25,8 @@
         'data/hotel_daily_transaction_refresh.xml',
         # --- VIEWS ---
         'views/hotel_room_views.xml',    
+        'views/product_minibar_views.xml',
+        'views/hotel_room_block_views.xml',
         'views/hotel_rate_plan_views.xml',  
         'data/hotel_booking_source_data.xml',
         'views/hotel_reservation_views.xml',
@@ -36,6 +38,7 @@
         
         'views/hotel_maintenance_views.xml',
         'views/hotel_lost_found_views.xml',
+        'wizard/hotel_guest_request_submit_wizard_views.xml',
         'views/hotel_service_request_views.xml',
         'views/hotel_email_audit_views.xml',
         'views/hotel_guest_message_views.xml',
@@ -50,8 +53,13 @@
         
         'views/hotel_print_reports.xml', # <-- ADD THIS LINE!
         'views/hotel_document_template_views.xml',
+        'views/res_users_hotel_role_views.xml',
         # ... other files ...
         'wizard/hotel_split_line_wizard_views.xml',
+        'wizard/registration_card_sign_print_wizard_views.xml',
+        'wizard/tax_invoice_sign_print_wizard_views.xml',
+        'wizard/commercial_invoice_sign_print_wizard_views.xml',
+        'wizard/reservation_document_print_wizard_views.xml',
         # --- MENUS (Load Last) ---
         'views/res_config_settings_views.xml',
         'views/hotel_default_setup_views.xml',

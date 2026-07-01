@@ -69,6 +69,59 @@ class HotelRoom(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'zone_id, floor_id, name'
 
+    hk_reclean_required = fields.Boolean(
+        string="Failed / Reclean",
+        compute="_compute_hk_reclean_info",
+        compute_sudo=True,
+    )
+    hk_reclean_reason = fields.Char(
+        string="Reclean Reason",
+        compute="_compute_hk_reclean_info",
+        compute_sudo=True,
+    )
+    hk_reclean_photo_count = fields.Integer(
+        string="Evidence Photos",
+        compute="_compute_hk_reclean_info",
+        compute_sudo=True,
+    )
+
+    def _compute_hk_reclean_info(self):
+        try:
+            Task = self.env['hotel.housekeeping'].sudo()
+        except KeyError:
+            Task = False
+
+        for room in self:
+            room.hk_reclean_required = False
+            room.hk_reclean_reason = False
+            room.hk_reclean_photo_count = 0
+
+            if not Task:
+                continue
+
+            task = Task.search([
+                ('room_id', '=', room.id),
+                ('inspection_state', '=', 'failed'),
+            ], order='inspected_datetime desc, write_date desc, id desc', limit=1)
+
+            is_reclean = bool(
+                task
+                and room.housekeeping_status == 'dirty'
+                and not room.release_ready
+            )
+
+            if (
+                is_reclean
+                and room.cleaned_at
+                and task.inspected_datetime
+                and room.cleaned_at > task.inspected_datetime
+            ):
+                is_reclean = False
+
+            room.hk_reclean_required = is_reclean
+            room.hk_reclean_reason = task.failure_reason if is_reclean else False
+            room.hk_reclean_photo_count = len(task.inspection_attachment_ids) if is_reclean else 0
+
     name = fields.Char(string='Room Number', required=True, tracking=True)
     zone_id = fields.Many2one('hotel.zone', string="Building / Zone", required=True, tracking=True)
     floor_id = fields.Many2one('hotel.floor', string='Floor', required=True, tracking=True)
@@ -146,6 +199,7 @@ class HotelRoom(models.Model):
     
     is_blocked_today = fields.Boolean(compute='_compute_live_status')
     block_id = fields.Many2one('hotel.reservation', compute='_compute_live_status')
+    room_block_id = fields.Many2one('hotel.room.block', compute='_compute_live_status')
 
     # --- CONNECTING ROOMS LOGIC ---
     physical_connecting_room_ids = fields.Many2many(
@@ -181,12 +235,73 @@ class HotelRoom(models.Model):
 
     @api.model
     def _front_office_room_write_fields(self):
-        return self._housekeeping_room_write_fields() | {
-            'state',
-            'occupancy_status',
-            'availability_status',
-            'ooo_until',
+        return {
+            'message_follower_ids',
+            'message_partner_ids',
+            'message_main_attachment_id',
         }
+
+    @api.model
+    def _reservation_workflow_room_write_fields(self):
+        return {
+            'occupancy_status',
+            'housekeeping_status',
+            'availability_status',
+            'do_not_disturb',
+            'turndown_required',
+            'turndown_completed',
+            'minibar_check_required',
+            'minibar_checked',
+            'linen_change_required',
+            'linen_changed',
+        }
+
+    @api.model
+    def _is_reservation_workflow_room_write(self, vals):
+        field_names = set(vals)
+        if not field_names or field_names - self._reservation_workflow_room_write_fields():
+            return False
+        if vals.get('housekeeping_status') not in (None, 'dirty'):
+            return False
+        if vals.get('occupancy_status') not in (None, 'occupied', 'vacant'):
+            return False
+        if vals.get('availability_status') not in (None, 'available', 'out_of_order'):
+            return False
+        boolean_fields = {
+            'do_not_disturb',
+            'turndown_required',
+            'turndown_completed',
+            'minibar_check_required',
+            'minibar_checked',
+            'linen_change_required',
+            'linen_changed',
+        }
+        return all(isinstance(vals[field], bool) for field in boolean_fields if field in vals)
+
+    @api.model
+    def _user_has_group_if_exists(self, xmlid):
+        return bool(self.env.ref(xmlid, raise_if_not_found=False)) and self.env.user.has_group(xmlid)
+
+    @api.model
+    def _can_update_housekeeping_room_status(self):
+        allowed_groups = (
+            'hotel_management.group_hotel_housekeeper',
+            'hotel_housekeeping_app.group_housekeeping_user',
+            'hotel_housekeeping_app.group_housekeeping_supervisor',
+            'hotel_housekeeping_app.group_housekeeping_manager',
+            'hotel_management.group_hotel_manager',
+            'base.group_system',
+        )
+        return (
+            self.env.su
+            or self.env.context.get('install_mode')
+            or any(self._user_has_group_if_exists(group) for group in allowed_groups)
+        )
+
+    def _check_housekeeping_room_status_access(self):
+        if self._can_update_housekeeping_room_status():
+            return
+        raise AccessError(_("Only Housekeeping, Hotel Manager, or System users can update housekeeping room status."))
 
     @api.model
     def _can_manage_ooo(self):
@@ -205,6 +320,11 @@ class HotelRoom(models.Model):
             or self.env.context.get('install_mode')
             or self.env.context.get('hotel_room_security_bypass')
             or self.env.user.has_group('hotel_management.group_hotel_manager')
+        ):
+            return
+        if (
+            self.env.context.get('hotel_reservation_room_workflow')
+            and self._is_reservation_workflow_room_write(vals)
         ):
             return
 
@@ -380,6 +500,7 @@ class HotelRoom(models.Model):
 
         biz_date = self.env.company.hotel_business_date or fields.Date.context_today(self)
         Reservation = self.env['hotel.reservation'].with_context(skip_hotel_room_reconcile=True)
+        RoomBlock = self.env['hotel.room.block'].sudo()
 
         occupied_room_ids = set(Reservation.search([
             ('room_id', 'in', rooms.ids),
@@ -388,12 +509,19 @@ class HotelRoom(models.Model):
             ('checkin_date', '<=', biz_date),
         ]).mapped('room_id').ids)
 
-        blocked_room_ids = set(Reservation.search([
+        legacy_blocked_room_ids = set(Reservation.search([
             ('room_id', 'in', rooms.ids),
             ('state', '=', 'blocked'),
             ('checkin_date', '<=', biz_date),
             ('checkout_date', '>', biz_date),
         ]).mapped('room_id').ids)
+        room_blocked_room_ids = set(RoomBlock.search([
+            ('room_id', 'in', rooms.ids),
+            ('state', '=', 'active'),
+            ('date_from', '<=', biz_date),
+            ('date_to', '>', biz_date),
+        ]).mapped('room_id').ids)
+        blocked_room_ids = legacy_blocked_room_ids | room_blocked_room_ids
 
         arrival_room_ids = set(Reservation.search([
             ('room_id', 'in', rooms.ids),
@@ -507,12 +635,18 @@ class HotelRoom(models.Model):
                 ('state', '=', 'confirm')
             ], limit=1)
             
-            # 3. Maintenance Block
+            # 3. Maintenance / OOO Block
             block = self.env['hotel.reservation'].search([
                 ('room_id', '=', rec.id),
                 ('state', '=', 'blocked'),
                 ('checkin_date', '<=', biz_date),
                 ('checkout_date', '>', biz_date)
+            ], limit=1)
+            room_block = self.env['hotel.room.block'].sudo().search([
+                ('room_id', '=', rec.id),
+                ('state', '=', 'active'),
+                ('date_from', '<=', biz_date),
+                ('date_to', '>', biz_date),
             ], limit=1)
 
             # --- ASSIGNMENTS ---
@@ -523,7 +657,8 @@ class HotelRoom(models.Model):
             rec.is_arrival_today = bool(arrival)
             
             rec.block_id = block.id
-            rec.is_blocked_today = bool(block)
+            rec.room_block_id = room_block.id
+            rec.is_blocked_today = bool(block or room_block)
             
             # --- NEW HOUSEKEEPING PRIORITY LOGIC ---
             if arrival:
@@ -570,6 +705,11 @@ class HotelRoom(models.Model):
             'housekeeping_release_policy',
             'assigned_housekeeper_id',
             'assigned_inspector_id',
+            'cleaned_by_id',
+            'cleaned_at',
+            'inspected_by_id',
+            'inspected_at',
+            'release_ready',
             'do_not_disturb',
             'turndown_required',
             'turndown_completed',
@@ -579,7 +719,20 @@ class HotelRoom(models.Model):
             'linen_changed',
             'clean_priority',
         ]
-        if any(field in vals for field in ['state', 'occupancy_status', 'housekeeping_status', 'availability_status']):
+        sync_status_fields = [
+            'state',
+            'occupancy_status',
+            'housekeeping_status',
+            'availability_status',
+            'release_ready',
+            'service_workflow',
+            'cleaned_by_id',
+            'cleaned_at',
+            'inspected_by_id',
+            'inspected_at',
+        ]
+
+        if any(field in vals for field in sync_status_fields):
             for room in self:
                 room_vals = room._synchronize_operational_values(vals)
                 super(HotelRoom, room).write(room_vals)
@@ -594,6 +747,7 @@ class HotelRoom(models.Model):
         return res
 
     def action_set_clean(self):
+        self._check_housekeeping_room_status_access()
         biz_date = self.env.company.hotel_business_date or fields.Date.today()
         for rec in self:
             if rec.availability_status == 'out_of_order':
@@ -617,6 +771,7 @@ class HotelRoom(models.Model):
             rec._sync_housekeeping_task_records()
 
     def action_set_dirty(self):
+        self._check_housekeeping_room_status_access()
         biz_date = self.env.company.hotel_business_date or fields.Date.today()
         for rec in self:
             if rec.availability_status == 'out_of_order':
@@ -643,15 +798,121 @@ class HotelRoom(models.Model):
             rec._sync_housekeeping_task_records()
 
     def action_set_inspected(self):
-        for rec in self:
-            if rec.availability_status == 'out_of_order':
-                raise UserError(_("Room %s is Out of Order. Release OOO before inspection.") % rec.name)
-            rec.with_context(hotel_room_security_bypass=True).write({
+        self._check_housekeeping_room_status_access()
+        now = fields.Datetime.now()
+
+        for room in self:
+            room.with_context(skip_hotel_room_reconcile=True).write({
                 'housekeeping_status': 'inspected',
+                'release_ready': True,
                 'inspected_by_id': self.env.user.id,
-                'inspected_at': fields.Datetime.now(),
+                'inspected_at': now,
+                'service_workflow': 'vacant_ready',
             })
-            rec._sync_housekeeping_task_records()
+
+        # Sync to housekeeping inspection/task records when the housekeeping model exists.
+        inspection_model_name = False
+        for model_name in [
+            #'hotel.housekeeping.inspection',
+            'housekeeping.inspection',
+            'hotel.housekeeping.task',
+        ]:
+            if model_name in self.env.registry.models:
+                inspection_model_name = model_name
+                break
+
+        if not inspection_model_name:
+            return True
+
+        Inspection = self.env[inspection_model_name].sudo()
+
+        for room in self:
+            task = Inspection.search([
+                ('room_id', '=', room.id),
+                ('state', '!=', 'done'),
+            ], order='create_date desc', limit=1)
+
+            if not task:
+                task = Inspection.search([
+                    ('room_id', '=', room.id),
+                ], order='create_date desc', limit=1)
+
+            vals = {}
+
+            if 'state' in Inspection._fields:
+                vals['state'] = 'done'
+            if 'inspection_state' in Inspection._fields:
+                vals['inspection_state'] = 'passed'
+            if 'failure_reason' in Inspection._fields:
+                vals['failure_reason'] = False
+            if 'inspected_by' in Inspection._fields:
+                vals['inspected_by'] = self.env.user.id
+            if 'inspected_by_id' in Inspection._fields:
+                vals['inspected_by_id'] = self.env.user.id
+            if 'inspected_datetime' in Inspection._fields:
+                vals['inspected_datetime'] = now
+            if 'inspected_at' in Inspection._fields:
+                vals['inspected_at'] = now
+            if 'room_ready' in Inspection._fields:
+                vals['room_ready'] = True
+
+            if task:
+                if 'cleaning_completed_by_id' in Inspection._fields and not task.cleaning_completed_by_id:
+                    vals['cleaning_completed_by_id'] = self.env.user.id
+                if 'cleaning_completed_datetime' in Inspection._fields and not task.cleaning_completed_datetime:
+                    vals['cleaning_completed_datetime'] = now
+                task.write(vals)
+            else:
+                vals['room_id'] = room.id
+                Inspection.create(vals)
+        # Sync Hotel Management Inspect action to Housekeeping Passed Today counter
+        if 'hotel.housekeeping' in self.env.registry.models:
+            Task = self.env['hotel.housekeeping'].sudo()
+            now = fields.Datetime.now()
+            today_start = fields.Datetime.to_datetime(fields.Date.context_today(self))
+            biz_date = self.env.company.hotel_business_date or fields.Date.context_today(self)
+
+            for room in self:
+                task = Task.search([
+                    ('room_id', '=', room.id),
+                    ('state', '!=', 'done'),
+                ], order='write_date desc, create_date desc, id desc', limit=1)
+
+                if not task:
+                    task = Task.search([
+                        ('room_id', '=', room.id),
+                        ('inspection_state', '=', 'passed'),
+                        ('inspected_datetime', '>=', today_start),
+                    ], order='write_date desc, create_date desc, id desc', limit=1)
+
+                vals = {
+                    'inspection_state': 'passed',
+                    'inspected_by': self.env.user.id,
+                    'inspected_datetime': now,
+                    'failure_reason': False,
+                    'state': 'done',
+                    'room_ready': True,
+                }
+
+                if 'business_date' in Task._fields:
+                    vals['business_date'] = biz_date
+
+                if 'cleaning_completed_by_id' in Task._fields and task and not task.cleaning_completed_by_id:
+                    vals['cleaning_completed_by_id'] = self.env.user.id
+
+                if 'cleaning_completed_datetime' in Task._fields and task and not task.cleaning_completed_datetime:
+                    vals['cleaning_completed_datetime'] = now
+
+                if task:
+                    task.write(vals)
+                else:
+                    create_vals = dict(vals)
+                    create_vals.update({
+                        'name': "Inspection Passed / Room %s" % (room.name or room.display_name),
+                        'room_id': room.id,
+                    })
+                    Task.with_context(skip_housekeeping_duplicate_guard=True).create(create_vals)
+        return True
 
     def action_set_blocked(self):
         self._check_ooo_management_access()
@@ -660,25 +921,23 @@ class HotelRoom(models.Model):
                 raise UserError(_("You cannot mark an occupied room as unavailable!"))
 
             biz_date = self.env.company.hotel_business_date or fields.Date.today()
-            existing_block = self.env['hotel.reservation'].search([
+            existing_block = self.env['hotel.room.block'].sudo().search([
                 ('room_id', '=', room.id),
-                ('state', '=', 'blocked'),
-                ('block_reason', '=', 'Unavailable / OOO'),
-                ('checkin_date', '<=', biz_date),
-                ('checkout_date', '>', biz_date),
+                ('state', '=', 'active'),
+                ('source', '=', 'manual'),
+                ('date_from', '<=', biz_date),
+                ('date_to', '>', biz_date),
             ], limit=1)
 
             if not existing_block:
-                self.env['hotel.reservation'].with_context(
-                    hotel_reservation_security_bypass=True
-                ).sudo().create({
-                    'partner_id': self.env.user.partner_id.id,
+                self.env['hotel.room.block'].sudo().create({
+                    'name': _("OOO: %s") % room.name,
                     'room_id': room.id,
-                    'room_type_id': room.room_type_id.id,
-                    'checkin_date': biz_date,
-                    'checkout_date': biz_date + timedelta(days=1),
-                    'state': 'blocked',
-                    'block_reason': 'Unavailable / OOO',
+                    'date_from': biz_date,
+                    'date_to': biz_date + timedelta(days=1),
+                    'state': 'active',
+                    'source': 'manual',
+                    'reason': 'Unavailable / OOO',
                 })
 
             room.with_context(hotel_room_security_bypass=True).write({'availability_status': 'out_of_order'})
@@ -690,21 +949,26 @@ class HotelRoom(models.Model):
         self._check_ooo_management_access()
         biz_date = self.env.company.hotel_business_date or fields.Date.today()
         for room in self:
-            self.env['hotel.reservation'].with_context(
-                hotel_reservation_security_bypass=True
-            ).sudo().search([
+            self.env['hotel.room.block'].sudo().search([
                 ('room_id', '=', room.id),
-                ('state', '=', 'blocked'),
-                ('block_reason', '=', 'Unavailable / OOO'),
-                ('checkin_date', '<=', biz_date),
-                ('checkout_date', '>', biz_date),
-            ]).unlink()
-            has_active_block = self.env['hotel.reservation'].search_count([
+                ('state', '=', 'active'),
+                ('source', '=', 'manual'),
+                ('date_from', '<=', biz_date),
+                ('date_to', '>', biz_date),
+            ]).action_release()
+            has_active_legacy_block = self.env['hotel.reservation'].search_count([
                 ('room_id', '=', room.id),
                 ('state', '=', 'blocked'),
                 ('checkin_date', '<=', biz_date),
                 ('checkout_date', '>', biz_date),
             ])
+            has_active_room_block = self.env['hotel.room.block'].sudo().search_count([
+                ('room_id', '=', room.id),
+                ('state', '=', 'active'),
+                ('date_from', '<=', biz_date),
+                ('date_to', '>', biz_date),
+            ])
+            has_active_block = bool(has_active_legacy_block or has_active_room_block)
             room.with_context(hotel_room_security_bypass=True).write({
                 'availability_status': 'out_of_order' if has_active_block else 'available'
             })
@@ -765,6 +1029,7 @@ class HotelRoom(models.Model):
 
     def action_mark_room_clean(self):
         """Triggered by the mobile Housekeeping app to clean a room."""
+        self._check_housekeeping_room_status_access()
         self.action_set_clean()
 
         # Optional: If you want to track who cleaned it, you could add:

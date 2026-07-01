@@ -8,7 +8,7 @@
         <field name="report_name">hotel_management.report_tax_invoice_template</field>
         <field name="report_file">hotel_management.report_tax_invoice_template</field>
         <field name="print_report_name">'Tax_Invoice_%s' % (object.name)</field>
-        <field name="binding_model_id" ref="model_hotel_reservation"/>
+        <field name="binding_model_id" eval="False"/>
         <field name="binding_type">report</field>
     </record>
 
@@ -19,7 +19,7 @@
         <field name="report_name">hotel_management.report_commercial_invoice_template</field>
         <field name="report_file">hotel_management.report_commercial_invoice_template</field>
         <field name="print_report_name">'Commercial_Invoice_%s' % (object.name)</field>
-        <field name="binding_model_id" ref="model_hotel_reservation"/>
+        <field name="binding_model_id" eval="False"/>
         <field name="binding_type">report</field>
     </record>
 
@@ -97,9 +97,17 @@
                         <div class="row mt-5 pt-5" style="page-break-inside: avoid;">
                             <div class="col-5 text-center">
                                 <p class="mb-1 fw-bold">Prepared By</p>
-                                <div style="height: 60px; border-bottom: 1px solid black; margin: 0 20px;"></div>
-                                <br/><span t-esc="env.user.name"/>
-                                <div class="text-muted mt-1" style="font-size: 13px;">Date: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')"/></div>
+                                <div style="height: 60px; border-bottom: 1px solid black; margin: 0 20px; position: relative;">
+                                    <img t-if="doc.commercial_invoice_staff_signature" t-att-src="image_data_uri(doc.commercial_invoice_staff_signature)" style="max-height: 60px; max-width: 100%; position: absolute; bottom: 0; left: 35%; transform: translateX(-50%);"/>
+                                </div>
+                                <br/>
+                                <span t-if="doc.commercial_invoice_signed_by_name" t-esc="doc.commercial_invoice_signed_by_name"/>
+                                <span t-if="not doc.commercial_invoice_signed_by_name" t-esc="env.user.name"/>
+                                <div class="text-muted mt-1" style="font-size: 13px;">
+                                    Date:
+                                    <span t-if="doc.commercial_invoice_signed_at" t-esc="context_timestamp(doc.commercial_invoice_signed_at).strftime('%Y-%m-%d')"/>
+                                    <span t-if="not doc.commercial_invoice_signed_at" t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')"/>
+                                </div>
                             </div>
                             <div class="col-2"></div>
                             <div class="col-5 text-center">
@@ -218,9 +226,17 @@
                         <div class="row mt-5 pt-5" style="page-break-inside: avoid;">
                             <div class="col-5 text-center">
                                 <p class="mb-1 fw-bold">Prepared By (Cashier)</p>
-                                <div style="height: 60px; border-bottom: 1px solid black; margin: 0 20px;"></div>
-                                <br/><span t-esc="env.user.name"/>
-                                <div class="text-muted mt-1" style="font-size: 13px;">Date: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')"/></div>
+                                <div style="height: 60px; border-bottom: 1px solid black; margin: 0 20px; position: relative;">
+                                    <img t-if="doc.tax_invoice_staff_signature" t-att-src="image_data_uri(doc.tax_invoice_staff_signature)" style="max-height: 60px; max-width: 100%; position: absolute; bottom: 0; left: 35%; transform: translateX(-50%);"/>
+                                </div>
+                                <br/>
+                                <span t-if="doc.tax_invoice_signed_by_name" t-esc="doc.tax_invoice_signed_by_name"/>
+                                <span t-if="not doc.tax_invoice_signed_by_name" t-esc="env.user.name"/>
+                                <div class="text-muted mt-1" style="font-size: 13px;">
+                                    Date:
+                                    <span t-if="doc.tax_invoice_signed_at" t-esc="context_timestamp(doc.tax_invoice_signed_at).strftime('%Y-%m-%d')"/>
+                                    <span t-if="not doc.tax_invoice_signed_at" t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')"/>
+                                </div>
                             </div>
                             <div class="col-2"></div>
                             <div class="col-5 text-center">

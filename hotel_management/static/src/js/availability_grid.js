@@ -1,5 +1,7 @@
 /** @odoo-module **/
+import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
+import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { Component, onWillStart, useState } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 
@@ -7,20 +9,22 @@ export class HotelAvailabilityGrid extends Component {
     setup() {
         this.orm = useService("orm");
         this.action = useService("action"); 
+        this.dialogService = useService("dialog");
         
         const today = new Date();
         const offset = today.getTimezoneOffset() * 60000;
         const localDate = new Date(today.getTime() - offset);
 
         this.state = useState({
-            startDate: localDate.toISOString().split('T')[0],
+            startDate: '',
             isDateInitialized: false, 
             days: 14,
             loading: true,
             data: null,
             viewMode: 'availability', 
             ratesList: [], 
-            selectedRateName: 'Show Rates' // We only need the Name now!
+            selectedRateName: 'Show Rates', // We only need the Name now!
+            canManageReservations: false,
         });
 
         this.onCellClick = this.onCellClick.bind(this);
@@ -30,6 +34,31 @@ export class HotelAvailabilityGrid extends Component {
         
         this.onDateChange = this.onDateChange.bind(this);
         onWillStart(async () => { await this.loadData(); });
+    }
+    async loadBusinessDate() {
+        const businessDate = await this.orm.call(
+            "hotel.reservation",
+            "get_hotel_business_date_for_ui",
+            []
+        );
+        if (businessDate) {
+            this.state.startDate = businessDate;
+            return true;
+        }
+        return false;
+    }
+
+    async loadReservationAccess() {
+        try {
+            this.state.canManageReservations = !!await this.orm.call(
+                "hotel.reservation",
+                "user_can_manage_reservations",
+                []
+            );
+        } catch (error) {
+            console.warn("Reservation access check failed; using review-only mode.", error);
+            this.state.canManageReservations = false;
+        }
     }
 
     // UPGRADED: Now it only passes the Name string!
@@ -43,12 +72,13 @@ export class HotelAvailabilityGrid extends Component {
     async loadData() {
         this.state.loading = true;
         try {
+            await this.loadReservationAccess();
             if (!this.state.isDateInitialized) {
-                const company = await this.orm.searchRead("res.company", [], ["hotel_business_date"], { limit: 1 });
-                if (company && company.length > 0 && company[0].hotel_business_date) {
-                    this.state.startDate = company[0].hotel_business_date;
-                }
+                await this.loadBusinessDate();
                 this.state.isDateInitialized = true;
+            }
+            if (!this.state.startDate) {
+                await this.loadBusinessDate();
             }
 
             // THE FIX: Fetch all rates, but extract ONLY the unique names to remove duplicates!
@@ -69,6 +99,13 @@ export class HotelAvailabilityGrid extends Component {
     }
 
     onCellClick(roomTypeId, dateStr) {
+        if (!this.state.canManageReservations) {
+            this.dialogService.add(AlertDialog, {
+                title: _t("Reservation Review Only"),
+                body: _t("Housekeeping users can review reservations only and cannot move or modify bookings."),
+            });
+            return;
+        }
         const checkinDate = new Date(`${dateStr}T00:00:00`);
         const checkoutDate = new Date(checkinDate);
         checkoutDate.setDate(checkinDate.getDate() + 1);
@@ -103,10 +140,7 @@ export class HotelAvailabilityGrid extends Component {
     async moveDate(days) {
         if (days === 0) {
             this.state.loading = true;
-            const company = await this.orm.searchRead("res.company", [], ["hotel_business_date"], { limit: 1 });
-            if (company && company.length > 0 && company[0].hotel_business_date) {
-                this.state.startDate = company[0].hotel_business_date;
-            }
+            await this.loadBusinessDate();
         } else {
             let current = new Date(this.state.startDate);
             current.setDate(current.getDate() + days);

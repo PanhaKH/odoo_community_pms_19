@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hotel_room_block_list" model="ir.ui.view">
+        <field name="name">hotel.room.block.list</field>
+        <field name="model">hotel.room.block</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="state == 'active'" decoration-muted="state == 'released'">
+                <field name="name"/>
+                <field name="room_id"/>
+                <field name="room_type_id"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="source"/>
+                <field name="maintenance_request_id"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_room_block_form" model="ir.ui.view">
+        <field name="name">hotel.room.block.form</field>
+        <field name="model">hotel.room.block</field>
+        <field name="arch" type="xml">
+            <form string="Room Block">
+                <header>
+                    <button name="action_release" string="Release" type="object" class="btn-primary" invisible="state != 'active'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="active,released"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="room_id" options="{'no_create': True}"/>
+                            <field name="room_type_id"/>
+                            <field name="source"/>
+                            <field name="maintenance_request_id" invisible="source != 'maintenance'"/>
+                        </group>
+                        <group>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="released_datetime" invisible="state != 'released'"/>
+                            <field name="released_by_id" invisible="state != 'released'"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="reason" placeholder="Reason for Out of Order / room block..."/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hotel_room_block_search" model="ir.ui.view">
+        <field name="name">hotel.room.block.search</field>
+        <field name="model">hotel.room.block</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="room_id"/>
+                <field name="maintenance_request_id"/>
+                <filter string="Active" name="active_blocks" domain="[('state', '=', 'active')]"/>
+                <filter string="Maintenance" name="maintenance" domain="[('source', '=', 'maintenance')]"/>
+                <group>
+                    <filter string="Room" name="group_room" context="{'group_by': 'room_id'}"/>
+                    <filter string="Source" name="group_source" context="{'group_by': 'source'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_hotel_room_block_records" model="ir.actions.act_window">
+        <field name="name">Room Blocks / Out of Order</field>
+        <field name="res_model">hotel.room.block</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_hotel_room_block_search"/>
+        <field name="context">{'search_default_active_blocks': 1}</field>
+    </record>
+</odoo>

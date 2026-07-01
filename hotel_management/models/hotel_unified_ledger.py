@@ -51,9 +51,18 @@ class HotelUnifiedLedger(models.Model):
                         ap.hotel_reservation_id AS reservation_id,
                         ap.create_date AS date,
                         COALESCE(ap.hotel_receipt_number, am.name, 'Advance Deposit / Payment') AS name,
-                        'Payment' AS reference,
-                        0.0 AS debit,
-                        ap.amount AS credit,
+                        CASE
+                            WHEN ap.payment_type = 'outbound' AND ap.is_advance_deposit IS TRUE THEN 'Deposit Refund'
+                            ELSE 'Payment'
+                        END AS reference,
+                        CASE
+                            WHEN ap.payment_type = 'outbound' AND ap.is_advance_deposit IS TRUE THEN ap.amount
+                            ELSE 0.0
+                        END AS debit,
+                        CASE
+                            WHEN ap.payment_type = 'outbound' AND ap.is_advance_deposit IS TRUE THEN 0.0
+                            ELSE ap.amount
+                        END AS credit,
                         ap.currency_id AS currency_id,
                         -- THE FIX: Injecting actual payment data for Payments
                         ap.hotel_payment_activity_type AS hotel_payment_activity_type,
@@ -62,7 +71,45 @@ class HotelUnifiedLedger(models.Model):
                     FROM account_payment ap
                     LEFT JOIN account_move am ON ap.move_id = am.id
                     WHERE ap.hotel_reservation_id IS NOT NULL 
-                      AND am.state IN ('posted', 'in_process')
+                        AND am.state IN ('posted', 'in_process')
+
+                        UNION ALL
+
+                        -- 3. Deposit transfer entries from Posting Journal
+                        SELECT
+                            (1000000000 + hpj.id) AS id,
+                            hpj.reservation_id AS reservation_id,
+                            hpj.date AS date,
+                            hpj.description AS name,
+                            CASE
+                                WHEN hpj.description ILIKE 'Deposit Transfer Out%%' THEN 'Deposit Transfer Out'
+                                WHEN hpj.description ILIKE 'Deposit Transfer In%%' THEN 'Deposit Transfer In'
+                                ELSE hpj.journal_type
+                            END AS reference,
+                            CASE
+                                WHEN hpj.amount > 0 THEN hpj.amount
+                                ELSE 0.0
+                            END AS debit,
+                            CASE
+                                WHEN hpj.amount < 0 THEN ABS(hpj.amount)
+                                ELSE 0.0
+                            END AS credit,
+                            hr.currency_id AS currency_id,
+                            CASE
+                                WHEN hpj.description ILIKE 'Deposit Transfer Out%%' THEN 'deposit_transfer_out'
+                                WHEN hpj.description ILIKE 'Deposit Transfer In%%' THEN 'deposit_transfer_in'
+                                ELSE 'other'
+                            END AS hotel_payment_activity_type,
+                            hr.partner_id AS partner_id,
+                            NULL::integer AS journal_id
+                        FROM hotel_posting_journal hpj
+                        JOIN hotel_reservation hr ON hr.id = hpj.reservation_id
+                        WHERE hpj.journal_type = 'payment'
+                        AND (
+                            hpj.description ILIKE 'Deposit Transfer Out%%'
+                            OR hpj.description ILIKE 'Deposit Transfer In%%'
+                        )
+                        
                 )
                 
                 -- Calculate the Running Balance using a SQL Window Function

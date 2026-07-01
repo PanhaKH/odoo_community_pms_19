@@ -115,7 +115,9 @@ class HotelDocumentTemplate(models.Model):
         </div>
         <div class="col-6">
             <div class="section-title">Front Desk Verification</div>
-            <div class="signature-box"></div>
+            ${reservation.registration_staff_signature}
+            <div class="text-muted">${reservation.registration_signed_by_name}</div>
+            <div class="text-muted">${reservation.registration_signed_at}</div>
         </div>
     </div>
 </div>
@@ -235,6 +237,18 @@ class HotelDocumentTemplate(models.Model):
             ) % escape(image_data_uri(reservation.guest_signature))
         return Markup('<div class="signature-box"></div>')
 
+    def _staff_signature_html(self, reservation):
+        if reservation.registration_staff_signature:
+            return Markup(
+                '<div class="signature-box"><img src="%s" alt="Staff Signature"/></div>'
+            ) % escape(image_data_uri(reservation.registration_staff_signature))
+        return Markup('<div class="signature-box"></div>')
+
+    def _format_datetime(self, record, value):
+        if not value:
+            return ''
+        return fields.Datetime.context_timestamp(record, value).strftime('%Y-%m-%d %H:%M:%S')
+
     def _accompanying_guest_table(self, guests):
         if not guests:
             return Markup('<div class="text-muted">No accompanying guests registered.</div>')
@@ -285,6 +299,9 @@ class HotelDocumentTemplate(models.Model):
             'reservation.estimated_balance_amount': self._format_money(reservation, data['estimated_balance']),
             'reservation.accompanying_guest_table': self._accompanying_guest_table(data['accompanying_guests']),
             'reservation.guest_signature': self._signature_html(reservation),
+            'reservation.registration_staff_signature': self._staff_signature_html(reservation),
+            'reservation.registration_signed_by_name': reservation.registration_signed_by_name or '',
+            'reservation.registration_signed_at': self._format_datetime(reservation, reservation.registration_signed_at),
             'reservation.registration_terms': self._html_text(terms),
             'company.name': company.name or '',
             'company.logo': self._logo_html(company),
@@ -292,6 +309,9 @@ class HotelDocumentTemplate(models.Model):
         }
         values.update({
             'guest_signature': values['reservation.guest_signature'],
+            'registration_staff_signature': values['reservation.registration_staff_signature'],
+            'registration_signed_by_name': values['reservation.registration_signed_by_name'],
+            'registration_signed_at': values['reservation.registration_signed_at'],
             'company.logo': values['company.logo'],
         })
         if not self.show_company_name:
@@ -300,7 +320,15 @@ class HotelDocumentTemplate(models.Model):
 
     def _render_for_reservation(self, reservation):
         self.ensure_one()
-        body = self.html_body or self._default_registration_card_html()
+        body = str(self.html_body or self._default_registration_card_html())
+        if 'reservation.registration_staff_signature' not in body:
+            body = body.replace(
+                '<div class="section-title">Front Desk Verification</div>\n            <div class="signature-box"></div>',
+                '<div class="section-title">Front Desk Verification</div>\n'
+                '            ${reservation.registration_staff_signature}\n'
+                '            <div class="text-muted">${reservation.registration_signed_by_name}</div>\n'
+                '            <div class="text-muted">${reservation.registration_signed_at}</div>',
+            )
         values = self._placeholder_values(reservation)
 
         def replace(match):

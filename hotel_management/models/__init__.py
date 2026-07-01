@@ -1,4 +1,5 @@
 from . import hotel_configuration
+from . import hotel_room_block
 from . import hotel_room
 from . import hotel_reservation_guest
 from . import hotel_reservation
@@ -23,3 +24,4 @@ from . import hotel_booking_source
 from . import hotel_default_setup
 from . import hotel_guest_duplicate_review
 from . import hotel_document_template
+from . import res_users

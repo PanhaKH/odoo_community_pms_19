@@ -240,16 +240,20 @@
                 <field name="room_id"/>
                 <field name="name"/>
                 <field name="partner_passport" string="Passport / ID Number" filter_domain="[('partner_passport', 'ilike', self)]"/>
-                <filter string="Confirmed" name="confirmed" domain="[('state', '=', 'confirm')]"/>
+                <filter string="Today Arrival" name="today_arrival" domain="[('is_business_arrival_today', '=', True)]"/>
+                <filter string="Departure Today" name="departure_today" domain="[('is_business_departure_today', '=', True)]"/>
+                <filter string="Stayover / In-House" name="stayover_inhouse" domain="[('is_business_stayover_today', '=', True)]"/>
+                <filter string="In-House" name="in_house" domain="[('state', 'in', ['checkin', 'checkout_hold']), ('is_desk_folio', '=', False)]"/>
+                <filter string="Confirmed" name="confirmed" domain="[('state', 'in', ['confirm', 'guaranteed']), ('is_desk_folio', '=', False)]"/>
+                <filter string="Checked Out" name="checked_out" domain="[('state', '=', 'checkout'), ('is_desk_folio', '=', False)]"/>
+                <filter string="No-Show" name="no_show" domain="[('state', '=', 'noshow'), ('is_desk_folio', '=', False)]"/>
+                <filter string="Cancelled" name="cancelled" domain="[('state', '=', 'cancel'), ('is_desk_folio', '=', False)]"/>
                 <filter string="Repeat Guest" name="repeat_guest" domain="[('is_repeat_guest', '=', True)]"/>
-                
-                <filter string="In-House / Due Out" name="in_house" domain="[('state', 'in', ['checkin', 'checkout_hold'])]"/>
                 
                 <filter string="Maintenance Blocks" name="blocked" domain="[('state', '=', 'blocked')]"/>
                 <separator/>
                 <filter string="Exclude Maintenance" name="no_maintenance" domain="[('state', '!=', 'blocked')]"/>
                 <separator/>
-                <filter string="Check-in Today" name="today" domain="[('checkin_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
                 <group>
                     <filter string="Room" name="group_room" context="{'group_by':'room_id'}"/>
                     <filter string="Status" name="group_status" context="{'group_by':'state'}"/>
@@ -271,8 +275,265 @@
         <field name="target">new</field>
         <field name="context">{'default_line_id': active_id}</field>
     </record>
+
+    <record id="view_hotel_routing_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.routing.wizard.form</field>
+        <field name="model">hotel.routing.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Transfer Charges">
+                <sheet>
+                    <div class="alert alert-info" role="alert">
+                        Select the Destination Room or Desk Folio, then check the boxes next to the charges you want to move.
+                    </div>
+                    <group>
+                        <field name="source_order_id" invisible="1"/>
+                        <field name="destination_reservation_id"
+                               options="{'no_create': True}"
+                               placeholder="Search for Room No or Account Name..."
+                               domain="[
+                                   ('sale_order_id', '!=', source_order_id),
+                                   '|',
+                                   '&amp;', '&amp;',
+                                       ('is_desk_folio', '=', True),
+                                       ('state', 'not in', ['cancel', 'blocked', 'noshow', 'checkout']),
+                                       ('desk_folio_status', 'in', ['draft', 'open', 'fully_invoiced', False]),
+                                   '&amp;',
+                                       ('is_desk_folio', '=', False),
+                                       ('state', 'in', ['checkin', 'checkout_hold'])
+                               ]"/>
+                    </group>
+
+                    <field name="line_ids" widget="many2many">
+                        <list string="Charges" create="0" delete="0">
+                            <field name="product_id" readonly="1"/>
+                            <field name="name" readonly="1"/>
+                            <field name="price_unit" readonly="1" sum="Total"/>
+                        </list>
+                    </field>
+                </sheet>
+                <footer>
+                    <button name="action_transfer" type="object" string="Confirm Transfer" class="btn-primary" icon="fa-exchange" confirm="Are you sure you want to move these charges?"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_routing_wizard" model="ir.actions.act_window">
+        <field name="name">Transfer Charges</field>
+        <field name="res_model">hotel.routing.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_hotel_folio_order_tree" model="ir.ui.view">
+        <field name="name">hotel.folio.order.tree</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <list string="Hotel Folios" create="false" delete="false">
+                <field name="name" string="Folio"/>
+                <field name="partner_id" string="Guest / Account"/>
+                <field name="reference"/>
+                <field name="date_order"/>
+                <field name="hotel_total_folio_charges" widget="monetary"/>
+                <field name="hotel_guest_balance_due" widget="monetary"/>
+                <field name="hotel_guest_credit_balance" widget="monetary"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_folio_order_form" model="ir.ui.view">
+        <field name="name">hotel.folio.order.form</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <form string="Hotel Folio" create="false" delete="false">
+                <header>
+                    <button name="action_quotation_send"
+                            string="Send by Email"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state not in ['draft', 'sent']"/>
+                    <button name="action_confirm"
+                            string="Confirm Order"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="%(sale.action_view_sale_advance_payment_inv)d"
+                            string="Create Invoice"
+                            type="action"
+                            class="btn-primary"
+                            invisible="invoice_status != 'to invoice'"/>
+                    <button name="%(action_hotel_routing_wizard)d"
+                            type="action"
+                            string="Transfer Charges"
+                            class="btn-warning"
+                            icon="fa-exchange"
+                            context="{'default_source_order_id': id}"/>
+                    <button name="action_cancel"
+                            string="Cancel"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state not in ['draft', 'sent']"/>
+                    <button name="action_draft"
+                            string="Reset to Draft"
+                            type="object"
+                            invisible="state not in ['cancel']"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,sent,sale"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_invoice"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-file-text-o"
+                                invisible="invoice_count == 0">
+                            <field name="invoice_count" widget="statinfo" string="Invoices"/>
+                        </button>
+                    </div>
+                    <div class="alert alert-info d-flex align-items-center justify-content-between flex-wrap gap-3" role="alert">
+                        <div>
+                            <strong>Folio Total:</strong>
+                            <field name="hotel_total_folio_charges" widget="monetary" class="oe_inline"/>
+                        </div>
+                        <div>
+                            <strong>Deposit / Paid:</strong>
+                            <field name="hotel_deposit_paid_total" widget="monetary" class="oe_inline"/>
+                        </div>
+                        <div invisible="hotel_guest_credit_balance &gt; 0.01 and hotel_guest_balance_due &lt;= 0.01">
+                            <strong>Current Balance Due:</strong>
+                            <field name="hotel_guest_balance_due" widget="monetary" class="oe_inline"/>
+                        </div>
+                        <div invisible="hotel_guest_credit_balance &lt;= 0.01 or hotel_guest_balance_due &gt; 0.01">
+                            <strong>Guest Credit Balance:</strong>
+                            <field name="hotel_guest_credit_balance" widget="monetary" class="oe_inline"/>
+                        </div>
+                        <div>
+                            <button name="action_view_hotel_operational_folio" type="object" class="btn btn-sm btn-outline-primary" string="Operational Guest Folio"/>
+                        </div>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="name" readonly="1"/>
+                            <field name="partner_id" string="Guest / Account"/>
+                            <field name="reference"/>
+                        </group>
+                        <group>
+                            <field name="date_order"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="is_hotel_folio" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Folio Charges" name="hotel_folio_lines">
+                            <field name="order_line">
+                                <list string="Folio Charges" editable="bottom" create="true" delete="true">
+                                    <field name="display_type" column_invisible="True"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="billing_target_display" column_invisible="True"/>
+                                    <field name="product_id" required="not display_type" options="{'no_create': True}"/>
+                                    <field name="name" string="Description"/>
+                                    <field name="hotel_business_date" string="Biz Date" readonly="1" optional="show"/>
+                                    <field name="billing_target" string="Bill To" widget="hotel_billing_target"
+                                           options="{'display_field': 'billing_target_display'}" optional="show"
+                                           decoration-info="billing_target == 'guest'"
+                                           decoration-primary="billing_target == 'company'"/>
+                                    <field name="product_uom_qty" string="Quantity"/>
+                                    <field name="qty_delivered" string="Delivered" readonly="1" optional="show"/>
+                                    <field name="qty_invoiced" string="Invoiced" readonly="1" optional="show"/>
+                                    <field name="product_uom_id" string="Unit" groups="uom.group_uom" optional="hide"/>
+                                    <field name="price_unit" string="Unit Price"/>
+                                    <field name="tax_ids" widget="many2many_tags" options="{'no_create': True}" optional="show"/>
+                                    <field name="price_total" string="Amount" widget="monetary" readonly="1"/>
+                                    <button name="action_open_split_wizard"
+                                            type="object"
+                                            icon="fa-scissors"
+                                            title="Split Charge"
+                                            invisible="not id"/>
+                                </list>
+                                <form string="Folio Charge">
+                                    <group>
+                                        <field name="display_type" invisible="1"/>
+                                        <field name="currency_id" invisible="1"/>
+                                        <field name="hotel_business_date" readonly="1"/>
+                                        <field name="billing_target_display" invisible="1"/>
+                                        <field name="billing_target" widget="hotel_billing_target"
+                                               options="{'display_field': 'billing_target_display'}"/>
+                                        <field name="product_id" required="not display_type" options="{'no_create': True}"/>
+                                        <field name="name"/>
+                                        <field name="product_uom_qty"/>
+                                        <field name="product_uom_id" groups="uom.group_uom"/>
+                                        <field name="price_unit"/>
+                                        <field name="tax_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                                        <field name="price_total" widget="monetary" readonly="1"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+
+                        <page string="Payments &amp; Deposits" name="advance_deposits">
+                            <field name="hotel_all_payment_ids"
+                                   readonly="1"
+                                   create="0" delete="0" edit="0"
+                                   widget="many2many">
+                                <list string="Payments &amp; Deposits"
+                                      create="0" delete="0" edit="0"
+                                      default_order="date asc">
+                                    <field name="date" string="Physical Date" optional="show"/>
+                                    <field name="hotel_business_date" string="Biz Date" decoration-bf="1" optional="show"/>
+                                    <field name="hotel_payment_activity_type" string="Activity" widget="badge" optional="show"
+                                           decoration-info="hotel_payment_activity_type == 'advance_deposit'"
+                                           decoration-success="hotel_payment_activity_type == 'invoice_payment'"
+                                           decoration-warning="hotel_payment_activity_type == 'deposit_void'"/>
+                                    <field name="name" string="Number" optional="show"/>
+                                    <field name="partner_id" string="Guest / Account" optional="show"/>
+                                    <field name="hotel_invoice_ref" string="Invoice No." optional="show"/>
+                                    <field name="journal_id" string="Payment Method" optional="show"/>
+                                    <field name="amount" widget="monetary" optional="show"/>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state in ('in_process', 'paid')"
+                                           optional="show"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <page string="Unified Folio" name="unified_folio_tab">
+                            <div class="text-center p-3 mb-3">
+                                <button name="action_view_hotel_operational_folio"
+                                        type="object"
+                                        string="Open Full Unified Folio Ledger"
+                                        class="btn-primary"
+                                        icon="fa-list-alt"/>
+                            </div>
+                            <field name="hotel_reservation_ids" readonly="1">
+                                <list string="Linked Reservations" create="0" delete="0" edit="0">
+                                    <field name="name" string="Reservation"/>
+                                    <field name="state" string="Status" widget="badge"
+                                           decoration-success="state in ('checkin','checkout_hold')"
+                                           decoration-info="state == 'confirm'"
+                                           decoration-muted="state == 'checkout'"/>
+                                    <field name="checkin_date" string="Check-In"/>
+                                    <field name="checkout_date" string="Check-Out"/>
+                                    <field name="room_id" string="Room"/>
+                                    <field name="folio_total" string="Folio Total" widget="monetary"/>
+                                    <field name="guest_deposit_paid_total" string="Deposit / Paid" widget="monetary"/>
+                                    <field name="guest_balance_due" string="Balance Due" widget="monetary"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
     <record id="view_sale_order_folio_inherit" model="ir.ui.view">
         <field name="name">sale.order.folio.hotel.inherit</field>
+        <field name="active" eval="False"/>
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
@@ -352,18 +613,158 @@
         <field name="name">hotel.account.move.tree</field>
         <field name="model">account.move</field>
         <field name="arch" type="xml">
-            <list string="Invoices" create="0" edit="0">
-                <field name="name" optional="show"/>
+            <list string="Invoices" create="0" edit="0" default_order="invoice_date desc, name desc">
+                <field name="name" string="Number" decoration-bf="1" optional="show"/>
                 <field name="partner_id" string="Customer" optional="show"/>
+                <field name="hotel_guest_name" string="Guest Name" optional="show"/>
+                <field name="hotel_folio_id" string="Folio No." optional="show"/>
                 <field name="hotel_billing_target" string="Bill To" widget="badge" optional="show"
                        decoration-info="hotel_billing_target == 'guest'"
                        decoration-primary="hotel_billing_target == 'company'"/>
                 <field name="invoice_date" string="Physical Date" optional="show"/>
                 <field name="hotel_business_date" string="Biz Date" decoration-bf="1" optional="show"/>
-                <field name="amount_total_signed" string="Total" widget="monetary" optional="show"/>
-                <field name="state" widget="badge" decoration-success="state == 'posted'" optional="show"/>
+                <field name="invoice_date_due" string="Due Date" optional="show"/>
+                <field name="invoice_origin" string="Source Document" optional="show"/>
+                <field name="company_currency_id" column_invisible="True"/>
+                <field name="amount_untaxed_signed" string="Tax Excluded" sum="Total Untaxed" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show"/>
+                <field name="amount_tax_signed" string="Tax" sum="Total Tax" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show"/>
+                <field name="amount_total_signed" string="Total" sum="Total" decoration-bf="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show"/>
+                <field name="amount_residual_signed" string="Amount Due" sum="Total Due" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show"/>
+                <field name="payment_state" string="Payment" widget="badge"
+                       decoration-success="payment_state in ('paid', 'in_payment')"
+                       decoration-danger="payment_state == 'not_paid'"
+                       optional="show"/>
+                <field name="state" string="Status" widget="badge"
+                       decoration-success="state == 'posted'"
+                       decoration-info="state == 'draft'"
+                       optional="show"/>
                 <field name="currency_id" column_invisible="True"/>
             </list>
+        </field>
+    </record>
+
+    <record id="view_hotel_customer_invoice_form" model="ir.ui.view">
+        <field name="name">hotel.customer.invoice.form.safe</field>
+        <field name="model">account.move</field>
+        <field name="arch" type="xml">
+            <form string="Customer Invoice" create="0" edit="1" delete="0">
+                <header>
+                    <button name="action_hotel_post_invoice" string="Confirm" type="object" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_hotel_print_invoice" string="Print Invoice" type="object" class="btn-secondary" icon="fa-print"/>
+                    <button name="action_hotel_register_payment" string="Register Payment" type="object" class="btn-primary" invisible="state != 'posted' or payment_state in ['paid', 'in_payment'] or amount_residual &lt;= 0"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Invoice"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Hotel Reference">
+                            <field name="partner_id" string="Customer" readonly="1"/>
+                            <field name="hotel_guest_name" readonly="1"/>
+                            <field name="hotel_folio_id" readonly="1"/>
+                            <field name="hotel_billing_target" readonly="1" widget="badge"/>
+                            <field name="invoice_origin" readonly="1"/>
+                            <field name="ref" readonly="1"/>
+                        </group>
+                        <group string="Invoice Status">
+                            <field name="move_type" readonly="1"/>
+                            <field name="state" readonly="1" widget="badge"/>
+                            <field name="payment_state" readonly="1" widget="badge"/>
+                            <field name="invoice_date" readonly="1"/>
+                            <field name="hotel_business_date" readonly="1"/>
+                            <field name="invoice_date_due" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Invoice Lines">
+                            <field name="invoice_line_ids" readonly="state != 'draft'">
+                                <list string="Invoice Lines" editable="bottom" create="1" edit="1" delete="0">
+                                    <field name="product_id" options="{'no_create': True, 'no_open': True}"/>
+                                    <field name="name"/>
+                                    <field name="quantity"/>
+                                    <field name="price_unit"/>
+                                    <field name="tax_ids" widget="many2many_tags" options="{'no_create': True, 'no_open': True}"/>
+                                    <field name="price_subtotal" readonly="1" sum="Subtotal"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Totals">
+                            <group>
+                                <field name="currency_id" invisible="1"/>
+                                <field name="amount_untaxed" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                <field name="amount_tax" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                <field name="amount_total" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                <field name="amount_residual" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_customer_invoices" model="ir.actions.act_window">
+        <field name="name">Customer Invoices</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[
+            ('move_type', 'in', ['out_invoice', 'out_refund']),
+            '|', '|', '|', '|', '|',
+            ('hotel_folio_id.hotel_reservation_ids', '!=', False),
+            ('hotel_folio_id.hotel_group_master_ids', '!=', False),
+            ('invoice_line_ids.hotel_reservation_id', '!=', False),
+            ('invoice_line_ids.sale_line_ids.hotel_reservation_id', '!=', False),
+            ('invoice_line_ids.sale_line_ids.order_id.hotel_reservation_ids', '!=', False),
+            ('invoice_line_ids.sale_line_ids.order_id.hotel_group_master_ids', '!=', False)
+        ]</field>
+        <field name="context">{'create': False, 'edit': True, 'delete': False, 'default_move_type': 'out_invoice'}</field>
+    </record>
+
+    <record id="action_hotel_customer_invoices_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_hotel_invoice_tree"/>
+        <field name="act_window_id" ref="action_hotel_customer_invoices"/>
+    </record>
+
+    <record id="action_hotel_customer_invoices_view_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_hotel_customer_invoice_form"/>
+        <field name="act_window_id" ref="action_hotel_customer_invoices"/>
+    </record>
+
+    <record id="view_hotel_invoice_payment_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.invoice.payment.wizard.form</field>
+        <field name="model">hotel.invoice.payment.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Register Hotel Payment">
+                <sheet>
+                    <group>
+                        <group string="Invoice">
+                            <field name="invoice_id"/>
+                            <field name="partner_id"/>
+                            <field name="amount_residual" widget="monetary"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="company_id" invisible="1"/>
+                        </group>
+                        <group string="Payment">
+                            <field name="payment_date"/>
+                            <field name="journal_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="available_payment_method_line_ids" invisible="1"/>
+                            <field name="payment_method_line_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="amount" widget="monetary"/>
+                            <field name="hotel_receipt_number"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_register_payment" string="Register Payment" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
         </field>
     </record>
 
@@ -382,7 +783,10 @@
                 <field name="partner_id" string="Guest / Account" optional="show"/>
                 <field name="hotel_invoice_ref" string="Invoice No." optional="show"/>
                 <field name="journal_id" string="Payment Method" optional="show"/>
-                <field name="amount" widget="monetary" optional="show"/>
+                <field name="hotel_net_receipt_amount"
+                        string="Amount"
+                        widget="monetary"
+                        sum="Total"/>
                 <field name="state" widget="badge" decoration-success="state in ('in_process', 'paid')" optional="show"/>
                 <field name="currency_id" column_invisible="True"/>
             </list>
@@ -397,7 +801,7 @@
         <field name="arch" type="xml">
             <form class="o_hotel_reservation_form">
                 <header>
-                    <button name="action_view_invoices" type="object" string="View Invoices" class="btn-outline-primary fw-bold" icon="fa-file-text" invisible="invoice_count == 0"/>
+                    <button name="action_view_invoices" type="object" string="View Invoices" class="btn-outline-primary fw-bold" icon="fa-file-text" groups="hotel_management.group_hotel_front_office,hotel_management.group_hotel_manager,account.group_account_manager,base.group_system" invisible="invoice_count == 0"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,confirm,checkin,checkout_hold,checkout" invisible="is_desk_folio"/>
                     <field name="desk_folio_status" widget="statusbar" statusbar_visible="draft,open,fully_invoiced,paid" invisible="not is_desk_folio"/>
                 </header>
@@ -422,9 +826,15 @@
                         <div class="d-flex flex-wrap gap-2">
                              <field name="sale_order_id" invisible="1"/>
                              <field name="payment_count" invisible="1"/>
+                             <field name="posting_journal_count" invisible="1"/>
                              <field name="payment_registered_total" invisible="1"/>
 
-                            <button name="%(hotel_management.action_hotel_unified_ledger)d" type="action" class="oe_stat_button border rounded bg-white px-3 py-2" icon="fa-list-alt" invisible="not sale_order_id">
+                            <button name="%(hotel_management.action_hotel_unified_ledger)d"
+                                    type="action"
+                                    class="oe_stat_button border rounded bg-white px-3 py-2"
+                                    icon="fa-list-alt"
+                                    invisible="not sale_order_id and payment_count == 0 and posting_journal_count == 0 and change_log_count == 0"
+                                    groups="hotel_management.group_hotel_front_office,hotel_management.group_hotel_front_office_manager,hotel_management.group_hotel_night_auditor,account.group_account_manager,hotel_management.group_hotel_account_receivable,hotel_management.group_hotel_manager,base.group_system">
                                 <div class="o_stat_info">
                                     <span class="o_stat_text">Unified Folio</span>
                                 </div>
@@ -436,9 +846,9 @@
                                 </div>
                             </button>
 
-                            <button name="action_view_receipts" type="object" class="oe_stat_button border rounded bg-white px-3 py-2" icon="fa-money" invisible="payment_count == 0">
+                            <button name="action_view_receipts" type="object" class="oe_stat_button border rounded bg-white px-3 py-2" icon="fa-money" invisible="payment_count == 0" groups="account.group_account_manager,hotel_management.group_hotel_account_receivable,hotel_management.group_hotel_manager,base.group_system">
                                 <div class="o_stat_info">
-                                    <span class="o_stat_value"><field name="payment_registered_total" widget="monetary"/></span>
+                                    <field name="payment_registered_total" widget="monetary" class="o_stat_value"/>
                                     <span class="o_stat_text">Payment Registered</span>
                                 </div>
                             </button>
@@ -507,8 +917,8 @@
                     <group>
                         <group string="Guest Info" name="guest_info">
                             <field name="is_desk_folio" widget="boolean_toggle" string="Is a House Account / Desk Folio"/>
-                            <field name="partner_id" string="Guest" widget="res_partner_many2one" context="{'show_address': 1}" options='{"always_reload": True}' readonly="is_desk_folio and id" invisible="folio_type != 'guest'"/>
-                            <field name="partner_id" string="Account Name" widget="res_partner_many2one" context="{'show_address': 1}" options='{"always_reload": True}' readonly="is_desk_folio and id" invisible="folio_type == 'guest'"/>
+                            <field name="partner_id" string="Guest" widget="res_partner_many2one" context="{'show_address': 1}" options='{"always_reload": True, "no_open": True, "no_create_edit": True}' readonly="is_desk_folio and id" invisible="folio_type != 'guest'"/>
+                            <field name="partner_id" string="Account Name" widget="res_partner_many2one" context="{'show_address': 1}" options='{"always_reload": True, "no_open": True, "no_create_edit": True}' readonly="is_desk_folio and id" invisible="folio_type == 'guest'"/>
                             <field name="partner_passport"/>
                             
                             <field name="guest_nationality_id" options="{'no_create': True}"/>
@@ -591,9 +1001,13 @@
                             <div class="alert alert-info" role="alert">
                                 Master guest information area. Register every person staying in the room and keep identity documents, photos, and signatures here.
                             </div>
-                            <group string="Main Guest Documents">
-                                <field name="passport_image" widget="image" class="oe_avatar" options="{'size': [256, 256]}"/>
-                                <field name="guest_signature" widget="signature"/>
+                            <group string="Main Guest Documents" col="2">
+                                <group>
+                                    <field name="passport_image" widget="image" class="oe_avatar" options="{'size': [256, 256]}"/>
+                                </group>
+                                <group>
+                                    <field name="guest_signature" widget="signature"/>
+                                </group>
                             </group>
                             <field name="stay_guest_ids" context="{'default_reservation_id': id}">
                                 <list editable="bottom">
@@ -783,8 +1197,7 @@
                     <div class="d-flex flex-wrap gap-2 pt-3 pb-3 border-top w-100" style="position: sticky; bottom: 0; z-index: 1000; background-color: #ffffff; box-shadow: 0px -5px 15px rgba(0, 0, 0, 0.05); padding-left: 10px; padding-right: 10px;">
                         <button name="action_send_pre_arrival_link" type="object" string="Send Pre-Arrival Link" class="btn-primary" invisible="pre_arrival_sent == True"/>
                         <button name="action_preview_guest_portal" string="Guest Portal Link" type="object" class="btn-info text-white" icon="fa-globe" invisible="state == 'draft' or is_desk_folio"/>
-                        <button name="action_print_reservation_confirmation" string="Print Reservation Confirmation" type="object" class="btn-secondary" icon="fa-print" invisible="state in ['cancel', 'blocked']"/>
-                        <button name="action_print_registration_card" string="Print Registration Card" type="object" class="btn-secondary" icon="fa-id-card-o" invisible="state in ['cancel', 'blocked'] or is_desk_folio"/>
+                        <button name="action_open_print_documents_wizard" string="Print Documents" type="object" class="btn-secondary" icon="fa-print" invisible="state in ['cancel', 'blocked']"/>
                         
                         <button name="action_confirm" string="Confirm" type="object" class="btn-primary" invisible="state != 'draft' or is_desk_folio"/>
                         <button name="action_checkin" string="Check-In" type="object" class="btn-success" invisible="state != 'confirm' or is_desk_folio"/>
@@ -795,7 +1208,12 @@
                         <button name="action_re_checkin" string="Re-Book / Clone" type="object" class="btn-secondary" invisible="state not in ['checkout', 'cancel', 'noshow'] or is_desk_folio"/>
                         
                         <button name="action_create_deposit" string="Register Deposit" class="btn-secondary" type="object" invisible="not can_register_deposit"/>
-                        <button name="action_open_void_deposit_wizard" string="Void Deposit" type="object" class="btn-danger" groups="hotel_management.group_hotel_manager,account.group_account_manager" invisible="not can_void_deposit"/>
+                        <button name="action_open_void_deposit_wizard"
+                                string="Deposit / Credit Settlement"
+                                type="object"
+                                class="btn-danger"
+                                groups="hotel_management.group_hotel_front_office_manager,hotel_management.group_hotel_night_auditor,hotel_management.group_hotel_manager,account.group_account_manager"
+                                invisible="not can_void_deposit or state in ['checkout', 'cancel', 'noshow']"/>
                         <button name="action_create_invoice_from_reservation" string="Create Invoice" type="object" class="btn-warning" invisible="not sale_order_id"/>
                         <button name="action_create_folio" string="Create Folio" type="object" class="btn-primary" invisible="sale_order_id"/>
                         <button name="action_view_folio" string="Add Charges" type="object" class="btn-info text-white" invisible="not is_desk_folio or not sale_order_id"/>
@@ -1127,31 +1545,36 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
         <field name="name">hotel.deposit.void.wizard.form</field>
         <field name="model">hotel.deposit.void.wizard</field>
         <field name="arch" type="xml">
-            <form string="Void Deposit">
+            <form string="Deposit Settlement">
                 <div class="alert alert-warning text-center" role="alert">
-                    Void the selected advance deposit using an audit-safe correction. Payment-only deposits are reversed with a refund payment, while legacy deposit invoices use a credit note flow.
+                    Settle unused advance deposit credit. You can do partial settlements — open this wizard multiple times to transfer some and refund the rest.
                 </div>
                 <group>
                     <group>
                         <field name="reservation_id" invisible="1"/>
-                        <field name="available_invoice_ids" invisible="1"/>
+                        <field name="available_invoice_ids" groups="account.group_account_manager,base.group_system" invisible="1"/>
                         <field name="available_payment_ids" invisible="1"/>
                         <field name="currency_id" invisible="1"/>
                         <field name="business_date"/>
                         <field name="deposit_source_type"/>
-                        <field name="deposit_payment_id" options="{'no_create': True, 'no_open': True}" invisible="deposit_source_type != 'payment'" required="deposit_source_type == 'payment'"/>
-                        <field name="deposit_invoice_id" options="{'no_create': True, 'no_open': True}" invisible="deposit_source_type != 'invoice'" required="deposit_source_type == 'invoice'"/>
+                        <field name="deposit_payment_id" options="{'no_create': True, 'no_open': True}" invisible="deposit_source_type != 'payment'" required="deposit_source_type == 'payment' and settlement_action in ['refund', 'void']"/>
+                        <field name="deposit_invoice_id" groups="account.group_account_manager,base.group_system" options="{'no_create': True, 'no_open': True}" invisible="deposit_source_type != 'invoice'" required="deposit_source_type == 'invoice' and settlement_action in ['refund', 'void']"/>
                         <field name="document_state" readonly="1"/>
                         <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                        <field name="available_credit" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
                     </group>
                     <group>
+                        <field name="settlement_action"/>
+                        <field name="target_reservation_id" invisible="settlement_action != 'transfer'"/>
+                        <field name="transfer_amount" invisible="settlement_action != 'transfer'"/>
+                        <field name="settlement_amount" widget="monetary" options="{'currency_field': 'currency_id'}" invisible="settlement_action not in ['refund', 'void']" required="settlement_action in ['refund', 'void']"/>
                         <field name="deposit_payment_ids" widget="many2many_tags" readonly="1"/>
                         <field name="payment_journal_names" readonly="1"/>
-                        <field name="reason" placeholder="Explain why this deposit is being voided..."/>
+                        <field name="reason" placeholder="Explain the deposit settlement reason..."/>
                     </group>
                 </group>
                 <footer>
-                    <button string="Confirm Void Deposit" name="action_confirm_void" type="object" class="btn-danger btn-lg" icon="fa-undo"/>
+                    <button string="Process Settlement" name="action_confirm_void" type="object" class="btn-primary btn-lg" icon="fa-money"/>
                     <button string="Cancel" class="btn-secondary btn-lg" special="cancel"/>
                 </footer>
             </form>
@@ -1930,8 +2353,6 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
                 <field name="room_type_id" string="Room Type" optional="show"/>
                 <field name="desk_folio_status" string="Desk Folio Status" widget="badge" decoration-muted="desk_folio_status == 'draft'" decoration-info="desk_folio_status == 'open'" decoration-warning="desk_folio_status == 'fully_invoiced'" decoration-success="desk_folio_status == 'paid'" optional="show"/>
                 
-                <field name="invoice_status" string="Invoice Status" widget="badge" decoration-danger="invoice_status == 'to invoice'" decoration-success="invoice_status == 'invoiced'" optional="show"/>
-                
                 <field name="currency_id" invisible="1"/>
                 <field name="folio_balance" string="Balance Due" sum="Total Due" decoration-danger="folio_balance &gt; 0" optional="show"/>
             </list>
@@ -1951,58 +2372,9 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
         <field name="view_id" ref="view_hotel_desk_folio_tree"/>
     </record>
     
-    <record id="view_hotel_routing_wizard_form" model="ir.ui.view">
-        <field name="name">hotel.routing.wizard.form</field>
-        <field name="model">hotel.routing.wizard</field>
-        <field name="arch" type="xml">
-            <form string="Transfer Charges">
-                <sheet>
-                    <div class="alert alert-info" role="alert">
-                        Select the Destination Room or Desk Folio, then check the boxes next to the charges you want to move.
-                    </div>
-                    <group>
-                        <field name="source_order_id" invisible="1"/>
-                        <field name="destination_reservation_id" 
-                               options="{'no_create': True}" 
-                               placeholder="Search for Room No or Account Name..."
-                               domain="[
-                                   ('sale_order_id', '!=', source_order_id), 
-                                   '|', 
-                                   '&amp;', '&amp;', 
-                                       ('is_desk_folio', '=', True), 
-                                       ('state', 'not in', ['cancel', 'blocked', 'noshow', 'checkout']), 
-                                       ('desk_folio_status', 'in', ['draft', 'open', 'fully_invoiced', False]), 
-                                   '&amp;', 
-                                       ('is_desk_folio', '=', False), 
-                                       ('state', 'in', ['checkin', 'checkout_hold'])
-                               ]"/>
-                    </group>
-                    
-                    <field name="line_ids" widget="many2many">
-                        <list string="Charges" create="0" delete="0">
-                            <field name="product_id" readonly="1"/>
-                            <field name="name" readonly="1"/>
-                            <field name="price_unit" readonly="1" sum="Total"/>
-                        </list>
-                    </field>
-                </sheet>
-                <footer>
-                    <button name="action_transfer" type="object" string="Confirm Transfer" class="btn-primary" icon="fa-exchange" confirm="Are you sure you want to move these charges?"/>
-                    <button string="Cancel" class="btn-secondary" special="cancel"/>
-                </footer>
-            </form>
-        </field>
-    </record>
-
-    <record id="action_hotel_routing_wizard" model="ir.actions.act_window">
-        <field name="name">Transfer Charges</field>
-        <field name="res_model">hotel.routing.wizard</field>
-        <field name="view_mode">form</field>
-        <field name="target">new</field>
-    </record>
-
     <record id="view_sale_order_hotel_routing" model="ir.ui.view">
         <field name="name">sale.order.hotel.routing</field>
+        <field name="active" eval="False"/>
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
@@ -2056,9 +2428,32 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
         <field name="name">Invoice Tax Audit</field>
         <field name="res_model">account.move</field>
         <field name="view_mode">list,form</field>
-        <field name="domain">[('move_type', '=', 'out_invoice')]</field>
-        <field name="context">{'create': False, 'edit': False}</field>
+        <field name="domain">[
+            ('move_type', '=', 'out_invoice'),
+            '|', '|', '|', '|', '|',
+            ('hotel_folio_id.hotel_reservation_ids', '!=', False),
+            ('hotel_folio_id.hotel_group_master_ids', '!=', False),
+            ('invoice_line_ids.hotel_reservation_id', '!=', False),
+            ('invoice_line_ids.sale_line_ids.hotel_reservation_id', '!=', False),
+            ('invoice_line_ids.sale_line_ids.order_id.hotel_reservation_ids', '!=', False),
+            ('invoice_line_ids.sale_line_ids.order_id.hotel_group_master_ids', '!=', False)
+        ]</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
         <field name="view_id" ref="view_hotel_tax_audit_invoice_tree"/>
+    </record>
+
+    <record id="action_hotel_tax_audit_invoices_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_hotel_tax_audit_invoice_tree"/>
+        <field name="act_window_id" ref="action_hotel_tax_audit_invoices"/>
+    </record>
+
+    <record id="action_hotel_tax_audit_invoices_view_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_hotel_customer_invoice_form"/>
+        <field name="act_window_id" ref="action_hotel_tax_audit_invoices"/>
     </record>
 
     <record id="action_hotel_document_sequences" model="ir.actions.act_window">
@@ -2116,7 +2511,7 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
         <field name="code">model._cron_send_pre_arrival_emails()</field>
         <field name="interval_number">1</field>
         <field name="interval_type">days</field>
-        <field name="active" eval="True"/>
+        <field name="active" eval="False"/>
     </record>
 
     <record id="view_partner_form_inherit_hotel" model="ir.ui.view">

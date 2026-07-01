@@ -82,7 +82,13 @@ class HotelDailyStats(models.Model):
 
         # 2. Unavailable (Blocked) Rooms
         blocked_domain = [('state', '=', 'blocked'), ('checkin_date', '<=', target_date), ('checkout_date', '>', target_date)]
-        blocked_count = self.env['hotel.reservation'].search_count(blocked_domain)
+        legacy_blocked_count = self.env['hotel.reservation'].search_count(blocked_domain)
+        room_blocked_count = self.env['hotel.room.block'].sudo().search_count([
+            ('state', '=', 'active'),
+            ('date_from', '<=', target_date),
+            ('date_to', '>', target_date),
+        ])
+        blocked_count = legacy_blocked_count + room_blocked_count
         available_rooms = total_rooms - blocked_count
 
         # 3. Actual occupied rooms & folio-based revenue for this business date

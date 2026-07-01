@@ -81,6 +81,9 @@
                                         <tr><td>Estimated Balance</td><td><code><span>$</span><span>{reservation.estimated_balance_amount}</span></code></td><td>Estimated total minus deposit received.</td></tr>
                                         <tr><td>Accompanying Guests</td><td><code><span>$</span><span>{reservation.accompanying_guest_table}</span></code></td><td>Rendered table of registered stay guests.</td></tr>
                                         <tr><td>Guest Signature</td><td><code><span>$</span><span>{reservation.guest_signature}</span></code></td><td>Existing e-signature image or a blank signature box.</td></tr>
+                                        <tr><td>Staff Signature</td><td><code><span>$</span><span>{reservation.registration_staff_signature}</span></code></td><td>Registration Card staff signature snapshot or a blank signature box.</td></tr>
+                                        <tr><td>Staff Signer</td><td><code><span>$</span><span>{reservation.registration_signed_by_name}</span></code></td><td>Name captured when the Registration Card was signed.</td></tr>
+                                        <tr><td>Staff Signed At</td><td><code><span>$</span><span>{reservation.registration_signed_at}</span></code></td><td>Date and time captured when the Registration Card was signed.</td></tr>
                                         <tr><td>Terms</td><td><code><span>$</span><span>{reservation.registration_terms}</span></code></td><td>Registration card policy text.</td></tr>
                                         <tr><td>Hotel Name</td><td><code><span>$</span><span>{company.name}</span></code></td><td>Current company / hotel name.</td></tr>
                                         <tr><td>Hotel Logo</td><td><code><span>$</span><span>{company.logo}</span></code></td><td>Company logo using the header options above.</td></tr>

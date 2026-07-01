@@ -201,19 +201,19 @@
                             .hotel-doc-header-main { width: 68%; padding-right: 18px; }
                             .hotel-doc-header-meta { width: 32%; text-align: right; padding-left: 12px; }
                             .hotel-doc-header-meta-line { margin-bottom: 6px; line-height: 1.45; }
-                            .hotel-doc-card { border: 1px solid #d9e2ec; border-radius: 10px; padding: 20px 22px; background: #f8fbff; overflow: visible; }
-                            .hotel-doc-section { border: 1px solid #dee2e6; border-radius: 10px; padding: 18px 20px; margin-top: 12px; }
-                            .hotel-doc-section h4 { margin: 0 0 10px 0; color: #173f5f; font-size: 16px; }
+                            .hotel-doc-card { border: 1px solid #d9e2ec; border-radius: 10px; padding: 13px 15px; background: #f8fbff; overflow: visible; }
+                            .hotel-doc-section { border: 1px solid #dee2e6; border-radius: 10px; padding: 12px 14px; margin-top: 10px; }
+                            .hotel-doc-section h4 { margin: 0 0 8px 0; color: #173f5f; font-size: 15px; }
                             .hotel-doc-info-layout { width: 100%; border-collapse: collapse; table-layout: fixed; }
                             .hotel-doc-info-layout td { vertical-align: top; }
-                            .hotel-doc-info-layout td:first-child { width: 50%; padding-right: 12px; }
-                            .hotel-doc-info-layout td:last-child { width: 50%; padding-left: 12px; }
-                            .hotel-doc-meta { width: 100%; border-collapse: separate; border-spacing: 0 8px; table-layout: fixed; }
-                            .hotel-doc-meta td { padding: 6px 10px; vertical-align: top; line-height: 1.5; background: transparent !important; border: 0 !important; color: #22313f; }
-                            .hotel-doc-meta .hotel-doc-meta-label { width: 34%; color: #173f5f; white-space: normal; word-break: break-word; }
-                            .hotel-doc-meta .hotel-doc-meta-separator { width: 4%; padding-left: 0; padding-right: 0; text-align: center; color: #173f5f; }
-                            .hotel-doc-meta .hotel-doc-meta-value { width: 62%; padding-left: 6px; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
-                            .hotel-doc-summary td { padding: 7px 10px; line-height: 1.45; vertical-align: middle; }
+                            .hotel-doc-info-layout td:first-child { width: 50%; padding-right: 16px; }
+                            .hotel-doc-info-layout td:last-child { width: 50%; padding-left: 16px; border-left: 1px solid #d9e2ec; }
+                            .hotel-doc-meta { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                            .hotel-doc-meta td { padding: 3px 4px; vertical-align: top; line-height: 1.25; background: transparent !important; border: 0 !important; color: #22313f; }
+                            .hotel-doc-meta .hotel-doc-meta-label { width: 30%; color: #173f5f; white-space: nowrap; }
+                            .hotel-doc-meta .hotel-doc-meta-value { width: 70%; padding-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                            .hotel-doc-summary { table-layout: fixed; }
+                            .hotel-doc-summary td { padding: 5px 8px; line-height: 1.25; vertical-align: middle; white-space: nowrap; }
                             .hotel-doc-tax-table td { padding: 6px 10px; line-height: 1.4; }
                             .hotel-doc-note { border-left: 4px solid #173f5f; background: #f4f8fb; padding: 13px 16px; line-height: 1.5; }
                         </style>
@@ -234,93 +234,88 @@
                                 </tr>
                             </table>
 
-                            <div class="row g-3">
-                                <div class="col-8">
-                                    <div class="hotel-doc-card">
-                                        <table class="hotel-doc-info-layout">
-                                            <tr>
-                                                <td>
-                                                <table class="hotel-doc-meta">
-                                                    <tr>
-                                                        <td class="hotel-doc-meta-label"><strong>Guest Name</strong></td>
-                                                        <td class="hotel-doc-meta-separator">:</td>
-                                                        <td class="hotel-doc-meta-value"><t t-esc="data['guest_name']"/></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="hotel-doc-meta-label"><strong>Arrival</strong></td>
-                                                        <td class="hotel-doc-meta-separator">:</td>
-                                                        <td class="hotel-doc-meta-value"><span t-field="doc.checkin_date"/></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="hotel-doc-meta-label"><strong>Departure</strong></td>
-                                                        <td class="hotel-doc-meta-separator">:</td>
-                                                        <td class="hotel-doc-meta-value"><span t-field="doc.checkout_date"/></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="hotel-doc-meta-label"><strong>Room Type</strong></td>
-                                                        <td class="hotel-doc-meta-separator">:</td>
-                                                        <td class="hotel-doc-meta-value"><t t-esc="data['room_type_name']"/></td>
-                                                    </tr>
-                                                </table>
-                                                </td>
-                                                <td>
-                                                <table class="hotel-doc-meta">
-                                                    <tr>
-                                                        <td class="hotel-doc-meta-label"><strong>Account Name</strong></td>
-                                                        <td class="hotel-doc-meta-separator">:</td>
-                                                        <td class="hotel-doc-meta-value"><t t-esc="data['account_name']"/></td>
-                                                    </tr>
-                                                    <tr t-if="data['bill_to_name']">
-                                                        <td class="hotel-doc-meta-label"><strong>Bill To</strong></td>
-                                                        <td class="hotel-doc-meta-separator">:</td>
-                                                        <td class="hotel-doc-meta-value"><t t-esc="data['bill_to_name']"/></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="hotel-doc-meta-label"><strong>Status</strong></td>
-                                                        <td class="hotel-doc-meta-separator">:</td>
-                                                        <td class="hotel-doc-meta-value"><span t-field="doc.state"/></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="hotel-doc-meta-label"><strong>Room No.</strong></td>
-                                                        <td class="hotel-doc-meta-separator">:</td>
-                                                        <td class="hotel-doc-meta-value"><t t-esc="data['room_name'] or 'To Be Assigned'"/></td>
-                                                    </tr>
-                                                </table>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <div class="hotel-doc-card">
-                                        <table class="table table-sm hotel-doc-summary mb-0">
-                                            <tr>
-                                                <td>Room Charges</td>
-                                                <td class="text-end"><t t-esc="data['untaxed_total']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Taxes / Service</td>
-                                                <td class="text-end"><t t-esc="data['tax_total']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Total Stay Amount</strong></td>
-                                                <td class="text-end"><strong><t t-esc="data['total_stay_amount']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></strong></td>
-                                            </tr>
-                                            <tr t-if="data['deposit_required']">
-                                                <td>Required Deposit (<t t-esc="data['required_deposit_percent']"/>%)</td>
-                                                <td class="text-end"><t t-esc="data['required_deposit_amount']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Advance Deposit Received</td>
-                                                <td class="text-end"><t t-esc="data['deposit_received']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Remaining Balance</strong></td>
-                                                <td class="text-end"><strong><t t-esc="data['remaining_balance']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></strong></td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                </div>
+                            <div class="hotel-doc-card">
+                                <table class="hotel-doc-info-layout">
+                                    <tr>
+                                        <td>
+                                            <table class="hotel-doc-meta">
+                                                <tr>
+                                                    <td class="hotel-doc-meta-label"><strong>Guest Name</strong></td>
+                                                    <td class="hotel-doc-meta-value"><t t-esc="data['guest_name']"/></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="hotel-doc-meta-label"><strong>Passport / ID</strong></td>
+                                                    <td class="hotel-doc-meta-value"><t t-esc="data['passport'] or '-'"/></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="hotel-doc-meta-label"><strong>Phone</strong></td>
+                                                    <td class="hotel-doc-meta-value"><t t-esc="data['phone'] or '-'"/></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="hotel-doc-meta-label"><strong>Email</strong></td>
+                                                    <td class="hotel-doc-meta-value"><t t-esc="data['email'] or '-'"/></td>
+                                                </tr>
+                                                <tr t-if="data['account_name'] and data['account_name'] != data['guest_name']">
+                                                    <td class="hotel-doc-meta-label"><strong>Account Name</strong></td>
+                                                    <td class="hotel-doc-meta-value"><t t-esc="data['account_name']"/></td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                        <td>
+                                            <table class="hotel-doc-meta">
+                                                <tr>
+                                                    <td class="hotel-doc-meta-label"><strong>Reservation No.</strong></td>
+                                                    <td class="hotel-doc-meta-value"><t t-esc="doc.name"/></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="hotel-doc-meta-label"><strong>Arrival</strong></td>
+                                                    <td class="hotel-doc-meta-value"><t t-esc="data['checkin_date_display']"/></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="hotel-doc-meta-label"><strong>Departure</strong></td>
+                                                    <td class="hotel-doc-meta-value"><t t-esc="data['checkout_date_display']"/></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="hotel-doc-meta-label"><strong>Room Type</strong></td>
+                                                    <td class="hotel-doc-meta-value"><t t-esc="data['room_type_name']"/></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="hotel-doc-meta-label"><strong>Room No.</strong></td>
+                                                    <td class="hotel-doc-meta-value"><t t-esc="data['room_name'] or 'To Be Assigned'"/></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="hotel-doc-meta-label"><strong>Status</strong></td>
+                                                    <td class="hotel-doc-meta-value"><t t-esc="data['status_display']"/></td>
+                                                </tr>
+                                                <tr t-if="data['bill_to_name']">
+                                                    <td class="hotel-doc-meta-label"><strong>Bill To</strong></td>
+                                                    <td class="hotel-doc-meta-value"><t t-esc="data['bill_to_name']"/></td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <div class="hotel-doc-card" style="margin-top: 10px;">
+                                <table class="table table-sm hotel-doc-summary mb-0">
+                                    <tr>
+                                        <td>Room Charges</td>
+                                        <td class="text-end"><t t-esc="data['untaxed_total']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                        <td>Taxes / Service</td>
+                                        <td class="text-end"><t t-esc="data['tax_total']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                        <td><strong>Total Stay Amount</strong></td>
+                                        <td class="text-end"><strong><t t-esc="data['total_stay_amount']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td t-if="data['deposit_required']">Required Deposit (<t t-esc="data['required_deposit_percent']"/>%)</td>
+                                        <td t-if="data['deposit_required']" class="text-end"><t t-esc="data['required_deposit_amount']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                        <td>Advance Deposit Received</td>
+                                        <td class="text-end"><t t-esc="data['deposit_received']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></td>
+                                        <td><strong>Remaining Balance</strong></td>
+                                        <td class="text-end"><strong><t t-esc="data['remaining_balance']" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/></strong></td>
+                                    </tr>
+                                </table>
                             </div>
 
                             <div class="hotel-doc-section">

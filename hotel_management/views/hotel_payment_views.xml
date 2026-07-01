@@ -19,13 +19,23 @@
         <field name="model">account.payment</field>
         <field name="inherit_id" ref="account.view_account_payment_tree"/>
         <field name="arch" type="xml">
+            <field name="date" position="after">
+                <field name="hotel_business_date" string="Biz Date" optional="show"/>
+            </field>
+
             <field name="name" position="after">
                 <field name="hotel_receipt_number" optional="show"/>
                 <field name="is_advance_deposit" optional="show"/>
                 <field name="hotel_invoice_ref" optional="show"/>
                 <field name="memo" string="Reservation (Memo)" optional="show"/>
                 <field name="hotel_reservation_id" string="Link to Res" widget="many2one_clickable" optional="show"/>
+                <field name="hotel_net_receipt_amount"
+                    string="Net Receipt"
+                    widget="monetary"
+                    sum="Net Receipts"
+                    optional="show"/>
             </field>
+           
         </field>
     </record>
 
@@ -58,15 +68,17 @@
         <field name="inherit_id" ref="account.view_account_payment_search"/>
         <field name="arch" type="xml">
             <field name="name" position="after">
-                <field name="hotel_receipt_number"/>
-                <field name="hotel_reservation_id"/>
-                <field name="hotel_invoice_ref"/>
-                <field name="hotel_business_date"/> 
+                <field name="hotel_receipt_number" optional="show"/>
+                <field name="is_advance_deposit" optional="show"/>
+                <field name="hotel_invoice_ref" optional="show"/>
+                <field name="memo" string="Reservation (Memo)" optional="show"/>
+                <field name="hotel_reservation_id" string="Link to Res" widget="many2one_clickable" optional="show"/>
+                
             </field>
             
             <xpath expr="//search" position="inside">
                 <separator/>
-                <filter string="Today's Business" name="today_business" domain="[('hotel_business_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="Today's Business" name="today_business" domain="[('is_current_hotel_business_date', '=', True)]"/>
                 <filter string="Advance Deposits" name="advance_deposits" domain="[('is_advance_deposit', '=', True)]"/>
                 
                 <group>

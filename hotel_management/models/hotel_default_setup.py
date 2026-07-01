@@ -58,6 +58,12 @@ class ResConfigSettingsHotelDefaultSetup(models.TransientModel):
                 setup._set_config_value(self.env.company, field_name, self[field_name].id or False)
 
 
+class ProductTemplateHotelMinibar(models.Model):
+    _inherit = 'product.template'
+
+    is_minibar_item = fields.Boolean(string='Minibar Item', copy=True)
+
+
 class HotelConfigSetup(models.Model):
     _name = 'hotel.config.setup'
     _description = 'Hotel Default Accounting Setup'
@@ -479,6 +485,33 @@ class HotelConfigSetup(models.Model):
             _logger.info("Filled empty hotel default configuration values for company %s: %s", company.display_name, sorted(written))
 
     @api.model
+    def _mark_configured_minibar_products(self, company, products=None):
+        if 'is_minibar_item' not in self.env['product.template']._fields:
+            return False
+
+        Product = self.env['product.product'].sudo()
+        minibar_products = Product.browse()
+        products = products or {}
+        if products.get('hotel_product_minibar_item'):
+            minibar_products |= products['hotel_product_minibar_item']
+
+        for field_name in ('hotel_minibar_product_id', 'hotel_default_minibar_product_id'):
+            minibar_products |= self._get_config_record(company, field_name, 'product.product')
+
+        minibar_products |= Product.search([
+            ('sale_ok', '=', True),
+            '|', '|',
+            ('name', 'ilike', 'minibar'),
+            ('default_code', 'ilike', 'minibar'),
+            ('categ_id.complete_name', 'ilike', 'minibar'),
+        ])
+        templates = minibar_products.exists().mapped('product_tmpl_id')
+        if templates:
+            templates.write({'is_minibar_item': True})
+            return True
+        return False
+
+    @api.model
     def setup_default_hotel_accounting(self):
         companies = self.env.companies or self.env.company
         for company in companies:
@@ -516,6 +549,7 @@ class HotelConfigSetup(models.Model):
                 )
 
             self._write_defaults_if_empty(company, accounts, products, taxes, journals)
+            self._mark_configured_minibar_products(company, products)
 
         return {
             'type': 'ir.actions.client',

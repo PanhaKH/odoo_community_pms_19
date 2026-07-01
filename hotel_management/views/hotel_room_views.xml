@@ -7,9 +7,9 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_set_clean" string="Set Clean" type="object" class="btn-success" invisible="housekeeping_status in ('clean', 'inspected') or availability_status == 'out_of_order'"/>
-                    <button name="action_set_inspected" string="Inspect" type="object" class="btn-primary" invisible="housekeeping_status == 'inspected' or availability_status == 'out_of_order'"/>
-                    <button name="action_set_dirty" string="Set Dirty" type="object" class="btn-warning" invisible="housekeeping_status == 'dirty' or availability_status == 'out_of_order'"/>
+                    <button name="action_set_clean" string="Set Clean" type="object" class="btn-success" groups="hotel_management.group_hotel_housekeeper,hotel_management.group_hotel_manager,base.group_system" invisible="housekeeping_status in ('clean', 'inspected') or availability_status == 'out_of_order'"/>
+                    <button name="action_set_inspected" string="Inspect" type="object" class="btn-primary" groups="hotel_management.group_hotel_housekeeper,hotel_management.group_hotel_manager,base.group_system" invisible="housekeeping_status == 'inspected' or availability_status == 'out_of_order'"/>
+                    <button name="action_set_dirty" string="Set Dirty" type="object" class="btn-warning" groups="hotel_management.group_hotel_housekeeper,hotel_management.group_hotel_manager,base.group_system" invisible="housekeeping_status == 'dirty' or availability_status == 'out_of_order'"/>
                     <button name="action_assign_housekeeper_me" string="Assign Me HK" type="object" class="btn-outline-primary"/>
                     <button name="action_assign_inspector_me" string="Assign Me Inspector" type="object" class="btn-outline-secondary"/>
                     <button name="action_set_blocked" string="Unavailable (OOO)" type="object" class="btn-danger" groups="hotel_management.group_hotel_front_office" invisible="availability_status == 'out_of_order' or occupancy_status == 'occupied'"/>

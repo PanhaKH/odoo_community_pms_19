@@ -35,6 +35,23 @@ class HousekeepingInspectionController(http.Controller):
             attachment_ids=attachments.ids,
             subtype_xmlid='mail.mt_note',
         )
+
+        # Also show the failed inspection photo in the Hotel Room chatter
+        if task.room_id:
+            task.room_id.sudo().message_post(
+                body=Markup(
+                    "<b>Inspection Failed Evidence:</b> Room %s requires reclean.<br/>"
+                    "<b>Reason:</b> %s<br/>"
+                    "%s photo(s) uploaded."
+                ) % (
+                    task.room_id.display_name,
+                    task.failure_reason or "-",
+                    len(attachments),
+                ),
+                attachment_ids=attachments.ids,
+                subtype_xmlid='mail.mt_note',
+            )
+
         return attachments
 
     def _unique_latest_by_room(self, tasks):
@@ -64,18 +81,34 @@ class HousekeepingInspectionController(http.Controller):
     @http.route('/housekeeping/supervisor/inspection', type='http', auth='user', website=True)
     def supervisor_inspection(self, **kw):
         self._check_supervisor()
+
         Task = request.env['hotel.housekeeping'].sudo()
         Task._deduplicate_active_tasks()
+
+        # READY FOR INSPECTION:
+        # Keep old task logic, but only show tasks where the current room is really clean and not released.
         tasks = Task.search([
             ('is_ready_for_inspection', '=', True),
             ('state', '!=', 'done'),
+            ('inspection_state', '=', 'ready'),
+            ('room_id.housekeeping_status', '=', 'clean'),
+            ('room_id.release_ready', '=', False),
+            ('room_id.occupancy_status', '=', 'vacant'),
         ], order='floor_id, room_id, cleaning_completed_datetime desc, id desc')
+
         tasks = self._unique_latest_by_room(tasks)
+
+        # FAILED / RECLEAN:
+        # Keep old failed task records because evidence photos and failure reason are linked to this task.
         failed_tasks = Task.search([
             ('inspection_state', '=', 'failed'),
             ('state', '=', 'dirty'),
-        ], order='inspected_datetime desc, id desc', limit=20)
+            ('room_id.housekeeping_status', '=', 'dirty'),
+            ('room_id.occupancy_status', '=', 'vacant'),
+        ], order='inspected_datetime desc, write_date desc, id desc', limit=20)
+
         failed_tasks = self._unique_latest_by_room(failed_tasks)
+
         return request.render('hotel_housekeeping_app.supervisor_inspection_page', {
             'tasks': tasks,
             'failed_tasks': failed_tasks,
@@ -101,13 +134,26 @@ class HousekeepingInspectionController(http.Controller):
         task = self._get_task(task_id)
         if not task:
             return request.redirect('/housekeeping/supervisor/inspection?error=Task not found')
+
         try:
             task.write({
                 'failure_reason': (post.get('failure_reason') or '').strip(),
                 'supervisor_note': (post.get('supervisor_note') or '').strip(),
             })
-            self._create_inspection_photo_attachments(task)
+
+            attachments = self._create_inspection_photo_attachments(task)
+
             task.action_inspection_failed()
+
+            # Keep failed evidence linked after room is returned to dirty/reclean.
+            task.sudo().write({
+                'inspection_state': 'failed',
+                'state': 'dirty',
+                'room_ready': False,
+                'inspection_attachment_ids': [(4, attachment.id) for attachment in attachments],
+            })
+
         except (AccessError, UserError, ValidationError) as exc:
             return request.redirect('/housekeeping/supervisor/inspection?error=%s' % quote(str(exc)))
+
         return request.redirect('/housekeeping/supervisor/inspection?success=Room returned for reclean')

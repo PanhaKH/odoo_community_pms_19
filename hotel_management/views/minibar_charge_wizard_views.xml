@@ -10,7 +10,11 @@
                         <h2 class="text-primary text-center">Post to Room <field name="room_id" readonly="1" nolabel="1"/></h2>
                     </div>
                     <group>
-                        <field name="product_id" widget="many2one_avatar" options="{'no_create': True}" class="fs-4 py-2"/>
+                        <field name="product_id"
+                               widget="many2one_avatar"
+                               domain="[('sale_ok', '=', True), ('product_tmpl_id.is_minibar_item', '=', True)]"
+                               options="{'no_create': True}"
+                               class="fs-4 py-2"/>
                         <field name="quantity" class="fs-4 py-2"/>
                     </group>
                 </sheet>

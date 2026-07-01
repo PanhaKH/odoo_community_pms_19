@@ -13,18 +13,15 @@ export class HotelTapeChart extends Component {
         this.action = useService("action");
         this.dialogService = useService("dialog");
         this.notification = useService("notification");
-        const today = new Date();
-        const offset = today.getTimezoneOffset() * 60000;
-        const localDate = new Date(today.getTime() - offset);
-
         this.state = useState({
-            startDate: localDate.toISOString().split('T')[0],
+            startDate: '',
             isDateInitialized: false, 
-            businessDateStr: localDate.toISOString().split('T')[0], // Stores the official Audit date
+            businessDateStr: '', // Will be set from hotel business date on load
             days: 30, loading: true, rooms: [], bookings: [], months: [], dates: [],
             occ_include: [], occ_ignore: [], currentOccupancyRow: [], oooMode: 'ignore',
             availableRow: [], bookedRow: [], capacityRow: [],
             dragReservationId: null, dragTargetRoomId: null, dragTargetDateStr: null,
+            canManageReservations: false,
         });
 
         this.moveDate = this.moveDate.bind(this);
@@ -34,15 +31,37 @@ export class HotelTapeChart extends Component {
         
         onWillStart(async () => { await this.loadData(); });
     }
+    async loadBusinessDate() {
+        const businessDate = await this.orm.call(
+            "hotel.reservation",
+            "get_hotel_business_date_for_ui",
+            []
+        );
+        if (businessDate) {
+            this.state.startDate = businessDate;
+            this.state.businessDateStr = businessDate;
+            return true;
+        }
+        return false;
+    }
+
+    async loadReservationAccess() {
+        try {
+            this.state.canManageReservations = !!await this.orm.call(
+                "hotel.reservation",
+                "user_can_manage_reservations",
+                []
+            );
+        } catch (error) {
+            console.warn("Reservation access check failed; using review-only mode.", error);
+            this.state.canManageReservations = false;
+        }
+    }
 
     // NEW: Forces the chart back to the official Audit Date
     async resetToBusinessDate() {
         this.state.loading = true;
-        const company = await this.orm.searchRead("res.company", [], ["hotel_business_date"], { limit: 1 });
-        if (company && company.length > 0 && company[0].hotel_business_date) {
-            this.state.startDate = company[0].hotel_business_date;
-            this.state.businessDateStr = company[0].hotel_business_date;
-        }
+        await this.loadBusinessDate();
         await this.loadData();
     }
 
@@ -51,13 +70,16 @@ export class HotelTapeChart extends Component {
         try {
             // --- Sync with Hotel Business Date on first load ---
             if (!this.state.isDateInitialized) {
-                const company = await this.orm.searchRead("res.company", [], ["hotel_business_date"], { limit: 1 });
-                if (company && company.length > 0 && company[0].hotel_business_date) {
-                    this.state.startDate = company[0].hotel_business_date;
-                    this.state.businessDateStr = company[0].hotel_business_date;
+                const loadedBusinessDate = await this.loadBusinessDate();
+                if (!loadedBusinessDate) {
+                    const now = new Date();
+                    const fallback = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+                    this.state.startDate = fallback;
+                    this.state.businessDateStr = fallback;
                 }
                 this.state.isDateInitialized = true;
             }
+            await this.loadReservationAccess();
 
             // 1. DATES
             let start = new Date(this.state.startDate);
@@ -105,7 +127,20 @@ export class HotelTapeChart extends Component {
 
             // 3. BOOKINGS
             const domain = [['checkin_date', '<=', end.toISOString().split('T')[0]], ['checkout_date', '>=', this.state.startDate], ['state', 'not in', ['cancel', 'noshow']], ['is_desk_folio', '=', false]];
-            let bookings = await this.orm.searchRead("hotel.reservation", domain, ['id', 'room_id', 'partner_id', 'checkin_date', 'checkout_date', 'state']);
+            let bookings = await this.orm.searchRead("hotel.reservation", domain, ['id', 'name', 'room_id', 'partner_id', 'checkin_date', 'checkout_date', 'state']);
+            const blockDomain = [['date_from', '<=', end.toISOString().split('T')[0]], ['date_to', '>=', this.state.startDate], ['state', '=', 'active']];
+            const roomBlocks = await this.orm.searchRead("hotel.room.block", blockDomain, ['id', 'room_id', 'date_from', 'date_to', 'name']);
+            bookings = (bookings || []).concat((roomBlocks || []).map((block) => ({
+                id: `room_block_${block.id}`,
+                res_id: block.id,
+                res_model: "hotel.room.block",
+                room_id: block.room_id,
+                partner_id: false,
+                checkin_date: block.date_from,
+                checkout_date: block.date_to,
+                state: "blocked",
+                name: block.name,
+            })));
             const statusPriority = { 'checkin': 1, 'confirm': 2, 'blocked': 3, 'draft': 4, 'checkout': 5 };
             bookings.sort((a, b) => { return (statusPriority[a.state] || 99) - (statusPriority[b.state] || 99); });
             
@@ -135,7 +170,7 @@ export class HotelTapeChart extends Component {
     updateOccupancyRow() { this.state.currentOccupancyRow = (this.state.oooMode === 'include') ? this.state.occ_include : this.state.occ_ignore; }
 
     isRoomMoveDraggable(booking) {
-        return !!booking && ['draft', 'confirm', 'checkin', 'checkout_hold'].includes(booking.state);
+        return !!booking && this.state.canManageReservations && ['draft', 'confirm', 'checkin', 'checkout_hold'].includes(booking.state);
     }
 
     clearRoomMoveDragState() {
@@ -279,8 +314,42 @@ export class HotelTapeChart extends Component {
         return colors[state] || 'bg-secondary';
     }
 
-    onCellClick(booking) { this.action.doAction({ type: 'ir.actions.act_window', res_model: 'hotel.reservation', res_id: booking.id, views: [[false, 'form']], target: 'new' }); }
+    showReviewOnlyDialog(booking) {
+        const guestName = booking.partner_id ? booking.partner_id[1] : (booking.name || _t("Room Block"));
+        const roomName = booking.room_id ? booking.room_id[1] : _t("Unassigned");
+        this.dialogService.add(AlertDialog, {
+            title: _t("Reservation Review Only"),
+            body: markup(`
+                <div><strong>${escape(guestName || "")}</strong></div>
+                <div class="mt-2">${escape(booking.name || "")}</div>
+                <div>${escape(roomName || "")}</div>
+                <div>${escape(booking.checkin_date || "")} &rarr; ${escape(booking.checkout_date || "")}</div>
+                <div class="text-muted mt-2">${escape(_t("Housekeeping users can review reservations only and cannot move or modify bookings."))}</div>
+            `),
+        });
+    }
+
+    onCellClick(booking) {
+        if (!this.state.canManageReservations) {
+            this.showReviewOnlyDialog(booking);
+            return;
+        }
+        this.action.doAction({
+            type: 'ir.actions.act_window',
+            res_model: booking.res_model || 'hotel.reservation',
+            res_id: booking.res_id || booking.id,
+            views: [[false, 'form']],
+            target: 'new',
+        });
+    }
     onEmptyCellClick(roomId, dateStr) {
+        if (!this.state.canManageReservations) {
+            this.dialogService.add(AlertDialog, {
+                title: _t("Reservation Review Only"),
+                body: _t("Housekeeping users can review reservations only and cannot move or modify bookings."),
+            });
+            return;
+        }
         const clickedDate = new Date(dateStr);
         const checkoutDate = new Date(clickedDate);
         checkoutDate.setDate(clickedDate.getDate() + 1);

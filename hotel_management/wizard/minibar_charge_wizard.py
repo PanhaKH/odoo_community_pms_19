@@ -10,12 +10,17 @@ class MinibarChargeWizard(models.TransientModel):
     # The room is automatically passed in from the Kanban card
     room_id = fields.Many2one('hotel.room', string="Room", readonly=True)
     
-    # We look up standard Odoo products. You can filter this to only show 'Minibar' category later!
-    product_id = fields.Many2one('product.product', string="Item Consumed", required=True)
+    product_id = fields.Many2one(
+        'product.product',
+        string="Item Consumed",
+        required=True,
+        domain=[('sale_ok', '=', True), ('product_tmpl_id.is_minibar_item', '=', True)],
+    )
     quantity = fields.Integer(string="Quantity", default=1, required=True)
 
     def _is_housekeeping_minibar_user(self):
         housekeeping_group_xmlids = (
+            'hotel_management.group_hotel_housekeeper',
             'hotel_housekeeping_app.group_housekeeping_user',
             'hotel_housekeeping_app.group_housekeeping_supervisor',
             'hotel_housekeeping_app.group_housekeeping_manager',
@@ -25,27 +30,51 @@ class MinibarChargeWizard(models.TransientModel):
             for xmlid in housekeeping_group_xmlids
         )
 
-    def action_post_charge(self):
-        """ Simplified Logic: Only posts to the current active guest """
-        for wizard in self:
-            # We just find the most recent reservation for this room
-            reservation = self.env['hotel.reservation'].search([
-                ('room_id', '=', wizard.room_id.id),
-                ('state', 'in', ['checkin', 'checkout_hold']),
-            ], order='id desc', limit=1)
+    def _get_allowed_minibar_products(self, company):
+        Product = self.env['product.product'].sudo()
+        return Product.search([
+            ('sale_ok', '=', True),
+            ('product_tmpl_id.is_minibar_item', '=', True),
+        ]).exists()
 
-            # Failsafe just in case
+    def action_post_charge(self):
+        """Post a validated minibar charge to the current active guest folio."""
+        for wizard in self:
+            room = wizard.room_id.exists()
+            if not room:
+                raise UserError(_("Please select a valid room."))
+            if wizard.quantity <= 0:
+                raise UserError(_("Minibar quantity must be greater than zero."))
+
+            product = wizard.product_id.sudo().exists()
+            if not product or not product.sale_ok:
+                raise UserError(_("Please select an active saleable minibar product."))
+
+            if product.lst_price < 0:
+                raise UserError(_("Minibar product price cannot be negative."))
+
+            reservation = self.env['hotel.reservation'].sudo().search([
+                ('room_id', '=', room.id),
+                ('state', 'in', ['checkin', 'checkout_hold']),
+            ], order='checkin_date desc, id desc', limit=1)
+
             if not reservation:
                 return {
                     'type': 'ir.actions.client',
                     'tag': 'display_notification',
                     'params': {
                         'title': 'Error!',
-                        'message': f'No reservation found for {wizard.room_id.name}.',
+                        'message': f'No in-house reservation found for {room.name}.',
                         'type': 'danger',
                         'sticky': True,
                     }
                 }
+
+            allowed_products = wizard._get_allowed_minibar_products(reservation.company_id or self.env.company)
+            if not allowed_products:
+                raise UserError(_("No minibar product is configured. Please ask Hotel Manager/Admin to enable Minibar Item on the product form."))
+            if product.id not in allowed_products.ids:
+                raise UserError(_("This product is not configured as a Minibar Item. Please ask Hotel Manager/Admin to enable Minibar Item on the product form."))
 
             if not reservation.sale_order_id:
                 raise UserError(_(
@@ -58,9 +87,9 @@ class MinibarChargeWizard(models.TransientModel):
             if folio:
                 is_housekeeping_post = self._is_housekeeping_minibar_user()
                 line_values = {
-                    'order_id': folio.id,               # Attach to this guest's folio
-                    'product_id': wizard.product_id.id, # The Coke/Snickers they ate
-                    'product_uom_qty': wizard.quantity, # How many they ate
+                    'order_id': folio.id,
+                    'product_id': product.id,
+                    'product_uom_qty': wizard.quantity,
                     'hotel_reservation_id': reservation.id,
                 }
                 SaleOrderLine = self.env['sale.order.line']
@@ -71,22 +100,29 @@ class MinibarChargeWizard(models.TransientModel):
                 else:
                     line = SaleOrderLine.create(line_values)
 
-                wizard.room_id.write({
+                if line.sudo().price_subtotal < 0:
+                    raise UserError(_("Minibar charge amount cannot be negative."))
+
+                (room.sudo() if is_housekeeping_post else room).write({
                     'minibar_checked': True,
                     'minibar_check_required': False,
                 })
 
                 posted_by = self.env.user.display_name
-                amount = line.price_subtotal
-                currency = folio.sudo().currency_id if is_housekeeping_post else folio.currency_id
+                amount = line.sudo().price_subtotal
+                currency = folio.sudo().currency_id
                 audit_body = Markup(
                     "<b>Minibar charge posted</b><br/>"
+                    "Room: %(room)s<br/>"
+                    "Reservation: %(reservation)s<br/>"
                     "Item: %(item)s<br/>"
                     "Quantity: %(quantity)s<br/>"
                     "Amount: %(amount)s %(currency)s<br/>"
                     "Posted by: %(posted_by)s"
                 ) % {
-                    'item': escape(wizard.product_id.display_name),
+                    'room': escape(room.display_name),
+                    'reservation': escape(reservation.display_name),
+                    'item': escape(product.display_name),
                     'quantity': wizard.quantity,
                     'amount': f'{amount:.2f}',
                     'currency': escape(currency.name or ''),
@@ -103,7 +139,7 @@ class MinibarChargeWizard(models.TransientModel):
                 'tag': 'display_notification',
                 'params': {
                     'title': 'Success!',
-                    'message': f'Posted {wizard.quantity}x {wizard.product_id.name} to {wizard.room_id.name}',
+                    'message': f'Posted {wizard.quantity}x {product.name} to {room.name}',
                     'type': 'success',
                     'sticky': False,
                     

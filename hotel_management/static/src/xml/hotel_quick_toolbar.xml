@@ -8,42 +8,42 @@
             
             <div class="o_hotel_quick_toolbar d-flex align-items-center ms-4" t-if="showHotelToolbar">
                 <button class="btn btn-primary btn-sm mx-1 border border-primary shadow-sm fw-bold text-white" 
-                        title="Express QR Check-In" t-on-click="openExpressCheckin" t-if="!isHousekeepingApp">
+                        title="Express QR Check-In" t-on-click="openExpressCheckin" t-if="!isHousekeepingApp and hotelToolbarState.canManageReservations">
                     <i class="fa fa-qrcode text-white"/> <span class="ms-1">QR Check-In</span>
                 </button>
                 
                 <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
-                        title="Dashboard" t-on-click="openDashboard" t-if="!isHousekeepingApp">
+                        title="Dashboard" t-on-click="openDashboard" t-if="!isHousekeepingApp and hotelToolbarState.canManageReservations">
                     <i class="fa fa-tachometer text-info"/> <span class="ms-1">Dashboard</span>
                 </button>
 
                 <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
-                        title="New Reservation" t-on-click="openReservation" t-if="!isHousekeepingApp">
+                        title="New Reservation" t-on-click="openReservation" t-if="!isHousekeepingApp and hotelToolbarState.canManageReservations">
                     <i class="fa fa-calendar-plus-o text-primary"/> <span class="ms-1">Reservation</span>
                 </button>
 
                 <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
-                        title="Room Chart" t-on-click="openRoomChart">
+                        title="Room Chart" t-on-click="openRoomChart" t-if="!isHousekeepingApp and hotelToolbarState.canManageReservations">
                     <i class="fa fa-bed text-success"/> <span class="ms-1">Room Chart</span>
                 </button>
 
                 <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
-                        title="Floor Plan" t-on-click="openFloorPlan">
+                        title="Floor Plan" t-on-click="openFloorPlan" t-if="!isHousekeepingApp and hotelToolbarState.canManageReservations">
                     <i class="fa fa-building-o text-secondary"/> <span class="ms-1">Floor Plan</span>
                 </button>
 
                 <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
-                        title="Availability Grid" t-on-click="openAvailabilityGrid" t-if="!isHousekeepingApp">
+                        title="Availability Grid" t-on-click="openAvailabilityGrid" t-if="!isHousekeepingApp and hotelToolbarState.canManageReservations">
                     <i class="fa fa-th text-warning"/> <span class="ms-1">Grid</span>
                 </button>
 
                 <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
-                        title="Guest Folio" t-on-click="openFolio" t-if="!isHousekeepingApp">
+                        title="Guest Folio" t-on-click="openFolio" t-if="!isHousekeepingApp and hotelToolbarState.canManageReservations">
                     <i class="fa fa-suitcase text-danger"/> <span class="ms-1">Folio</span>
                 </button>
 
                 <button class="btn btn-light btn-sm mx-1 border shadow-sm fw-bold text-dark" 
-                        title="Housekeeping" t-on-click="openHousekeeping">
+                        title="Housekeeping" t-on-click="openHousekeeping" t-if="hotelToolbarState.canUseHousekeepingTools">
                     <i class="fa fa-paint-brush text-muted"/> <span class="ms-1">Housekeeping</span>
                 </button>
                 

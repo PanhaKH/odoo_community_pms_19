@@ -23,6 +23,7 @@ class HotelEmailAudit(models.Model):
     ], string='Type', required=True, index=True)
     recipient = fields.Char(required=True)
     status = fields.Selection([
+        ('queued', 'Queued'),
         ('sent', 'Sent'),
         ('failed', 'Failed'),
         ('received', 'Received'),
@@ -31,4 +32,5 @@ class HotelEmailAudit(models.Model):
     subject = fields.Char(required=True)
     mail_id = fields.Many2one('mail.mail', string='Email', ondelete='set null')
     attachment_id = fields.Many2one('ir.attachment', string='Attachment', ondelete='set null')
+    source_payment_id = fields.Many2one('account.payment', string='Source Payment', ondelete='set null')
     failure_reason = fields.Text()

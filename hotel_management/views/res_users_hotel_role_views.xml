@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hotel_role_assignment_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.role.assignment.wizard.form</field>
+        <field name="model">hotel.role.assignment.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Assign Hotel Roles">
+                <sheet>
+                    <group>
+                        <field name="user_id"/>
+                    </group>
+                    <group string="Selectable Hotel Roles" col="2">
+                        <group>
+                            <field name="role_front_office"/>
+                            <field name="role_night_auditor"/>
+                            <field name="role_front_office_manager"/>
+                            <field name="role_account_receivable"/>
+                            <field name="role_hotel_manager"/>
+                        </group>
+                        <group>
+                            <field name="role_housekeeper"/>
+                            <field name="role_housekeeping_user"/>
+                            <field name="role_housekeeping_supervisor"/>
+                            <field name="role_housekeeping_manager"/>
+                        </group>
+                    </group>
+                    <group string="Effective Roles After Inheritance">
+                        <field name="effective_role_summary" nolabel="1" readonly="1"/>
+                    </group>
+                    <group string="Inheritance Notes" invisible="not role_explanation">
+                        <field name="role_explanation" nolabel="1" readonly="1"/>
+                    </group>
+                    <group string="Warnings" invisible="not warning_message">
+                        <field name="warning_message" nolabel="1" readonly="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_apply_roles" string="Apply Roles" type="object" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_users_form_hotel_roles" model="ir.ui.view">
+        <field name="name">res.users.form.hotel.roles</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='access_rights']" position="after">
+                <page name="hotel_staff_esignature" string="Hotel Staff E-Signature">
+                    <group>
+                        <group string="Staff E-Signature">
+                            <field name="hotel_staff_signature" widget="signature"/>
+                            <field name="hotel_staff_signature_updated_at" readonly="1"/>
+                        </group>
+                    </group>
+                </page>
+                <page name="hotel_roles" string="Hotel Roles" groups="base.group_system,hotel_management.group_hotel_system_admin">
+                    <group>
+                        <group string="Effective Hotel Roles">
+                            <field name="hotel_effective_role_summary" nolabel="1" readonly="1"/>
+                        </group>
+                        <group string="Role Assignment">
+                            <button name="action_open_hotel_role_assignment_wizard"
+                                    type="object"
+                                    string="Assign Hotel Roles"
+                                    class="btn-primary"
+                                    groups="base.group_system,hotel_management.group_hotel_system_admin"/>
+                        </group>
+                    </group>
+                </page>
+                <page name="hotel_feature_access" string="Hotel Feature Access" groups="base.group_system,hotel_management.group_hotel_system_admin">
+                    <group string="Editable Manual Feature Grants">
+                        <div class="o_hotel_manual_feature_grants">
+                            <table class="table table-sm table-bordered o_list_table mb-2">
+                                <thead>
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th class="text-center">Read</th>
+                                        <th class="text-center">Create</th>
+                                        <th class="text-center">Edit</th>
+                                        <th class="text-center">Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Lost &amp; Found</td>
+                                        <td class="text-center"><field name="hotel_feature_lost_found_read" nolabel="1"/></td>
+                                        <td class="text-center"><field name="hotel_feature_lost_found_create" nolabel="1"/></td>
+                                        <td class="text-center"><field name="hotel_feature_lost_found_write" nolabel="1"/></td>
+                                        <td class="text-center"><field name="hotel_feature_lost_found_delete" nolabel="1"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Guest Requests</td>
+                                        <td class="text-center"><field name="hotel_feature_guest_request_read" nolabel="1"/></td>
+                                        <td class="text-center">
+                                            <field name="hotel_feature_guest_request_create" nolabel="1"/>
+                                            <span class="text-muted small">Submit</span>
+                                        </td>
+                                        <td class="text-center text-muted">Planned / disabled</td>
+                                        <td class="text-center text-muted">Planned / disabled</td>
+                                    </tr>
+                                    <tr class="text-muted">
+                                        <td>Maintenance Requests</td>
+                                        <td class="text-center">Planned / disabled</td>
+                                        <td class="text-center">Planned / disabled</td>
+                                        <td class="text-center">Planned / disabled</td>
+                                        <td class="text-center">Planned / disabled</td>
+                                    </tr>
+                                    <tr class="text-muted">
+                                        <td>Room Blocks</td>
+                                        <td class="text-center">Planned / disabled</td>
+                                        <td class="text-center">Planned / disabled</td>
+                                        <td class="text-center">Planned / disabled</td>
+                                        <td class="text-center">Planned / disabled</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="alert alert-info" role="alert">
+                                Lost &amp; Found supports Read, Create, Edit, and Delete manual grants in this phase.
+                                Guest Requests supports Read and Submit through a safe wizard; Edit and Delete remain planned.
+                                Maintenance Requests and Room Blocks are display-only planned rows and do not grant access yet.
+                            </div>
+                        </div>
+                    </group>
+                    <separator string="Full PMS Feature Access Matrix"/>
+                    <field name="hotel_feature_access_matrix_html" nolabel="1" readonly="1" widget="html"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_users_preferences_hotel_staff_signature" model="ir.ui.view">
+        <field name="name">res.users.preferences.hotel.staff.signature</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form_simple_modif"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='other_preferences']" position="after">
+                <group string="Hotel Staff E-Signature">
+                    <field name="hotel_staff_signature" widget="signature" readonly="0"/>
+                    <field name="hotel_staff_signature_updated_at" readonly="1"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
