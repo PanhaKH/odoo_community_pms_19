@@ -69,6 +69,13 @@ class HotelRoom(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'zone_id, floor_id, name'
 
+    hk_board_stage = fields.Selection([
+        ('clean', 'Clean'),
+        ('dirty', 'Dirty'),
+        ('inspected', 'Inspected'),
+        ('occupied', 'Occupied'),
+    ], string='Housekeeping Board Stage', compute='_compute_hk_board_stage', store=True, index=True)
+
     hk_reclean_required = fields.Boolean(
         string="Failed / Reclean",
         compute="_compute_hk_reclean_info",
@@ -84,6 +91,17 @@ class HotelRoom(models.Model):
         compute="_compute_hk_reclean_info",
         compute_sudo=True,
     )
+    @api.depends('occupancy_status', 'housekeeping_status')
+    def _compute_hk_board_stage(self):
+        for room in self:
+            if room.occupancy_status == 'occupied':
+                room.hk_board_stage = 'occupied'
+            elif room.housekeeping_status == 'dirty':
+                room.hk_board_stage = 'dirty'
+            elif room.housekeeping_status == 'inspected':
+                room.hk_board_stage = 'inspected'
+            else:
+                room.hk_board_stage = 'clean'
 
     def _compute_hk_reclean_info(self):
         try:

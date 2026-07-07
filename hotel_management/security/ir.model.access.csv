@@ -76,6 +76,8 @@ access_hotel_reservation_mgr,hotel_reservation_mgr,model_hotel_reservation,hotel
 access_hotel_group_master_mgr,hotel_group_master_mgr,model_hotel_group_master,hotel_management.group_hotel_manager,1,1,1,1
 access_hotel_housekeeping_mgr,hotel_housekeeping_mgr,model_hotel_housekeeping,hotel_management.group_hotel_manager,1,1,1,1
 access_hotel_room_mgr,hotel_room_mgr,model_hotel_room,hotel_management.group_hotel_manager,1,1,1,1
+access_hotel_room_system_admin,hotel_room_system_admin,model_hotel_room,base.group_system,1,1,1,1
+access_hotel_room_hotel_system_admin,hotel_room_hotel_system_admin,model_hotel_room,hotel_management.group_hotel_system_admin,1,1,1,1
 access_hotel_room_block_manager,hotel.room.block manager,model_hotel_room_block,hotel_management.group_hotel_manager,1,1,1,1
 access_hotel_room_type_mgr,hotel_room_type_mgr,model_hotel_room_type,hotel_management.group_hotel_manager,1,1,1,1
 access_hotel_floor_mgr,hotel_floor_mgr,model_hotel_floor,hotel_management.group_hotel_manager,1,1,1,1
@@ -122,3 +124,8 @@ access_hotel_registration_card_sign_print_wizard,hotel.registration.card.sign.pr
 access_hotel_tax_invoice_sign_print_wizard,hotel.tax.invoice.sign.print.wizard,model_hotel_tax_invoice_sign_print_wizard,base.group_user,1,1,1,1
 access_hotel_commercial_invoice_sign_print_wizard,hotel.commercial.invoice.sign.print.wizard,model_hotel_commercial_invoice_sign_print_wizard,base.group_user,1,1,1,1
 access_hotel_reservation_document_print_wizard,hotel.reservation.document.print.wizard,model_hotel_reservation_document_print_wizard,base.group_user,1,1,1,1
+access_hotel_quick_access_user,hotel.quick.access user,model_hotel_quick_access_item,base.group_user,1,0,0,0
+access_hotel_quick_access_manager,hotel.quick.access manager,model_hotel_quick_access_item,hotel_management.group_hotel_manager,1,1,1,1
+access_hotel_quick_access_system_admin,hotel.quick.access system admin,model_hotel_quick_access_item,hotel_management.group_hotel_system_admin,1,1,1,1
+access_hotel_quick_access_system,hotel.quick.access system,model_hotel_quick_access_item,base.group_system,1,1,1,1
+access_hotel_dashboard_performance_date_wizard,hotel.dashboard.performance.date.wizard,model_hotel_dashboard_performance_date_wizard,base.group_user,1,1,1,0

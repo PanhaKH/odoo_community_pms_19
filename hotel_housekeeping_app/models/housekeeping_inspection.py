@@ -473,7 +473,7 @@ class HotelDashboardInspection(models.Model):
         compute='_compute_inspection_counts',
     )
     passed_inspection_today = fields.Integer(
-        string='Passed / Release Ready',
+        string='Release Ready',
         compute='_compute_inspection_counts',
     )
 
@@ -481,22 +481,32 @@ class HotelDashboardInspection(models.Model):
         Room = self.env['hotel.room'].sudo()
 
         for dashboard in self:
-            # Clean rooms waiting for supervisor inspection
-            dashboard.rooms_ready_for_inspection = Room.search_count([
-                ('housekeeping_status', '=', 'clean'),
-                ('release_ready', '=', False),
-            ])
+            # Front Desk dashboard should show only vacant rooms that can move to guest-ready.
+            # Occupied rooms are already counted in Guests Tonight / Live Room Status.
+            vacant_available_domain = [
+                ('occupancy_status', '=', 'vacant'),
+                ('availability_status', '=', 'available'),
+            ]
 
-            # Dirty rooms that need clean / reclean
-            dashboard.failed_inspection_reclean = Room.search_count([
-                ('housekeeping_status', '=', 'dirty'),
-            ])
+            dashboard.rooms_ready_for_inspection = Room.search_count(
+                vacant_available_domain + [
+                    ('housekeeping_status', '=', 'clean'),
+                    ('release_ready', '=', False),
+                ]
+            )
 
-            # Rooms already inspected and released for guest check-in
-            dashboard.passed_inspection_today = Room.search_count([
-                ('housekeeping_status', '=', 'inspected'),
-                ('release_ready', '=', True),
-            ])
+            dashboard.failed_inspection_reclean = Room.search_count(
+                vacant_available_domain + [
+                    ('housekeeping_status', '=', 'dirty'),
+                ]
+            )
+
+            dashboard.passed_inspection_today = Room.search_count(
+                vacant_available_domain + [
+                    ('housekeeping_status', '=', 'inspected'),
+                    ('release_ready', '=', True),
+                ]
+            )
 
     def action_view_rooms_ready_for_inspection(self):
         return {
@@ -505,6 +515,8 @@ class HotelDashboardInspection(models.Model):
             'res_model': 'hotel.room',
             'view_mode': 'kanban,list,form',
             'domain': [
+                ('occupancy_status', '=', 'vacant'),
+                ('availability_status', '=', 'available'),
                 ('housekeeping_status', '=', 'clean'),
                 ('release_ready', '=', False),
             ],
@@ -518,6 +530,8 @@ class HotelDashboardInspection(models.Model):
             'res_model': 'hotel.room',
             'view_mode': 'kanban,list,form',
             'domain': [
+                ('occupancy_status', '=', 'vacant'),
+                ('availability_status', '=', 'available'),
                 ('housekeeping_status', '=', 'dirty'),
             ],
             'context': {'create': False},
@@ -525,11 +539,13 @@ class HotelDashboardInspection(models.Model):
 
     def action_view_passed_inspection_today(self):
         return {
-            'name': _('Passed / Release Ready Rooms'),
+            'name': _('Release Ready Rooms'),
             'type': 'ir.actions.act_window',
             'res_model': 'hotel.room',
             'view_mode': 'kanban,list,form',
             'domain': [
+                ('occupancy_status', '=', 'vacant'),
+                ('availability_status', '=', 'available'),
                 ('housekeeping_status', '=', 'inspected'),
                 ('release_ready', '=', True),
             ],

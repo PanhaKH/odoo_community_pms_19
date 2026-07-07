@@ -12,6 +12,8 @@
     'data': [
         'security/hotel_security.xml',
         'security/ir.model.access.csv',
+        'views/hotel_quick_access_views.xml',
+        'views/hotel_quick_access_defaults.xml',
         'data/hotel_nationality_data.xml',
         'data/sequence.xml',
         'data/mail_template_data.xml',  # <-- ADD THIS NEW LINE HERE
@@ -73,6 +75,9 @@
     'assets': {
         'web.assets_backend': [
             # Tape Chart & Grid
+            'hotel_management/static/src/css/hotel_quick_access.css',
+            'hotel_management/static/src/js/hotel_dashboard_escape_shortcut.js',
+            'hotel_management/static/src/js/hotel_dashboard_tab_memory.js',
             'hotel_management/static/src/css/rooming_board.css',
             'hotel_management/static/src/css/hotel_tape_chart.css',
             'hotel_management/static/src/xml/hotel_tape_chart.xml',

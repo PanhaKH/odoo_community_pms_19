@@ -20,11 +20,22 @@ class HotelDashboard(models.Model):
     
     company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
     business_date = fields.Date(related='company_id.hotel_business_date', string="Business Date")
+
+    performance_date = fields.Date(
+        string="Performance Date",
+        default=lambda self: self.env.company.hotel_business_date or fields.Date.context_today(self),
+        help="Date used for Rooms & Performance statistics. Default is Hotel Business Date.",
+    )
+
     system_date = fields.Date(compute='_compute_dates', string="System Date")
     audit_warning = fields.Boolean(compute='_compute_dates')
 
     # --- PERFORMANCE METRICS ---
     total_rooms = fields.Integer(string="Total Rooms", readonly=True)
+    performance_booking_count = fields.Integer(
+        string="Booked Rooms",
+        readonly=True,
+    )
     rooms_available = fields.Integer(string="Available (Clean)", readonly=True)
     rooms_dirty = fields.Integer(string="Vacant Dirty", readonly=True)
     rooms_occupied = fields.Integer(string="Occupied", readonly=True)
@@ -470,6 +481,80 @@ class HotelDashboard(models.Model):
         payment_ids = self._get_guest_advance_deposit_credit_payments().ids
         return [('id', 'in', payment_ids or [0])]
 
+    def _get_performance_date(self):
+        self.ensure_one()
+        return self.performance_date or self._get_biz_date()
+
+    def _get_dashboard_reload_action(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
+
+    def _get_booked_rooms_for_date(self, target_date):
+        Reservation = self.env['hotel.reservation'].sudo()
+
+        reservations = Reservation.search([
+            ('is_desk_folio', '=', False),
+            ('room_id', '!=', False),
+            ('checkin_date', '<=', target_date),
+            ('checkout_date', '>', target_date),
+            ('state', 'in', ['confirm', 'guaranteed', 'checkin', 'checkout_hold', 'checkout']),
+        ])
+
+        return reservations.mapped('room_id')
+
+    def _get_room_revenue_for_date(self, target_date):
+        RevenueReport = self.env['hotel.revenue.report'].sudo()
+
+        rows = RevenueReport.search([
+            ('date', '=', target_date),
+            ('revenue_type', '=', 'actual'),
+        ])
+
+        if not rows:
+            rows = RevenueReport.search([
+                ('date', '=', target_date),
+                ('revenue_type', '=', 'forecast'),
+            ])
+
+        return sum(rows.mapped('folio_total'))
+
+    def action_open_performance_date_wizard(self):
+        self.ensure_one()
+        return {
+            'name': _('Select Performance Date'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.dashboard.performance.date.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_dashboard_id': self.id,
+                'default_performance_date': self._get_performance_date(),
+            },
+        }
+
+    def action_performance_date_today(self):
+        self.ensure_one()
+        self.write({'performance_date': self._get_biz_date()})
+        self.action_refresh()
+        return self._get_dashboard_reload_action()
+
+    def action_performance_date_prev(self):
+        self.ensure_one()
+        view_date = self._get_performance_date()
+        self.write({'performance_date': view_date - timedelta(days=1)})
+        self.action_refresh()
+        return self._get_dashboard_reload_action()
+
+    def action_performance_date_next(self):
+        self.ensure_one()
+        view_date = self._get_performance_date()
+        self.write({'performance_date': view_date + timedelta(days=1)})
+        self.action_refresh()
+        return self._get_dashboard_reload_action()
+
     def action_refresh(self):
         if not self.env.su:
             return self.sudo().action_refresh()
@@ -491,13 +576,15 @@ class HotelDashboard(models.Model):
             rec.rooms_occupied = self.env['hotel.room'].search_count([('state', 'in', ['occupied_clean', 'occupied_dirty'])])
             rec.rooms_blocked = self.env['hotel.room'].search_count([('state', '=', 'blocked')])
 
-            # 3. Financials & Occupancy from the reconciled daily revenue report
-            actual_rows = RevenueReport.search([
-                ('date', '=', biz_date),
-                ('revenue_type', '=', 'actual'),
-            ])
-            occupied_count = sum(actual_rows.mapped('occupied_count'))
-            daily_revenue = sum(actual_rows.mapped('folio_total'))
+            # 3. Rooms & Performance by selected Performance Date
+            view_date = rec.performance_date or biz_date
+            rec.performance_date = view_date
+
+            booked_rooms = rec._get_booked_rooms_for_date(view_date)
+            occupied_count = len(booked_rooms)
+            rec.performance_booking_count = occupied_count
+
+            daily_revenue = rec._get_room_revenue_for_date(view_date)
             rec.total_revenue = daily_revenue
 
             if total_rooms_count > 0:
@@ -512,16 +599,18 @@ class HotelDashboard(models.Model):
             else:
                 rec.adr = 0.0
 
-            # 4. Forecast 
+            # 4. 7-Day Occupancy Forecast
+            # Forecast starts from the next day after selected Performance Date.
             forecast_labels = []
             forecast_rates = []
+
             for i in range(1, 8):
-                target_date = biz_date + timedelta(days=i)
+                target_date = view_date + timedelta(days=i)
                 date_label = target_date.strftime('%a, %b %d')
-                occ_count = sum(RevenueReport.search([
-                    ('date', '=', target_date),
-                    ('revenue_type', '=', 'forecast'),
-                ]).mapped('occupied_count'))
+
+                forecast_booked_rooms = rec._get_booked_rooms_for_date(target_date)
+                occ_count = len(forecast_booked_rooms)
+
                 rate = (occ_count / total_rooms_count) if total_rooms_count > 0 else 0.0
                 forecast_labels.append(date_label)
                 forecast_rates.append(rate)
@@ -594,21 +683,33 @@ class HotelDashboard(models.Model):
             city_ledger_moves = rec._get_city_ledger_ar_moves()
             rec.city_ledger = sum(city_ledger_moves.mapped('amount_residual'))
 
-            # 7. NEW FIX: Querying the new Business Date column on Accounting!
-            invoices_today = self.env['account.move'].search([('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('hotel_business_date', '=', biz_date)])
+            # 7. Today's Accounting KPIs
+            # Card amount is calculated by current Hotel Business Date.
+            # Drill-down list will open with removable search filter.
+            company = rec.company_id or self.env.company
+            biz_date = company.hotel_business_date or fields.Date.context_today(self)
+
+            invoices_today = self.env['account.move'].sudo().search([
+                ('move_type', '=', 'out_invoice'),
+                ('state', '=', 'posted'),
+                ('company_id', '=', company.id),
+                ('hotel_business_date', '=', biz_date),
+            ])
             rec.today_invoiced = sum(invoices_today.mapped('amount_total'))
 
-            payments_today = self.env['account.payment'].search([
+            payments_today = self.env['account.payment'].sudo().search([
                 ('hotel_business_date', '=', biz_date),
-                ('state', 'in', ('in_process', 'paid')),
-                ('company_id', '=', rec.company_id.id),
-                ('hotel_reservation_id', '!=', False),
+                ('state', 'in', ['in_process', 'paid']),
+                ('company_id', '=', company.id),
             ])
 
-            rec.today_collected = sum(
-                abs(payment.amount) if payment.payment_type == 'inbound' else -abs(payment.amount)
-                for payment in payments_today
-            )
+            if 'hotel_net_receipt_amount' in self.env['account.payment']._fields:
+                rec.today_collected = sum(payments_today.mapped('hotel_net_receipt_amount'))
+            else:
+                rec.today_collected = sum(
+                    abs(payment.amount) if payment.payment_type == 'inbound' else -abs(payment.amount)
+                    for payment in payments_today
+                )
 
             # 8. GUEST PORTAL ALERTS
             rec.req_upcoming = self.env['hotel.service.request'].search_count([('reservation_id.state', '=', 'confirm'), ('state', 'in', ['new', 'progress'])])
@@ -742,22 +843,31 @@ class HotelDashboard(models.Model):
     
     # NEW FIX: The dashboard buttons now filter exactly by the Business Date column!
     def action_view_today_invoices(self):
-        action = self.env['ir.actions.actions']._for_xml_id('hotel_management.action_hotel_customer_invoices')
+        self.ensure_one()
+        company = self.company_id or self.env.company
+        biz_date = self._get_biz_date()
+
+        action = self.env['ir.actions.actions']._for_xml_id(
+            'hotel_management.action_hotel_customer_invoices'
+        )
+
         action.update({
             'name': _("Today's Invoices"),
+            # Permanent domain only keeps correct invoice type/status/company.
+            # Business date is NOT here, because user must be able to remove it.
             'domain': [
                 ('move_type', '=', 'out_invoice'),
                 ('state', '=', 'posted'),
-                ('hotel_business_date', '=', self._get_biz_date()),
-                '|', '|', '|', '|', '|',
-                ('hotel_folio_id.hotel_reservation_ids', '!=', False),
-                ('hotel_folio_id.hotel_group_master_ids', '!=', False),
-                ('invoice_line_ids.hotel_reservation_id', '!=', False),
-                ('invoice_line_ids.sale_line_ids.hotel_reservation_id', '!=', False),
-                ('invoice_line_ids.sale_line_ids.order_id.hotel_reservation_ids', '!=', False),
-                ('invoice_line_ids.sale_line_ids.order_id.hotel_group_master_ids', '!=', False),
+                ('company_id', '=', company.id),
             ],
+            'context': {
+                'create': False,
+                'default_move_type': 'out_invoice',
+                'hotel_business_date_default': fields.Date.to_string(biz_date),
+                'search_default_hotel_today_business': 1,
+            },
         })
+
         return action
 
     def _get_company_pending_billing_lines(self):
@@ -798,24 +908,35 @@ class HotelDashboard(models.Model):
             ('invoice_line_ids.sale_line_ids.hotel_reservation_id', '!=', False),
         ])
 
-    def action_view_today_receipts(self): 
+    def action_view_today_receipts(self):
         self.ensure_one()
-        receipt_tree = self.env.ref('hotel_management.view_hotel_receipt_tree', raise_if_not_found=False)
-        domain = [
-            ('hotel_business_date', '=', self._get_biz_date()),
-            ('state', 'in', ['in_process', 'paid']),
-            ('company_id', '=', self.company_id.id),
-            ('hotel_reservation_id', '!=', False),
-        ]
+        company = self.company_id or self.env.company
+        biz_date = self._get_biz_date()
+
+        receipt_tree = self.env.ref(
+            'hotel_management.view_hotel_receipt_tree',
+            raise_if_not_found=False
+        )
+
         views = [(receipt_tree.id, 'list'), (False, 'form')] if receipt_tree else [(False, 'list'), (False, 'form')]
+
         return {
             'name': _("Today's Net Receipts"),
             'type': 'ir.actions.act_window',
             'res_model': 'account.payment',
             'view_mode': 'list,form',
             'views': views,
-            'domain': domain,
-            'context': {'create': False},
+            # Permanent domain only keeps valid receipt records.
+            # Business date is NOT here, because user must be able to remove it.
+            'domain': [
+                ('state', 'in', ['in_process', 'paid']),
+                ('company_id', '=', company.id),
+            ],
+            'context': {
+                'create': False,
+                'hotel_business_date_default': fields.Date.to_string(biz_date),
+                'search_default_hotel_today_business': 1,
+            },
         }
 
     def action_view_req_upcoming(self): return self._get_action('Upcoming Guest Alerts', 'hotel.service.request', [('reservation_id.state', '=', 'confirm'), ('state', 'in', ['new', 'progress'])])
@@ -896,3 +1017,29 @@ class HotelDashboard(models.Model):
             
         return stats_list
 
+class HotelDashboardPerformanceDateWizard(models.TransientModel):
+    _name = 'hotel.dashboard.performance.date.wizard'
+    _description = 'Hotel Dashboard Performance Date Wizard'
+
+    dashboard_id = fields.Many2one(
+        'hotel.dashboard',
+        string='Dashboard',
+        required=True,
+    )
+
+    performance_date = fields.Date(
+        string='Performance Date',
+        required=True,
+        default=lambda self: self.env.company.hotel_business_date or fields.Date.context_today(self),
+    )
+
+    def action_apply(self):
+        self.ensure_one()
+        dashboard = self.dashboard_id
+        dashboard.write({'performance_date': self.performance_date})
+        dashboard.action_refresh()
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }

@@ -52,7 +52,7 @@
                     <div class="container-fluid">
                         <notebook>
                             <page string="Front Desk Operations">
-                                <div class="pt-3">
+                                <div class="pt-3 o_hotel_frontdesk_cards_container">
                                     
                                     <div class="row mb-3">
                                         <div class="col-md-3 mb-3">
@@ -189,13 +189,52 @@
                             </page>
 
                             <page string="Rooms &amp; Performance">
+                                <div class="row mb-3">
+                                    <div class="col-lg-8 col-md-12">
+                                        <div class="alert alert-info d-flex align-items-center justify-content-between mb-0 py-2">
+                                            <div>
+                                                <strong>
+                                                    <i class="fa fa-calendar me-1"/>
+                                                    Performance Date:
+                                                </strong>
+                                                <field name="performance_date" readonly="1"/>
+                                            </div>
+
+                                            <div class="text-end">
+                                                <button name="action_performance_date_prev"
+                                                        type="object"
+                                                        string="Prev Day"
+                                                        class="btn btn-sm btn-outline-secondary me-1"/>
+
+                                                <button name="action_performance_date_today"
+                                                        type="object"
+                                                        string="Hotel Business Date"
+                                                        class="btn btn-sm btn-outline-primary me-1"/>
+
+                                                <button name="action_open_performance_date_wizard"
+                                                        type="object"
+                                                        string="Select Date"
+                                                        class="btn btn-sm btn-primary me-1"/>
+
+                                                <button name="action_performance_date_next"
+                                                        type="object"
+                                                        string="Next Day"
+                                                        class="btn btn-sm btn-outline-secondary"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="pt-3">
                                     <div class="row mb-4">
                                         <div class="col-md-4">
                                             <div class="card text-white shadow-sm h-100" style="background-color: #C69C3A;">
-                                                <div class="card-header text-center fw-bold" style="font-size: 1.4em; border-bottom: 1px solid rgba(255,255,255,0.3);">Today's Stats</div>
+                                                <div class="card-header text-center fw-bold" style="font-size: 1.4em; border-bottom: 1px solid rgba(255,255,255,0.3);">Selected Date Stats</div>
                                                 <div class="card-body">
                                                     <div class="row mb-1"><div class="col-6 fw-bold">Total Rooms</div><div class="col-6 text-end fw-bold"><field name="total_rooms"/></div></div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Booked Rooms</span>
+                                                        <strong><field name="performance_booking_count"/></strong>
+                                                    </div>
                                                     <div class="row mb-1"><div class="col-6 fw-bold">Occupancy</div><div class="col-6 text-end fw-bold"><field name="occupancy_rate" widget="percentage"/></div></div>
                                                     <div class="row mb-1"><div class="col-6 fw-bold">Room Rev.</div><div class="col-6 text-end fw-bold"><field name="total_revenue" widget="monetary"/></div></div>
                                                     <div class="row mb-1"><div class="col-6 fw-bold">ADR</div><div class="col-6 text-end fw-bold"><field name="adr" widget="monetary"/></div></div>
@@ -451,5 +490,55 @@
         </list>
     </field>
 </record>
+    <!-- Add Today's Business filter to the normal Customer Invoice search view -->
+    <record id="view_account_invoice_filter_hotel_today_business" model="ir.ui.view">
+        <field name="name">account.move.search.hotel.today.business</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_account_invoice_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter name="hotel_today_business"
+                        string="Today's Business"
+                        domain="[('hotel_business_date', '=', context.get('hotel_business_date_default'))]"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Add Today's Business filter to the normal Payment search view -->
+    <record id="view_account_payment_filter_hotel_today_business" model="ir.ui.view">
+        <field name="name">account.payment.search.hotel.today.business</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter name="hotel_today_business"
+                        string="Today's Business"
+                        domain="[('hotel_business_date', '=', context.get('hotel_business_date_default'))]"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_hotel_dashboard_performance_date_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.dashboard.performance.date.wizard.form</field>
+        <field name="model">hotel.dashboard.performance.date.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Select Performance Date">
+                <group>
+                    <field name="dashboard_id" invisible="1"/>
+                    <field name="performance_date"/>
+                </group>
+                <footer>
+                    <button name="action_apply"
+                            type="object"
+                            string="Apply"
+                            class="btn-primary"/>
+                    <button string="Cancel"
+                            special="cancel"
+                            class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
 </odoo>
 

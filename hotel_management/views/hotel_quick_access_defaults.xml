@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <function model="hotel.quick.access.item" name="create_default_quick_access_items"/>
+</odoo>

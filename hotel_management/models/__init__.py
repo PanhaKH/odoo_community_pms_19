@@ -25,3 +25,4 @@ from . import hotel_default_setup
 from . import hotel_guest_duplicate_review
 from . import hotel_document_template
 from . import res_users
+from . import hotel_quick_access

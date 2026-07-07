@@ -26,7 +26,7 @@
                 <filter string="Priority Clean" name="priority_clean" domain="[('clean_priority', '=', True)]"/>
                 
                 <searchpanel>
-                    <field name="housekeeping_status" string="Housekeeping" select="multi" icon="fa-filter"/>
+                    <field name="hk_board_stage" string="Room Stage" select="multi" icon="fa-columns"/>
                     <field name="availability_status" string="Availability" select="multi" icon="fa-ban"/>
                     <field name="service_workflow" string="Workflow" select="multi" icon="fa-tasks"/>
                     
@@ -43,11 +43,12 @@
         <field name="name">hotel.housekeeping.kanban</field>
         <field name="model">hotel.room</field>
         <field name="arch" type="xml">
-            <kanban default_group_by="housekeeping_status" create="false" group_create="false" records_draggable="false">
+            <kanban default_group_by="hk_board_stage" create="false" group_create="false" records_draggable="false">
                 <field name="name"/>
                 <field name="state"/>
                 <field name="occupancy_status"/>
                 <field name="housekeeping_status"/>
+                <field name="hk_board_stage"/>
                 <field name="availability_status"/>
                 <field name="service_workflow"/>
                 <field name="arrival_priority_level"/>
@@ -213,7 +214,7 @@
         <field name="view_mode">kanban,list</field>
         <field name="view_id" ref="view_hotel_housekeeping_kanban"/>
         <field name="search_view_id" ref="view_hotel_housekeeping_search"/>
-        <field name="context">{}</field>
+        <field name="context">{'group_by': 'hk_board_stage'}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Manage your room cleaning status here.

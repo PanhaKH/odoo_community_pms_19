@@ -1,0 +1,123 @@
+/* Hotel Quick Access safe visible toolbar */
+.hotel_quick_access_line {
+    margin: 8px 0 10px 0 !important;
+    min-height: 34px !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+}
+
+.hotel_quick_access_line .o_field_widget {
+    width: auto !important;
+}
+
+.hotel_quick_access_line .o_kanban_renderer {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.hotel_quick_access_line .o_kanban_record {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.hotel_quick_access_line .o_kanban_record > div {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.hotel_quick_access_line .hotel_qa_btn {
+    min-width: 150px !important;
+    max-width: 190px !important;
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    line-height: 18px !important;
+    white-space: nowrap !important;
+}
+
+.hotel_quick_access_line .hotel_qa_setup_btn {
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    line-height: 18px !important;
+    margin-left: 4px !important;
+}
+/* Front Desk dashboard card order */
+.o_hotel_frontdesk_cards_container {
+    display: flex !important;
+    flex-wrap: wrap !important;
+}
+
+.o_hotel_frontdesk_cards_container > .row {
+    display: contents !important;
+}
+
+.o_hotel_frontdesk_cards_container .col-md-3 {
+    flex: 0 0 25% !important;
+    max-width: 25% !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+}
+
+/* Row 1 */
+.o_hotel_frontdesk_cards_container .col-md-3:has(button[name="action_view_arrivals"]) {
+    order: 10 !important;
+}
+
+.o_hotel_frontdesk_cards_container .col-md-3:has(button[name="action_view_departures"]) {
+    order: 20 !important;
+}
+
+.o_hotel_frontdesk_cards_container .col-md-3:has(button[name="action_view_repeat_arriving_today"]) {
+    order: 30 !important;
+}
+
+.o_hotel_frontdesk_cards_container .col-md-3:has(button[name="action_view_vip_arriving_today"]) {
+    order: 40 !important;
+}
+
+/* Row 2 */
+.o_hotel_frontdesk_cards_container .col-md-3:has(button[name="action_view_stayovers"]) {
+    order: 50 !important;
+}
+
+.o_hotel_frontdesk_cards_container .col-md-3:has(button[name="action_view_rooms_ready_for_inspection"]) {
+    order: 60 !important;
+}
+
+.o_hotel_frontdesk_cards_container .col-md-3:has(button[name="action_view_failed_inspection_reclean"]) {
+    order: 70 !important;
+}
+
+.o_hotel_frontdesk_cards_container .col-md-3:has(button[name="action_view_passed_inspection_today"]) {
+    order: 80 !important;
+}
+
+/* Row 3 */
+.o_hotel_frontdesk_cards_container .col-md-3:has(button[name="action_view_req_upcoming"]) {
+    order: 90 !important;
+}
+
+.o_hotel_frontdesk_cards_container .col-md-3:has(button[name="action_view_req_inhouse"]) {
+    order: 100 !important;
+}
+
+.o_hotel_frontdesk_cards_container .col-md-3:has(button[name="action_view_req_history"]) {
+    order: 110 !important;
+}
+
+.o_hotel_frontdesk_cards_container .col-md-3:has(button[name="action_view_chat_logs"]) {
+    order: 120 !important;
+}
