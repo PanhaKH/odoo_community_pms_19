@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="hotel_room_service_qr.OrdersHistoryTracker"
+       t-inherit="pos_self_order.OrdersHistoryPage"
+       t-inherit-mode="extension">
+        <xpath expr="//h1" position="after">
+            <t t-set="latestTracker" t-value="getLatestUnmatchedRoomServiceTracker()"/>
+            <div t-if="latestTracker and latestTracker.steps"
+                 class="rs-self-order-tracker bg-white rounded-4 shadow-sm border border-light p-3 mb-3">
+                <div class="rs-self-order-tracker__title">
+                    Latest Room Service Order
+                    <span t-if="latestTracker.name" t-esc="latestTracker.name"/>
+                </div>
+                <div t-if="latestTracker.room" class="rs-self-order-tracker__room">
+                    Room <t t-esc="latestTracker.room"/>
+                </div>
+                <div class="rs-self-order-tracker__steps">
+                    <t t-foreach="latestTracker.steps" t-as="step" t-key="step.key">
+                        <div class="rs-self-order-tracker__step" t-att-class="'rs-self-order-tracker__step--' + step.state">
+                            <div class="rs-self-order-tracker__dot">
+                                <i t-if="step.state === 'done'" class="fa fa-check"/>
+                                <i t-elif="step.state === 'cancelled'" class="fa fa-times"/>
+                                <span t-else="" t-esc="step.number"/>
+                            </div>
+                            <div class="rs-self-order-tracker__label" t-esc="step.label"/>
+                        </div>
+                    </t>
+                </div>
+                <div class="rs-self-order-tracker__status">
+                    <span class="rs-self-order-tracker__current" t-esc="latestTracker.state_label"/>
+                    <span t-if="latestTracker.updated_at_display" class="rs-self-order-tracker__updated">
+                        Last updated <t t-esc="latestTracker.updated_at_display"/>
+                    </span>
+                </div>
+                <div t-if="latestTracker.last_error" class="rs-self-order-tracker__error" t-esc="latestTracker.last_error"/>
+            </div>
+        </xpath>
+        <xpath expr="//div[contains(@class, 'o_so_order_body')]" position="before">
+            <t t-set="tracker" t-value="getRoomServiceTracker(order)"/>
+            <div t-if="tracker and tracker.steps" class="rs-self-order-tracker border-top pt-3 mt-2">
+                <div class="rs-self-order-tracker__title">
+                    Order Status <span t-if="tracker.name" t-esc="tracker.name"/>
+                </div>
+                <div t-if="tracker.room" class="rs-self-order-tracker__room">
+                    Room <t t-esc="tracker.room"/>
+                </div>
+                <div class="rs-self-order-tracker__steps">
+                    <t t-foreach="tracker.steps" t-as="step" t-key="step.key">
+                        <div class="rs-self-order-tracker__step" t-att-class="'rs-self-order-tracker__step--' + step.state">
+                            <div class="rs-self-order-tracker__dot">
+                                <i t-if="step.state === 'done'" class="fa fa-check"/>
+                                <i t-elif="step.state === 'cancelled'" class="fa fa-times"/>
+                                <span t-else="" t-esc="step.number"/>
+                            </div>
+                            <div class="rs-self-order-tracker__label" t-esc="step.label"/>
+                        </div>
+                    </t>
+                </div>
+                <div class="rs-self-order-tracker__status">
+                    <span class="rs-self-order-tracker__current" t-esc="tracker.state_label"/>
+                    <span t-if="tracker.updated_at_display" class="rs-self-order-tracker__updated">
+                        Last updated <t t-esc="tracker.updated_at_display"/>
+                    </span>
+                </div>
+                <div t-if="tracker.last_error" class="rs-self-order-tracker__error" t-esc="tracker.last_error"/>
+            </div>
+        </xpath>
+    </t>
+
+    <t t-name="hotel_room_service_qr.CartPageTracker"
+       t-inherit="pos_self_order.CartPage"
+       t-inherit-mode="extension">
+        <xpath expr="//div[contains(@class, 'cart_container')]/h1" position="before">
+            <t t-set="tracker" t-value="getCartRoomServiceTracker()"/>
+            <div t-if="tracker and tracker.steps" class="rs-self-order-tracker rs-self-order-tracker--cart bg-white rounded-4 shadow-sm border border-light p-3 p-sm-4 mb-3">
+                <div class="rs-self-order-tracker__title">Tracker</div>
+                <div class="rs-self-order-tracker__steps">
+                    <t t-foreach="tracker.steps" t-as="step" t-key="step.key">
+                        <div class="rs-self-order-tracker__step" t-att-class="'rs-self-order-tracker__step--' + step.state">
+                            <div class="rs-self-order-tracker__dot">
+                                <i t-if="step.state === 'done'" class="fa fa-check"/>
+                                <i t-elif="step.state === 'cancelled'" class="fa fa-times"/>
+                                <span t-else="" t-esc="step.number"/>
+                            </div>
+                            <div class="rs-self-order-tracker__label" t-esc="step.label"/>
+                        </div>
+                    </t>
+                </div>
+                <div class="rs-self-order-tracker__status">
+                    <span class="rs-self-order-tracker__current" t-esc="tracker.state_label"/>
+                    <span t-if="tracker.updated_at_display" class="rs-self-order-tracker__updated">
+                        Last updated <t t-esc="tracker.updated_at_display"/>
+                    </span>
+                </div>
+                <div t-if="tracker.last_error" class="rs-self-order-tracker__error" t-esc="tracker.last_error"/>
+            </div>
+        </xpath>
+    </t>
+</templates>

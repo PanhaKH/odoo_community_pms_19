@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_kitchen_status_display" model="ir.actions.act_url">
+        <field name="name">Order Status Display</field>
+        <field name="type">ir.actions.act_url</field>
+        <field name="url">/pos/kitchen/status</field>
+        <field name="target">new</field>
+    </record>
+
+    <!--Kitchen screen menu item    -->
+    <menuitem id="pos_kitchen_screen_menu_root"
+              name="Kitchen Display"
+              web_icon="pos_kitchen_screen_odoo,static/description/icon.png"
+              groups="pos_kitchen_screen_odoo.kitchen_cook"
+              sequence="10"/>
+
+    <menuitem id="pos_kitchen_screen_menu_action"
+              name="Kitchen Display"
+              parent="pos_kitchen_screen_menu_root"
+              action="kitchen_screen_action"
+              groups="pos_kitchen_screen_odoo.kitchen_cook"
+              sequence="10"/>
+
+    <menuitem id="pos_kitchen_status_display_menu_action"
+              name="Order Status Display"
+              parent="pos_kitchen_screen_menu_root"
+              action="action_kitchen_status_display"
+              groups="pos_kitchen_screen_odoo.kitchen_cook"
+              sequence="20"/>
+</odoo>

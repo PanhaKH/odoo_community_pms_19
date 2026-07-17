@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+    <t t-name="KitchenCustomDashBoard">
+        <div id="kitchen_screen" class="kitchen o_kitchen_display">
+            <div class="kitchen_shell">
+                <header class="kitchen_stage_bar" aria-label="Kitchen stages">
+                    <button type="button"
+                            t-att-class="state.stages === 'draft' ? 'kitchen_stage is-active stage-cooking' : 'kitchen_stage stage-cooking'"
+                            t-on-click="draft_stage">
+                        <span class="stage_check"><i class="fa fa-square-o"/></span>
+                        <span class="stage_label">Cooking</span>
+                        <span class="stage_count"><t t-esc="state.draft_count || 0"/></span>
+                    </button>
+                    <button type="button"
+                            t-att-class="state.stages === 'waiting' ? 'kitchen_stage is-active stage-ready' : 'kitchen_stage stage-ready'"
+                            t-on-click="waiting_stage">
+                        <span class="stage_check"><i class="fa fa-square-o"/></span>
+                        <span class="stage_label">Ready</span>
+                        <span class="stage_count"><t t-esc="state.waiting_count || 0"/></span>
+                    </button>
+                    <button type="button"
+                            t-att-class="state.stages === 'ready' ? 'kitchen_stage is-active stage-completed' : 'kitchen_stage stage-completed'"
+                            t-on-click="ready_stage">
+                        <span class="stage_check"><i class="fa fa-square-o"/></span>
+                        <span class="stage_label">Completed</span>
+                        <span class="stage_count"><t t-esc="state.ready_count || 0"/></span>
+                    </button>
+                </header>
+
+                <section class="kitchen_board">
+                    <div t-if="state.isLoading" class="kitchen_empty">
+                        Loading kitchen orders...
+                    </div>
+                    <div t-elif="!filteredOrders.length" class="kitchen_empty">
+                        No kitchen orders found.
+                    </div>
+                    <div t-else="" class="kitchen_grid">
+                        <t t-foreach="filteredOrders" t-as="order" t-key="order.id">
+                            <article t-attf-class="kitchen_order kitchen_status_#{order.order_status}">
+                                <div class="order_select">
+                                    <i class="fa fa-square-o"/>
+                                </div>
+                                <div class="order_head">
+                                    <div class="order_title">
+                                        <h2>
+                                            <t t-if="order.order_status === 'draft'">Cooking</t>
+                                            <t t-if="order.order_status === 'waiting'">Ready</t>
+                                            <t t-if="order.order_status === 'ready'">Completed</t>
+                                        </h2>
+                                        <strong><t t-esc="order.name"/></strong>
+                                    </div>
+                                    <div class="order_user" t-if="order.user_id">
+                                        <t t-esc="order.user_id[1]"/>
+                                    </div>
+                                </div>
+
+                                <div class="order_meta">
+                                    <span>Time: <t t-esc="order.hour"/>:<t t-esc="order.formatted_minutes || order.minutes"/></span>
+                                    <span t-if="order.table_id">Table: <t t-esc="order.table_id[1]"/></span>
+                                    <span t-if="order.floor">Floor: <t t-esc="order.floor"/></span>
+                                </div>
+
+                                <div class="order_lines">
+                                    <t t-if="!orderLines(order).length">
+                                        <div class="order_line_empty">No menu items</div>
+                                    </t>
+                                    <t t-foreach="orderLines(order)" t-as="line" t-key="line.id">
+                                        <button type="button"
+                                                t-att-value="line.id"
+                                                t-att-disabled="order.order_status === 'ready'"
+                                                t-att-class="line.order_status === 'ready' ? 'order_line is-done' : 'order_line'"
+                                                t-on-click="accept_order_line">
+                                            <span class="line_qty"><t t-esc="line.qty"/>x</span>
+                                            <span class="line_name"><t t-esc="line.full_product_name"/></span>
+                                            <span class="line_done"><i class="fa fa-check"/></span>
+                                            <small t-if="line.note" class="line_note">
+                                                <i class="fa fa-tag"/> <t t-esc="line.note"/>
+                                            </small>
+                                        </button>
+                                    </t>
+                                </div>
+
+                                <footer class="order_actions">
+                                    <button t-if="order.order_status === 'draft'"
+                                            class="kitchen_btn primary"
+                                            t-att-value="order.id"
+                                            t-on-click="accept_order"
+                                            type="button">
+                                        Ready
+                                    </button>
+                                    <button t-if="order.order_status === 'waiting'"
+                                            class="kitchen_btn primary"
+                                            t-att-value="order.id"
+                                            t-on-click="done_order"
+                                            type="button">
+                                        Done
+                                    </button>
+                                    <button t-if="order.order_status !== 'ready'"
+                                            class="kitchen_btn secondary"
+                                            t-att-value="order.id"
+                                            t-on-click="cancel_order"
+                                            type="button">
+                                        Cancel
+                                    </button>
+                                </footer>
+                            </article>
+                        </t>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </t>
+</templates>

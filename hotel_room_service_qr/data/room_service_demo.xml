@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="room_service_outlet_main" model="hotel.room.service.outlet">
+        <field name="name">Room Service</field>
+        <field name="code">ROOM</field>
+        <field name="sequence">1</field>
+    </record>
+
+    <record id="room_service_category_breakfast" model="hotel.room.service.menu.category">
+        <field name="name">Breakfast</field>
+        <field name="sequence">1</field>
+    </record>
+    <record id="room_service_category_food" model="hotel.room.service.menu.category">
+        <field name="name">Food</field>
+        <field name="sequence">2</field>
+    </record>
+    <record id="room_service_category_beverage" model="hotel.room.service.menu.category">
+        <field name="name">Beverages</field>
+        <field name="sequence">3</field>
+    </record>
+
+    <record id="product_room_service_club_sandwich" model="product.product">
+        <field name="name">Club Sandwich</field>
+        <field name="type">service</field>
+        <field name="sale_ok" eval="True"/>
+        <field name="available_in_pos" eval="True"/>
+        <field name="list_price">8.50</field>
+    </record>
+    <record id="product_room_service_fried_rice" model="product.product">
+        <field name="name">Fried Rice</field>
+        <field name="type">service</field>
+        <field name="sale_ok" eval="True"/>
+        <field name="available_in_pos" eval="True"/>
+        <field name="list_price">7.00</field>
+    </record>
+    <record id="product_room_service_omelette" model="product.product">
+        <field name="name">Breakfast Omelette</field>
+        <field name="type">service</field>
+        <field name="sale_ok" eval="True"/>
+        <field name="available_in_pos" eval="True"/>
+        <field name="list_price">6.00</field>
+    </record>
+    <record id="product_room_service_coffee" model="product.product">
+        <field name="name">Hot Coffee</field>
+        <field name="type">service</field>
+        <field name="sale_ok" eval="True"/>
+        <field name="available_in_pos" eval="True"/>
+        <field name="list_price">3.00</field>
+    </record>
+
+    <record id="menu_item_omelette" model="hotel.room.service.menu.item">
+        <field name="name">Breakfast Omelette</field>
+        <field name="category_id" ref="room_service_category_breakfast"/>
+        <field name="product_id" ref="product_room_service_omelette"/>
+        <field name="outlet_id" ref="room_service_outlet_main"/>
+        <field name="price">6.00</field>
+        <field name="sequence">1</field>
+    </record>
+    <record id="menu_item_club_sandwich" model="hotel.room.service.menu.item">
+        <field name="name">Club Sandwich</field>
+        <field name="category_id" ref="room_service_category_food"/>
+        <field name="product_id" ref="product_room_service_club_sandwich"/>
+        <field name="outlet_id" ref="room_service_outlet_main"/>
+        <field name="price">8.50</field>
+        <field name="sequence">2</field>
+    </record>
+    <record id="menu_item_fried_rice" model="hotel.room.service.menu.item">
+        <field name="name">Fried Rice</field>
+        <field name="category_id" ref="room_service_category_food"/>
+        <field name="product_id" ref="product_room_service_fried_rice"/>
+        <field name="outlet_id" ref="room_service_outlet_main"/>
+        <field name="price">7.00</field>
+        <field name="sequence">3</field>
+    </record>
+    <record id="menu_item_coffee" model="hotel.room.service.menu.item">
+        <field name="name">Hot Coffee</field>
+        <field name="category_id" ref="room_service_category_beverage"/>
+        <field name="product_id" ref="product_room_service_coffee"/>
+        <field name="outlet_id" ref="room_service_outlet_main"/>
+        <field name="price">3.00</field>
+        <field name="sequence">4</field>
+    </record>
+</odoo>

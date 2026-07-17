@@ -1,0 +1,1239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="psql_query_execute.SqlPreviewField">
+        <div class="o_psql_sql_preview">
+            <div class="o_psql_sql_preview_toolbar">
+                <span><i class="fa fa-code me-2"/>Generated SQL Preview</span>
+                <button type="button" class="btn btn-outline-primary btn-sm" t-on-click="copySql">
+                    <i class="fa fa-copy me-1"/>Copy SQL
+                </button>
+            </div>
+            <CodeEditor
+                mode="'sql'"
+                value="previewValue"
+                readonly="true"
+                sessionId="previewSessionId"
+                class="'o_psql_sql_preview_editor'"
+                showLineNumbers="true"
+            />
+        </div>
+    </t>
+
+    <t t-name="psql_query_execute.ParameterFormField">
+        <div class="o_psql_runtime_form sql-report-parameter-dialog">
+            <t t-if="!hasLines">
+                <div class="text-muted">No parameters are required for this report.</div>
+            </t>
+            <t t-foreach="lines" t-as="line" t-key="line.id || line.resId">
+                <div class="o_psql_runtime_row">
+                    <t t-if="isDateRange(line)">
+                        <div class="o_psql_runtime_label">
+                            <span t-esc="line.data.name"/>
+                            <sup t-if="line.data.required" class="text-danger">*</sup>
+                        </div>
+                        <div class="o_psql_runtime_pair o_psql_runtime_date_pair">
+                            <div class="o_psql_date_field">
+                                <span>From Date</span>
+                                <div class="o_psql_modern_date" t-att-class="{'is-open': isDatePickerOpen(line, 'value_date_from')}">
+                                    <button type="button" class="o_psql_date_trigger"
+                                            aria-label="From Date"
+                                            t-att-aria-expanded="isDatePickerOpen(line, 'value_date_from')"
+                                            t-att-disabled="line.data.read_only"
+                                            t-on-click.stop.prevent="() => openDatePicker(line, 'value_date_from')">
+                                        <span t-att-class="{'o_psql_date_value': true, 'is-placeholder': !dateFieldIso(line, 'value_date_from')}">
+                                            <t t-esc="dateFieldDisplay(line, 'value_date_from') || dateInputPlaceholder()"/>
+                                        </span>
+                                        <i class="fa fa-calendar-o" aria-hidden="true"/>
+                                    </button>
+                                    <div t-if="isDatePickerOpen(line, 'value_date_from')" class="o_psql_date_calendar" t-on-click.stop.prevent="">
+                                        <div class="o_psql_calendar_header">
+                                            <button type="button" class="o_psql_month_title" t-on-click.stop.prevent="() => toggleMonthPicker(line, 'value_date_from')">
+                                                <t t-esc="monthTitle(line, 'value_date_from')"/><i class="fa fa-caret-down ms-2"/>
+                                            </button>
+                                            <div class="o_psql_calendar_nav">
+                                                <button t-if="datePickerView(line, 'value_date_from') === 'days'" type="button" aria-label="Previous month" t-on-click.stop.prevent="() => changePickerMonth(line, 'value_date_from', -1)"><i class="fa fa-chevron-left"/></button>
+                                                <button t-if="datePickerView(line, 'value_date_from') === 'days'" type="button" aria-label="Next month" t-on-click.stop.prevent="() => changePickerMonth(line, 'value_date_from', 1)"><i class="fa fa-chevron-right"/></button>
+                                                <button t-if="datePickerView(line, 'value_date_from') === 'months'" type="button" aria-label="Previous year" t-on-click.stop.prevent="() => changePickerYear(line, 'value_date_from', -1)"><i class="fa fa-chevron-left"/></button>
+                                                <button t-if="datePickerView(line, 'value_date_from') === 'months'" type="button" aria-label="Next year" t-on-click.stop.prevent="() => changePickerYear(line, 'value_date_from', 1)"><i class="fa fa-chevron-right"/></button>
+                                            </div>
+                                        </div>
+                                        <t t-if="datePickerView(line, 'value_date_from') === 'months'">
+                                            <div class="o_psql_calendar_year" t-esc="pickerYear(line, 'value_date_from')"/>
+                                            <div class="o_psql_calendar_month_grid">
+                                                <t t-foreach="monthLabels()" t-as="month" t-key="month_index">
+                                                    <button type="button"
+                                                            t-att-class="{'o_psql_calendar_month': true, 'is-selected': month_index === monthDateFor(line, 'value_date_from').getMonth()}"
+                                                            t-on-click.stop.prevent="() => selectPickerMonth(line, 'value_date_from', month_index)">
+                                                        <t t-esc="month"/>
+                                                    </button>
+                                                </t>
+                                            </div>
+                                        </t>
+                                        <t t-else="">
+                                            <div class="o_psql_calendar_weekdays">
+                                                <span t-foreach="weekdayLabels()" t-as="weekday" t-key="weekday" t-esc="weekday"/>
+                                            </div>
+                                            <div class="o_psql_calendar_grid">
+                                                <t t-foreach="calendarDays(line, 'value_date_from')" t-as="day" t-key="day.iso">
+                                                    <button type="button"
+                                                            t-att-class="{'o_psql_calendar_day': true, 'is-outside': day.outside, 'is-selected': day.selected, 'is-today': day.today}"
+                                                            t-on-click.stop.prevent="() => selectDate(line, 'value_date_from', day.iso)">
+                                                        <t t-esc="day.number"/>
+                                                    </button>
+                                                </t>
+                                            </div>
+                                        </t>
+                                        <div class="o_psql_calendar_footer">
+                                            <button type="button" t-on-click.stop.prevent="() => clearDate(line, 'value_date_from')">Clear</button>
+                                            <button type="button" t-on-click.stop.prevent="() => selectToday(line, 'value_date_from')"><i class="fa fa-calendar-o me-2"/>Today</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="o_psql_date_field">
+                                <span>To Date</span>
+                                <div class="o_psql_modern_date" t-att-class="{'is-open': isDatePickerOpen(line, 'value_date_to')}">
+                                    <button type="button" class="o_psql_date_trigger"
+                                            aria-label="To Date"
+                                            t-att-aria-expanded="isDatePickerOpen(line, 'value_date_to')"
+                                            t-att-disabled="line.data.read_only"
+                                            t-on-click.stop.prevent="() => openDatePicker(line, 'value_date_to')">
+                                        <span t-att-class="{'o_psql_date_value': true, 'is-placeholder': !dateFieldIso(line, 'value_date_to')}">
+                                            <t t-esc="dateFieldDisplay(line, 'value_date_to') || dateInputPlaceholder()"/>
+                                        </span>
+                                        <i class="fa fa-calendar-o" aria-hidden="true"/>
+                                    </button>
+                                    <div t-if="isDatePickerOpen(line, 'value_date_to')" class="o_psql_date_calendar o_psql_date_calendar_right" t-on-click.stop.prevent="">
+                                        <div class="o_psql_calendar_header">
+                                            <button type="button" class="o_psql_month_title" t-on-click.stop.prevent="() => toggleMonthPicker(line, 'value_date_to')">
+                                                <t t-esc="monthTitle(line, 'value_date_to')"/><i class="fa fa-caret-down ms-2"/>
+                                            </button>
+                                            <div class="o_psql_calendar_nav">
+                                                <button t-if="datePickerView(line, 'value_date_to') === 'days'" type="button" aria-label="Previous month" t-on-click.stop.prevent="() => changePickerMonth(line, 'value_date_to', -1)"><i class="fa fa-chevron-left"/></button>
+                                                <button t-if="datePickerView(line, 'value_date_to') === 'days'" type="button" aria-label="Next month" t-on-click.stop.prevent="() => changePickerMonth(line, 'value_date_to', 1)"><i class="fa fa-chevron-right"/></button>
+                                                <button t-if="datePickerView(line, 'value_date_to') === 'months'" type="button" aria-label="Previous year" t-on-click.stop.prevent="() => changePickerYear(line, 'value_date_to', -1)"><i class="fa fa-chevron-left"/></button>
+                                                <button t-if="datePickerView(line, 'value_date_to') === 'months'" type="button" aria-label="Next year" t-on-click.stop.prevent="() => changePickerYear(line, 'value_date_to', 1)"><i class="fa fa-chevron-right"/></button>
+                                            </div>
+                                        </div>
+                                        <t t-if="datePickerView(line, 'value_date_to') === 'months'">
+                                            <div class="o_psql_calendar_year" t-esc="pickerYear(line, 'value_date_to')"/>
+                                            <div class="o_psql_calendar_month_grid">
+                                                <t t-foreach="monthLabels()" t-as="month" t-key="month_index">
+                                                    <button type="button"
+                                                            t-att-class="{'o_psql_calendar_month': true, 'is-selected': month_index === monthDateFor(line, 'value_date_to').getMonth()}"
+                                                            t-on-click.stop.prevent="() => selectPickerMonth(line, 'value_date_to', month_index)">
+                                                        <t t-esc="month"/>
+                                                    </button>
+                                                </t>
+                                            </div>
+                                        </t>
+                                        <t t-else="">
+                                            <div class="o_psql_calendar_weekdays">
+                                                <span t-foreach="weekdayLabels()" t-as="weekday" t-key="weekday" t-esc="weekday"/>
+                                            </div>
+                                            <div class="o_psql_calendar_grid">
+                                                <t t-foreach="calendarDays(line, 'value_date_to')" t-as="day" t-key="day.iso">
+                                                    <button type="button"
+                                                            t-att-class="{'o_psql_calendar_day': true, 'is-outside': day.outside, 'is-selected': day.selected, 'is-today': day.today}"
+                                                            t-on-click.stop.prevent="() => selectDate(line, 'value_date_to', day.iso)">
+                                                        <t t-esc="day.number"/>
+                                                    </button>
+                                                </t>
+                                            </div>
+                                        </t>
+                                        <div class="o_psql_calendar_footer">
+                                            <button type="button" t-on-click.stop.prevent="() => clearDate(line, 'value_date_to')">Clear</button>
+                                            <button type="button" t-on-click.stop.prevent="() => selectToday(line, 'value_date_to')"><i class="fa fa-calendar-o me-2"/>Today</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                    <t t-elif="isSelection(line)">
+                        <label class="o_psql_runtime_label" t-att-for="'psql-param-' + line.id">
+                            <span t-esc="line.data.name"/><sup t-if="line.data.required" class="text-danger">*</sup>
+                        </label>
+                        <select class="form-select o_psql_runtime_control"
+                                t-att-id="'psql-param-' + line.id"
+                                t-att-disabled="line.data.read_only || !hasOptions(line)"
+                                t-on-change="(ev) => this.updateSelection(line, ev)">
+                            <option t-if="hasOptions(line)" value="">Select...</option>
+                            <option t-else="" value="">No records found</option>
+                            <t t-foreach="this.optionsFor(line)" t-as="option" t-key="option.id">
+                                <option t-att-value="option.id" t-att-selected="option.id === selectionId(line)">
+                                    <t t-esc="option.label"/>
+                                </option>
+                            </t>
+                        </select>
+                    </t>
+                    <t t-elif="isMultiSelection(line)">
+                        <label class="o_psql_runtime_label" t-att-for="'psql-param-' + line.id">
+                            <span t-esc="line.data.name"/><sup t-if="line.data.required" class="text-danger">*</sup>
+                        </label>
+                        <select multiple="multiple" class="form-select o_psql_runtime_control o_psql_runtime_multi"
+                                t-att-id="'psql-param-' + line.id"
+                                t-att-disabled="line.data.read_only || !hasOptions(line)"
+                                t-on-change="(ev) => this.updateMultiSelection(line, ev)">
+                            <t t-set="selectedIds" t-value="multiSelectionIds(line)"/>
+                            <option t-if="!hasOptions(line)" value="">No records found</option>
+                            <t t-foreach="this.optionsFor(line)" t-as="option" t-key="option.id">
+                                <option t-att-value="option.id" t-att-selected="selectedIds.includes(option.id)">
+                                    <t t-esc="option.label"/>
+                                </option>
+                            </t>
+                        </select>
+                    </t>
+                    <t t-elif="isText(line)">
+                        <label class="o_psql_runtime_label" t-att-for="'psql-param-' + line.id">
+                            <span t-esc="line.data.name"/><sup t-if="line.data.required" class="text-danger">*</sup>
+                        </label>
+                        <input type="text" class="form-control o_psql_runtime_control"
+                               t-att-id="'psql-param-' + line.id"
+                               t-att-value="line.data.value_text || ''"
+                               t-att-disabled="line.data.read_only"
+                               t-on-input="(ev) => updateLine(line, {apply_parameter: true, value_text: ev.target.value})"/>
+                    </t>
+                    <t t-elif="isBoolean(line)">
+                        <label class="o_psql_runtime_label">
+                            <span t-esc="line.data.name"/><sup t-if="line.data.required" class="text-danger">*</sup>
+                        </label>
+                        <label class="o_psql_runtime_check">
+                            <input type="checkbox"
+                                   t-att-checked="line.data.value_boolean"
+                                   t-att-disabled="line.data.read_only"
+                                   t-on-change="(ev) => updateLine(line, {apply_parameter: true, value_boolean: ev.target.checked})"/>
+                            <span>Yes</span>
+                        </label>
+                    </t>
+                    <t t-elif="isDate(line)">
+                        <label class="o_psql_runtime_label" t-att-for="'psql-param-' + line.id">
+                            <span t-esc="line.data.name"/><sup t-if="line.data.required" class="text-danger">*</sup>
+                        </label>
+                        <div class="o_psql_modern_date o_psql_runtime_control" t-att-class="{'is-open': isDatePickerOpen(line, 'value_date')}">
+                            <button type="button" class="o_psql_date_trigger"
+                                    t-att-id="'psql-param-' + line.id"
+                                    t-att-aria-label="line.data.name"
+                                    t-att-aria-expanded="isDatePickerOpen(line, 'value_date')"
+                                    t-att-disabled="line.data.read_only"
+                                    t-on-click.stop.prevent="() => openDatePicker(line, 'value_date')">
+                                <span t-att-class="{'o_psql_date_value': true, 'is-placeholder': !dateFieldIso(line, 'value_date')}">
+                                    <t t-esc="dateFieldDisplay(line, 'value_date') || dateInputPlaceholder()"/>
+                                </span>
+                                <i class="fa fa-calendar-o" aria-hidden="true"/>
+                            </button>
+                            <div t-if="isDatePickerOpen(line, 'value_date')" class="o_psql_date_calendar" t-on-click.stop.prevent="">
+                                <div class="o_psql_calendar_header">
+                                    <button type="button" class="o_psql_month_title" t-on-click.stop.prevent="() => toggleMonthPicker(line, 'value_date')">
+                                        <t t-esc="monthTitle(line, 'value_date')"/><i class="fa fa-caret-down ms-2"/>
+                                    </button>
+                                    <div class="o_psql_calendar_nav">
+                                        <button t-if="datePickerView(line, 'value_date') === 'days'" type="button" aria-label="Previous month" t-on-click.stop.prevent="() => changePickerMonth(line, 'value_date', -1)"><i class="fa fa-chevron-left"/></button>
+                                        <button t-if="datePickerView(line, 'value_date') === 'days'" type="button" aria-label="Next month" t-on-click.stop.prevent="() => changePickerMonth(line, 'value_date', 1)"><i class="fa fa-chevron-right"/></button>
+                                        <button t-if="datePickerView(line, 'value_date') === 'months'" type="button" aria-label="Previous year" t-on-click.stop.prevent="() => changePickerYear(line, 'value_date', -1)"><i class="fa fa-chevron-left"/></button>
+                                        <button t-if="datePickerView(line, 'value_date') === 'months'" type="button" aria-label="Next year" t-on-click.stop.prevent="() => changePickerYear(line, 'value_date', 1)"><i class="fa fa-chevron-right"/></button>
+                                    </div>
+                                </div>
+                                <t t-if="datePickerView(line, 'value_date') === 'months'">
+                                    <div class="o_psql_calendar_year" t-esc="pickerYear(line, 'value_date')"/>
+                                    <div class="o_psql_calendar_month_grid">
+                                        <t t-foreach="monthLabels()" t-as="month" t-key="month_index">
+                                            <button type="button"
+                                                    t-att-class="{'o_psql_calendar_month': true, 'is-selected': month_index === monthDateFor(line, 'value_date').getMonth()}"
+                                                    t-on-click.stop.prevent="() => selectPickerMonth(line, 'value_date', month_index)">
+                                                <t t-esc="month"/>
+                                            </button>
+                                        </t>
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <div class="o_psql_calendar_weekdays">
+                                        <span t-foreach="weekdayLabels()" t-as="weekday" t-key="weekday" t-esc="weekday"/>
+                                    </div>
+                                    <div class="o_psql_calendar_grid">
+                                        <t t-foreach="calendarDays(line, 'value_date')" t-as="day" t-key="day.iso">
+                                            <button type="button"
+                                                    t-att-class="{'o_psql_calendar_day': true, 'is-outside': day.outside, 'is-selected': day.selected, 'is-today': day.today}"
+                                                    t-on-click.stop.prevent="() => selectDate(line, 'value_date', day.iso)">
+                                                <t t-esc="day.number"/>
+                                            </button>
+                                        </t>
+                                    </div>
+                                </t>
+                                <div class="o_psql_calendar_footer">
+                                    <button type="button" t-on-click.stop.prevent="() => clearDate(line, 'value_date')">Clear</button>
+                                    <button type="button" t-on-click.stop.prevent="() => selectToday(line, 'value_date')"><i class="fa fa-calendar-o me-2"/>Today</button>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                    <t t-elif="isDateTime(line)">
+                        <label class="o_psql_runtime_label" t-att-for="'psql-param-' + line.id">
+                            <span t-esc="line.data.name"/><sup t-if="line.data.required" class="text-danger">*</sup>
+                        </label>
+                        <input type="datetime-local" class="form-control o_psql_runtime_control o_psql_date_input"
+                               t-att-id="'psql-param-' + line.id"
+                               t-att-aria-label="line.data.name"
+                               t-att-value="normalizeDateTime(line.data.value_datetime)"
+                               t-att-disabled="line.data.read_only"
+                               t-on-change="(ev) => updateLine(line, {apply_parameter: true, value_datetime: ev.target.value})"/>
+                    </t>
+                    <t t-elif="isInteger(line)">
+                        <label class="o_psql_runtime_label" t-att-for="'psql-param-' + line.id">
+                            <span t-esc="line.data.name"/><sup t-if="line.data.required" class="text-danger">*</sup>
+                        </label>
+                        <input type="number" step="1" class="form-control o_psql_runtime_control"
+                               t-att-id="'psql-param-' + line.id"
+                               t-att-value="line.data.value_integer"
+                               t-att-disabled="line.data.read_only"
+                               t-on-input="(ev) => updateLine(line, {apply_parameter: true, value_integer: Number(ev.target.value || 0)})"/>
+                    </t>
+                    <t t-elif="isDecimal(line)">
+                        <label class="o_psql_runtime_label" t-att-for="'psql-param-' + line.id">
+                            <span t-esc="line.data.name"/><sup t-if="line.data.required" class="text-danger">*</sup>
+                        </label>
+                        <input type="number" step="any" class="form-control o_psql_runtime_control"
+                               t-att-id="'psql-param-' + line.id"
+                               t-att-value="line.data.value_decimal"
+                               t-att-disabled="line.data.read_only"
+                               t-on-input="(ev) => updateLine(line, {apply_parameter: true, value_decimal: Number(ev.target.value || 0)})"/>
+                    </t>
+                    <t t-elif="isNumberRange(line)">
+                        <div class="o_psql_runtime_label">
+                            <span t-esc="line.data.name"/><sup t-if="line.data.required" class="text-danger">*</sup>
+                        </div>
+                        <div class="o_psql_runtime_pair">
+                            <label>
+                                <span>Minimum</span>
+                                <input type="number" step="any" class="form-control"
+                                       t-att-value="line.data.value_number_from"
+                                       t-att-disabled="line.data.read_only"
+                                       t-on-input="(ev) => updateLine(line, {apply_parameter: true, value_number_from: Number(ev.target.value || 0)})"/>
+                            </label>
+                            <label>
+                                <span>Maximum</span>
+                                <input type="number" step="any" class="form-control"
+                                       t-att-value="line.data.value_number_to"
+                                       t-att-disabled="line.data.read_only"
+                                       t-on-input="(ev) => updateLine(line, {apply_parameter: true, value_number_to: Number(ev.target.value || 0)})"/>
+                            </label>
+                        </div>
+                    </t>
+                    <t t-elif="isMany2One(line)">
+                        <label class="o_psql_runtime_label" t-att-for="'psql-param-' + line.id">
+                            <span t-esc="line.data.name"/><sup t-if="line.data.required" class="text-danger">*</sup>
+                        </label>
+                        <select class="form-select o_psql_runtime_control"
+                                t-att-id="'psql-param-' + line.id"
+                                t-att-disabled="line.data.read_only || !hasModelOptions(line)"
+                                t-on-change="(ev) => this.updateMany2One(line, ev)">
+                            <option t-if="hasModelOptions(line)" value="">Select...</option>
+                            <option t-else="" value="">No records found</option>
+                            <t t-foreach="this.modelOptionsFor(line)" t-as="option" t-key="option.id">
+                                <option t-att-value="option.id" t-att-selected="option.id === many2oneId(line)">
+                                    <t t-esc="option.label"/>
+                                </option>
+                            </t>
+                        </select>
+                    </t>
+                </div>
+            </t>
+        </div>
+    </t>
+
+    <t t-name="psql_query_execute.InteractiveWorkspace">
+        <div t-att-class="{'o_psql_workspace': true, 'sql_report_workspace': true, 'o_psql_fullscreen': state.fullscreen}">
+            <div class="o_psql_toolbar">
+                <div class="o_psql_toolbar_primary">
+                    <button t-if="!isInteractiveMode" type="button" class="btn btn-outline-secondary" t-on-click="newReport">
+                        <i class="fa fa-plus me-1"/>New
+                    </button>
+                    <button t-if="!isInteractiveMode" type="button" class="btn btn-outline-primary" t-on-click="saveReport" t-att-disabled="state.loading">
+                        <i class="fa fa-floppy-o me-1"/>Save
+                    </button>
+                    <button type="button" class="btn btn-primary" t-on-click="runQuery" t-att-disabled="state.loading">
+                        <i t-att-class="state.loading ? 'fa fa-spinner fa-spin me-1' : 'fa fa-play me-1'"/>
+                        <t t-if="state.loading">Running...</t><t t-else="">Run Query</t>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" t-on-click="clearWorkspace" t-att-disabled="state.loading">
+                        <i class="fa fa-eraser me-1"/>Clear
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" t-on-click="openWizard" t-att-disabled="state.loading">
+                        <i class="fa fa-magic me-1"/>SQL Wizard
+                    </button>
+                </div>
+                <div class="o_psql_toolbar_secondary">
+                    <button t-if="!isInteractiveMode" type="button" class="btn btn-outline-success" t-on-click="() => this.exportResult('xlsx')"
+                            t-att-disabled="!state.result.columns.length || state.loading">
+                        <i class="fa fa-file-excel-o me-1"/>XLSX
+                    </button>
+                    <button t-if="!isInteractiveMode" type="button" class="btn btn-outline-success" t-on-click="() => this.exportResult('csv')"
+                            t-att-disabled="!state.result.columns.length || state.loading">
+                        <i class="fa fa-file-text-o me-1"/>CSV
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" t-on-click="toggleFullscreen">
+                        <i t-att-class="state.fullscreen ? 'fa fa-compress me-1' : 'fa fa-expand me-1'"/>
+                        <t t-if="state.fullscreen">Exit Full Screen</t><t t-else="">Full Screen</t>
+                    </button>
+                </div>
+            </div>
+
+            <div class="o_psql_statusbar">
+                <span t-att-class="'o_psql_status o_psql_status_' + state.status">
+                    <i t-att-class="state.status === 'error' ? 'fa fa-times-circle' : (state.status === 'success' ? 'fa fa-check-circle' : 'fa fa-info-circle')"/>
+                    <t t-esc="state.status === 'never' ? 'Not Executed' : state.status"/>
+                </span>
+                <span><strong><t t-esc="state.rowCount"/></strong> row(s)</span>
+                <span><strong><t t-esc="formattedDuration"/></strong> seconds</span>
+                <span t-if="state.executedAt">Last run: <t t-esc="state.executedAt"/></span>
+                <span class="o_psql_shortcut_hint">Ctrl + Enter to run</span>
+            </div>
+
+            <div t-if="state.error" class="alert alert-danger o_psql_message" role="alert">
+                <i class="fa fa-exclamation-triangle me-2"/><t t-esc="state.error"/>
+            </div>
+            <div class="o_psql_main">
+                <section class="o_psql_panel o_psql_editor_panel">
+                    <div class="o_psql_panel_header">
+                        <div><i class="fa fa-code me-2"/>SQL Editor</div>
+                    </div>
+                    <div class="o_psql_editor_host" t-ref="editorHost" t-on-keydown="onEditorKeydown">
+                        <CodeEditor
+                            mode="'sql'"
+                            value="state.sql"
+                            sessionId="sessionId"
+                            onChange.bind="onEditorChange"
+                            class="'o_psql_ace_editor'"
+                            showLineNumbers="true"
+                        />
+                    </div>
+                </section>
+
+                <aside class="o_psql_panel o_psql_browser">
+                    <div class="o_psql_panel_header">
+                        <div><i class="fa fa-sitemap me-2"/>Database Objects</div>
+                    </div>
+                    <div class="o_psql_browser_search">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="fa fa-search"/></span>
+                            <input class="form-control" type="search" placeholder="Table or column..." t-model="state.objectSearch"
+                                   t-on-keydown="event => event.key === 'Enter' &amp;&amp; this.loadDatabaseObjects()"/>
+                            <button type="button" class="btn btn-outline-secondary" t-on-click="loadDatabaseObjects">Find</button>
+                        </div>
+                    </div>
+                    <div class="o_psql_object_tree">
+                        <div t-if="!state.schemas.length" class="text-muted p-3 text-center">No matching database objects.</div>
+                        <div t-foreach="state.schemas" t-as="schema" t-key="schema.name" class="o_psql_schema">
+                            <div class="o_psql_schema_name"><i class="fa fa-folder-open-o me-2"/><t t-esc="schema.name"/></div>
+                            <div t-foreach="schema.tables" t-as="table" t-key="table.name" class="o_psql_table_node">
+                                <div class="o_psql_table_name" t-on-click="() => this.toggleTable(schema.name, table.name)"
+                                     t-on-dblclick="() => this.insertTable(schema.name, table.name)">
+                                    <i t-att-class="isExpanded(schema.name, table.name) ? 'fa fa-caret-down me-1' : 'fa fa-caret-right me-1'"/>
+                                    <i t-att-class="table.type === 'view' ? 'fa fa-eye me-1' : 'fa fa-table me-1'"/>
+                                    <span t-esc="table.name"/>
+                                    <button type="button" class="btn btn-link btn-sm" title="Generate SELECT"
+                                            t-on-click.stop="() => this.generateSelect(schema.name, table.name)">
+                                        <i class="fa fa-magic"/>
+                                    </button>
+                                </div>
+                                <div t-if="isExpanded(schema.name, table.name)" class="o_psql_columns">
+                                    <div t-foreach="table.columns" t-as="column" t-key="column.name" class="o_psql_column"
+                                         t-on-dblclick="() => this.insertColumn(column.name)">
+                                        <i class="fa fa-columns me-1"/>
+                                        <span t-esc="column.name"/><small t-esc="column.type"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_psql_browser_help">
+                        <i class="fa fa-info-circle me-1"/>Double-click a table or column to insert it.
+                    </div>
+                </aside>
+            </div>
+
+        </div>
+    </t>
+
+    <t t-name="psql_query_execute.ResultDialog">
+        <Dialog title="props.title" size="'fullscreen'"
+                contentClass="'o_psql_result_dialog_content'"
+                bodyClass="'o_psql_result_dialog_body'" withBodyPadding="false">
+            <div class="o_psql_result_dialog">
+                <div class="o_psql_result_dialog_toolbar">
+                    <div class="input-group input-group-sm o_psql_result_search">
+                        <span class="input-group-text"><i class="fa fa-search"/></span>
+                        <input class="form-control" type="search" placeholder="Search results..."
+                               t-model="state.search" t-on-input="() => this.state.page = 1"/>
+                    </div>
+                    <span class="text-muted ms-auto">
+                        <strong><t t-esc="props.result.rows.length"/></strong> row(s)
+                    </span>
+                </div>
+
+                <div t-if="props.result.limited" class="alert alert-warning m-2 mb-0" role="alert">
+                    <i class="fa fa-warning me-2"/>Only the first 5,000 rows are displayed.
+                </div>
+
+                <div t-if="!props.result.columns.length" class="o_psql_empty_state o_psql_dialog_empty">
+                    <i class="fa fa-database fa-2x"/>
+                    <strong>No records returned</strong>
+                    <span>The query executed successfully but returned no tabular rows.</span>
+                </div>
+                <div t-else="" class="o_psql_table_scroll o_psql_dialog_table_scroll">
+                    <table class="table table-sm table-hover o_psql_result_table">
+                        <thead>
+                            <tr>
+                                <th class="o_psql_row_number">#</th>
+                                <th t-foreach="props.result.columns" t-as="column" t-key="column_index"
+                                    t-on-click="() => this.sortBy(column_index)" class="o_psql_sortable">
+                                    <span t-esc="column"/>
+                                    <i t-if="state.sortColumn === column_index"
+                                       t-att-class="state.sortDirection === 'asc' ? 'fa fa-sort-asc ms-1' : 'fa fa-sort-desc ms-1'"/>
+                                    <i t-else="" class="fa fa-sort text-muted ms-1"/>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="visibleRows" t-as="row" t-key="row.sourceIndex">
+                                <td class="o_psql_row_number"><t t-esc="row.sourceIndex + 1"/></td>
+                                <td t-foreach="row.values" t-as="value" t-key="value_index"
+                                    t-att-class="value === null || value === undefined ? 'o_psql_null' : ''"
+                                    t-on-dblclick="() => this.copyCell(value)" title="Double-click to copy">
+                                    <t t-esc="formatValue(value)"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="o_psql_pagination">
+                    <span>Showing <strong><t t-esc="visibleRows.length"/></strong> of <strong><t t-esc="filteredRows.length"/></strong> rows</span>
+                    <div t-if="!state.showAll &amp;&amp; totalPages &gt; 1" class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary" t-on-click="previousPage" t-att-disabled="state.page &lt;= 1">
+                            <i class="fa fa-chevron-left"/>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary disabled">
+                            Page <t t-esc="state.page"/> / <t t-esc="totalPages"/>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" t-on-click="nextPage" t-att-disabled="state.page &gt;= totalPages">
+                            <i class="fa fa-chevron-right"/>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <t t-set-slot="footer">
+                <button type="button" class="btn btn-primary" t-on-click="showAllRows"
+                        t-att-disabled="state.showAll || visibleRows.length &gt;= filteredRows.length">
+                    <i class="fa fa-list me-1"/>Show All Rows
+                </button>
+                <button type="button" class="btn btn-success" t-on-click="() => this.exportResult('xlsx')"
+                        t-att-disabled="!props.result.columns.length">
+                    <i class="fa fa-file-excel-o me-1"/>Export XLSX
+                </button>
+                <button type="button" class="btn btn-outline-success" t-on-click="() => this.exportResult('csv')"
+                        t-att-disabled="!props.result.columns.length">
+                    <i class="fa fa-file-text-o me-1"/>Export CSV
+                </button>
+                <button type="button" class="btn btn-outline-primary" t-on-click="printPdf"
+                        t-att-disabled="!props.result.columns.length">
+                    <i class="fa fa-print me-1"/>Print PDF
+                </button>
+                <button type="button" class="btn btn-secondary ms-auto" t-on-click="() => props.close()">Close</button>
+            </t>
+        </Dialog>
+    </t>
+
+    <t t-name="psql_query_execute.SaveAsReportDialog">
+        <Dialog title.translate="Save as Report" size="'md'">
+            <div class="o_psql_save_report_dialog">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Report Name</label>
+                    <input type="text" class="form-control" placeholder="Example: Current Database Information"
+                           t-model="state.name" t-on-keydown="event => event.key === 'Enter' &amp;&amp; this.save()"
+                           t-att-disabled="state.saving"/>
+                </div>
+                <div>
+                    <label class="form-label fw-semibold">Description <span class="text-muted fw-normal">(optional)</span></label>
+                    <textarea class="form-control" rows="4" placeholder="Purpose and expected output of this report..."
+                              t-model="state.description" t-att-disabled="state.saving"/>
+                </div>
+                <div t-if="state.error" class="alert alert-danger mt-3 mb-0">
+                    <i class="fa fa-exclamation-triangle me-2"/><t t-esc="state.error"/>
+                </div>
+            </div>
+            <t t-set-slot="footer">
+                <button type="button" class="btn btn-primary" t-on-click="save" t-att-disabled="state.saving">
+                    <i t-att-class="state.saving ? 'fa fa-spinner fa-spin me-1' : 'fa fa-floppy-o me-1'"/>
+                    <t t-if="state.saving">Saving...</t><t t-else="">Save Report</t>
+                </button>
+                <button type="button" class="btn btn-secondary" t-on-click="() => props.close()" t-att-disabled="state.saving">Cancel</button>
+            </t>
+        </Dialog>
+    </t>
+
+    <t t-name="psql_query_execute.SqlWizardUi">
+        <div class="o_psql_wizard_container">
+            <!-- Wizard Body Content -->
+            <div class="o_psql_wizard_body">
+                
+                <!-- Columns always remains visible above the section tabs. -->
+                <div class="o_psql_columns_section o_psql_dual_panel_layout">
+                    <h5 class="fw-semibold mb-1">Which fields do you want in your query?</h5>
+                    <p class="text-muted small mb-3">You can choose fields from more than one table.</p>
+
+                    <div class="o_psql_table_dropdown_container mb-3 d-flex align-items-center gap-2" style="max-width: 500px;">
+                        <label class="form-label mb-0 fw-semibold">Table:</label>
+                        <div class="position-relative flex-grow-1">
+                            <input type="text" class="form-control form-control-sm mb-1" placeholder="Search tables..." t-model="state.searchQueryTable"/>
+                            <select class="form-select form-select-sm" t-on-change="onColumnsTableChange">
+                                <option value="">-- Choose Table --</option>
+                                <t t-foreach="filteredTableOptions" t-as="table" t-key="table.id">
+                                    <option t-att-value="table.id" t-att-selected="table.id === state.selectedTableId">
+                                        <t t-esc="this.formatTableLabel(table)"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="o_psql_panels_container">
+                        <!-- Left Panel: Available Fields -->
+                        <div class="o_psql_panel_column">
+                            <div class="o_psql_panel_header">
+                                <span>Available Fields</span>
+                                <span class="badge rounded-pill bg-secondary text-white" t-esc="filteredAvailableFields.length"/>
+                            </div>
+                            <div class="o_psql_panel_search_bar">
+                                <input type="text" class="form-control form-control-sm" placeholder="Filter columns..." t-model="state.searchQueryAvailable"/>
+                            </div>
+                            <div class="o_psql_panel_list_wrapper">
+                                <table class="table table-sm table-hover mb-0" style="font-size: 12px;">
+                                    <thead>
+                                        <tr class="bg-light">
+                                            <th style="width: 30px;"></th>
+                                            <th>Column</th>
+                                            <th>Type</th>
+                                            <th>Info</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="filteredAvailableFields" t-as="field" t-key="field.id" 
+                                            t-att-class="{'o_psql_row_clickable': true, 'active': state.selectedAvailableFieldIds.has(field.id)}"
+                                            t-on-click="() => this.toggleAvailableFieldSelection(field.id)">
+                                            <td>
+                                                <input type="checkbox" t-att-checked="state.selectedAvailableFieldIds.has(field.id)" t-on-click.stop="() => this.toggleAvailableFieldSelection(field.id)"/>
+                                            </td>
+                                            <td>
+                                                <strong t-esc="field.column_name"/><br/>
+                                                <small class="text-muted" t-esc="field.description || ''"/>
+                                            </td>
+                                            <td class="text-muted" t-esc="field.data_type"/>
+                                            <td>
+                                                <span t-if="field.primary_key" class="o_psql_badge_pk me-1">PK</span>
+                                                <span t-if="field.foreign_key" class="o_psql_badge_fk" t-att-title="field.foreign_key">FK</span>
+                                            </td>
+                                        </tr>
+                                        <tr t-if="!filteredAvailableFields.length">
+                                            <td colspan="4" class="text-center text-muted p-3">No available columns.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Middle Panel: Actions -->
+                        <div class="o_psql_panel_actions">
+                            <button type="button" class="btn btn-outline-primary btn-sm w-100" t-on-click="addFields" t-att-disabled="!state.selectedAvailableFieldIds.size">
+                                Add <span class="o_psql_action_symbol">&gt;</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm w-100" t-on-click="addAllFields" t-att-disabled="!filteredAvailableFields.length">
+                                Add All <span class="o_psql_action_symbol">&gt;&gt;</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm w-100" t-on-click="() => this.removeField(state.selectedRightFieldId)" t-att-disabled="!state.selectedRightFieldId">
+                                <span class="o_psql_action_symbol">&lt;</span> Remove
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm w-100" t-on-click="removeAllFields" t-att-disabled="!state.selectedFields.length">
+                                <span class="o_psql_action_symbol">&lt;&lt;</span> Remove All
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" t-on-click="editFormula" t-att-disabled="!state.selectedRightFieldId">
+                                Formula
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" t-on-click="toggleGroupByAction" t-att-disabled="!state.selectedRightFieldId">
+                                Group By
+                            </button>
+                        </div>
+
+                        <!-- Right Panel: Selected Fields -->
+                        <div class="o_psql_panel_column">
+                            <div class="o_psql_panel_header">
+                                <span>Selected Fields</span>
+                                <span class="badge rounded-pill bg-primary text-white" t-esc="state.selectedFields.length"/>
+                            </div>
+                            <div class="o_psql_panel_list_wrapper">
+                                <table class="table table-sm table-hover mb-0" style="font-size: 12px;">
+                                    <thead>
+                                        <tr class="bg-light">
+                                            <th>Field</th>
+                                            <th>Alias</th>
+                                            <th>Aggregate</th>
+                                            <th class="text-center">Group</th>
+                                            <th>Sort</th>
+                                            <th>Order</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="state.selectedFields" t-as="field" t-key="field.id"
+                                            t-att-class="{'o_psql_row_clickable': true, 'active': state.selectedRightFieldId === field.id}"
+                                            draggable="true"
+                                            t-on-dragstart="() => this.startFieldDrag(field.id)"
+                                            t-on-dragover="event => event.preventDefault()"
+                                            t-on-drop="() => this.dropField(field.id)"
+                                            t-on-click="() => this.selectRightField(field.id)">
+                                            <td>
+                                                <span class="text-primary font-monospace" t-esc="field.source_alias + '.' + field.column_name"/><br/>
+                                                <small class="text-muted" t-esc="field.table_name"/>
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm p-1" style="height: 24px;"
+                                                       t-att-value="field.column_alias || ''"
+                                                       t-on-change="event => this.updateSelectedField(field.id, {column_alias: event.target.value})"/>
+                                            </td>
+                                            <td>
+                                                <select class="form-select form-select-sm p-0" style="height: 24px;"
+                                                        t-on-change="event => this.updateSelectedField(field.id, {aggregate: event.target.value})">
+                                                    <option value="none" t-att-selected="field.aggregate === 'none'">None</option>
+                                                    <option value="count" t-att-selected="field.aggregate === 'count'">COUNT</option>
+                                                    <option value="count_distinct" t-att-selected="field.aggregate === 'count_distinct'">COUNT DISTINCT</option>
+                                                    <option value="sum" t-att-selected="field.aggregate === 'sum'">SUM</option>
+                                                    <option value="avg" t-att-selected="field.aggregate === 'avg'">AVG</option>
+                                                    <option value="min" t-att-selected="field.aggregate === 'min'">MIN</option>
+                                                    <option value="max" t-att-selected="field.aggregate === 'max'">MAX</option>
+                                                </select>
+                                            </td>
+                                            <td class="text-center">
+                                                <input type="checkbox" t-att-checked="field.group_by"
+                                                       t-on-change="event => this.updateSelectedField(field.id, {group_by: event.target.checked})"/>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <select class="form-select form-select-sm p-0" style="height: 24px; font-size: 11px;"
+                                                            t-on-change="event => this.updateSelectedField(field.id, {sort_direction: event.target.value})">
+                                                        <option value="none" t-att-selected="field.sort_direction === 'none'">None</option>
+                                                        <option value="asc" t-att-selected="field.sort_direction === 'asc'">ASC</option>
+                                                        <option value="desc" t-att-selected="field.sort_direction === 'desc'">DESC</option>
+                                                    </select>
+                                                    <select t-if="field.sort_direction &amp;&amp; field.sort_direction !== 'none'" 
+                                                            class="form-select form-select-sm p-0" style="height: 24px; font-size: 11px;"
+                                                            t-on-change="event => this.updateSelectedField(field.id, {sort_nulls: event.target.value})">
+                                                        <option value="first" t-att-selected="field.sort_nulls === 'first'">FIRST</option>
+                                                        <option value="last" t-att-selected="field.sort_nulls === 'last'">LAST</option>
+                                                    </select>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="o_psql_sort_actions_cell">
+                                                    <button type="button" class="btn btn-link o_psql_btn_sort_arrow" title="Move Up" t-on-click.stop="() => this.moveFieldUp(field_index)"><i class="fa fa-arrow-up"/></button>
+                                                    <button type="button" class="btn btn-link o_psql_btn_sort_arrow" title="Move Down" t-on-click.stop="() => this.moveFieldDown(field_index)"><i class="fa fa-arrow-down"/></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr t-if="!state.selectedFields.length">
+                                            <td colspan="6" class="text-center text-muted p-4 bg-light">No selected columns. Select from available columns and add.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sticky section navigation; numbering follows the original wizard. -->
+                <div class="nav nav-tabs" role="tablist" aria-label="SQL Wizard sections">
+                    <button type="button" role="tab" t-att-class="{'nav-link': true, 'active': state.step === 2}" t-att-aria-selected="state.step === 2" t-on-click="() => this.setStep(2)">JOIN</button>
+                    <button type="button" role="tab" t-att-class="{'nav-link': true, 'active': state.step === 3}" t-att-aria-selected="state.step === 3" t-on-click="() => this.setStep(3)">WHERE</button>
+                    <button type="button" role="tab" t-att-class="{'nav-link': true, 'active': state.step === 4}" t-att-aria-selected="state.step === 4" t-on-click="() => this.setStep(4)">GROUP BY</button>
+                    <button type="button" role="tab" t-att-class="{'nav-link': true, 'active': state.step === 5}" t-att-aria-selected="state.step === 5" t-on-click="() => this.setStep(5)">HAVING</button>
+                    <button type="button" role="tab" t-att-class="{'nav-link': true, 'active': state.step === 6}" t-att-aria-selected="state.step === 6" t-on-click="() => this.setStep(6)">ORDER BY</button>
+                    <button type="button" role="tab" t-att-class="{'nav-link': true, 'active': state.step === 7}" t-att-aria-selected="state.step === 7" t-on-click="() => this.setStep(7)">UNION</button>
+                    <button type="button" role="tab" t-att-class="{'nav-link': true, 'active': state.step === 8}" t-att-aria-selected="state.step === 8" t-on-click="() => this.setStep(8)">SQL Preview</button>
+                </div>
+
+                <!-- STEP 2: JOIN CONFIG -->
+                <div t-if="state.step === 2" class="o_psql_wizard_step_content o_psql_active_section o_psql_join_step">
+                    <div class="o_psql_join_toolbar">
+                        <div>
+                            <h5 class="fw-semibold mb-1">Relationships</h5>
+                            <p class="text-muted small mb-0">Define how the tables selected on Columns relate to one another.</p>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" t-on-click="addJoin"><i class="fa fa-plus me-1"/>Add Join</button>
+                    </div>
+                    <div class="table-responsive o_psql_join_grid_wrapper">
+                        <table class="table table-sm align-middle mb-0 o_psql_join_grid">
+                            <thead>
+                                <tr>
+                                    <th class="o_psql_join_reorder_col" title="Reorder"></th>
+                                    <th>Source Table</th>
+                                    <th>Source Column</th>
+                                    <th class="o_psql_join_type_col">Join Type</th>
+                                    <th>Target Table</th>
+                                    <th>Target Column</th>
+                                    <th class="o_psql_join_operator_col">Condition</th>
+                                    <th class="o_psql_join_alias_col">Alias <span class="fw-normal text-muted">(Optional)</span></th>
+                                    <th class="o_psql_join_actions_col text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="state.joins" t-as="join" t-key="join.id" t-att-class="{'o_psql_join_row_editing': this.isJoinEditing(join)}">
+                                    <td class="o_psql_join_reorder_col">
+                                        <div class="o_psql_join_reorder_buttons">
+                                            <button type="button" class="btn btn-link btn-sm" title="Move join up" t-on-click="() => this.moveJoinUp(join_index)" t-att-disabled="join_index === 0"><i class="fa fa-chevron-up"/></button>
+                                            <button type="button" class="btn btn-link btn-sm" title="Move join down" t-on-click="() => this.moveJoinDown(join_index)" t-att-disabled="join_index === state.joins.length - 1"><i class="fa fa-chevron-down"/></button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-att-disabled="!this.isJoinEditing(join)" t-on-change="event => this.updateJoinSourceTable(join.id, event.target.value)">
+                                            <option value="">-- Source --</option>
+                                            <t t-foreach="this.getJoinSourceOptions(join)" t-as="source" t-key="source.alias">
+                                                <option t-att-value="source.alias" t-att-selected="this.getJoinSourceAlias(join) === source.alias"><t t-esc="source.label"/></option>
+                                            </t>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-att-disabled="!this.isJoinEditing(join)" t-on-change="event => this.updateJoin(join.id, {left_field_option_id: parseInt(event.target.value)})">
+                                            <option value="">-- Column --</option>
+                                            <t t-foreach="this.getFieldsForAlias(this.getJoinSourceAlias(join))" t-as="opt" t-key="opt.id">
+                                                <option t-att-value="opt.id" t-att-selected="join.left_field_option_id &amp;&amp; join.left_field_option_id[0] === opt.id"><t t-esc="opt.column_name"/></option>
+                                            </t>
+                                        </select>
+                                    </td>
+                                    <td class="o_psql_join_type_col">
+                                        <select class="form-select form-select-sm" t-att-disabled="!this.isJoinEditing(join)" t-on-change="event => this.updateJoin(join.id, {join_type: event.target.value})">
+                                            <option value="inner" t-att-selected="join.join_type === 'inner'">INNER</option>
+                                            <option value="left" t-att-selected="join.join_type === 'left'">LEFT</option>
+                                            <option value="right" t-att-selected="join.join_type === 'right'">RIGHT</option>
+                                            <option value="full" t-att-selected="join.join_type === 'full'">FULL</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-att-disabled="!this.isJoinEditing(join)" t-on-change="event => this.updateJoinTargetTable(join.id, parseInt(event.target.value))">
+                                            <option value="">-- Target --</option>
+                                            <t t-foreach="state.tableOptions" t-as="table" t-key="table.id">
+                                                <option t-att-value="table.id" t-att-selected="join.table_option_id &amp;&amp; join.table_option_id[0] === table.id">
+                                                    <t t-esc="this.formatTableLabel(table)"/>
+                                                </option>
+                                            </t>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-att-disabled="!this.isJoinEditing(join)" t-on-change="event => this.updateJoin(join.id, {right_field_option_id: parseInt(event.target.value)})">
+                                            <option value="">-- Column --</option>
+                                            <t t-foreach="state.allFieldOptions" t-as="opt" t-key="opt.id">
+                                                <t t-if="join.table_option_id &amp;&amp; opt.table_option_id[0] === join.table_option_id[0] &amp;&amp; opt.source_alias === join.alias">
+                                                    <option t-att-value="opt.id" t-att-selected="join.right_field_option_id &amp;&amp; join.right_field_option_id[0] === opt.id"><t t-esc="opt.column_name"/></option>
+                                                </t>
+                                            </t>
+                                        </select>
+                                    </td>
+                                    <td class="o_psql_join_operator_col">
+                                        <select class="form-select form-select-sm" t-att-disabled="!this.isJoinEditing(join)" t-on-change="event => this.updateJoin(join.id, {operator: event.target.value})">
+                                            <option value="=" t-att-selected="join.operator === '='">=</option>
+                                            <option value="&lt;&gt;" t-att-selected="join.operator === '&lt;&gt;'">&lt;&gt;</option>
+                                            <option value="&gt;" t-att-selected="join.operator === '&gt;'">&gt;</option>
+                                            <option value="&gt;=" t-att-selected="join.operator === '&gt;='">&gt;=</option>
+                                            <option value="&lt;" t-att-selected="join.operator === '&lt;'">&lt;</option>
+                                            <option value="&lt;=" t-att-selected="join.operator === '&lt;='">&lt;=</option>
+                                        </select>
+                                    </td>
+                                    <td class="o_psql_join_alias_col">
+                                        <input type="text" class="form-control form-control-sm" placeholder="alias" t-att-disabled="!this.isJoinEditing(join)" t-att-value="join.alias || ''" t-on-change="event => this.updateJoinAlias(join.id, event.target.value)"/>
+                                    </td>
+                                    <td class="o_psql_join_actions_col text-end text-nowrap">
+                                        <button type="button" class="btn btn-link btn-sm o_psql_join_edit_btn" t-att-title="this.isJoinEditing(join) ? 'Finish editing' : 'Edit join'" t-on-click="() => this.toggleJoinEditing(join.id)"><i t-att-class="this.isJoinEditing(join) ? 'fa fa-check' : 'fa fa-pencil'"/></button>
+                                        <button type="button" class="btn btn-link btn-sm text-danger" title="Delete join" t-on-click="() => this.removeJoin(join.id)"><i class="fa fa-trash"/></button>
+                                    </td>
+                                </tr>
+                                <tr t-if="!state.joins.length">
+                                    <td colspan="9" class="o_psql_join_empty_state">
+                                        <i class="fa fa-link d-block mb-2"/>
+                                        No JOIN relationships yet. Select another table on Columns or click Add Join.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- STEP 3: WHERE FILTERS -->
+                <div t-if="state.step === 3" class="o_psql_wizard_step_content o_psql_active_section">
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <h5 class="fw-semibold mb-0">4. Configure WHERE Conditions</h5>
+                        <button type="button" class="btn btn-secondary btn-sm" t-on-click="addFilter"><i class="fa fa-plus me-1"/>Add Filter</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm" style="font-size: 13px;">
+                            <thead>
+                                <tr class="bg-light">
+                                    <th style="width: 100px;">Connector</th>
+                                    <th style="width: 220px;">Table</th>
+                                    <th>Field</th>
+                                    <th style="width: 150px;">Operator</th>
+                                    <th>Value</th>
+                                    <th>Second Value (BETWEEN)</th>
+                                    <th style="width: 50px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="state.filters" t-as="filter" t-key="filter.id">
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateFilter(filter.id, {connector: event.target.value})">
+                                            <option value="AND" t-att-selected="filter.connector === 'AND'">AND</option>
+                                            <option value="OR" t-att-selected="filter.connector === 'OR'">OR</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateFilterSource(filter.id, event.target.value)">
+                                            <option value="">-- Select Table --</option>
+                                            <t t-foreach="this.getSourceOptions()" t-as="source" t-key="source.alias">
+                                                <option t-att-value="source.alias" t-att-selected="this.getLineAlias(filter) === source.alias"><t t-esc="source.label"/></option>
+                                            </t>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateFilterField(filter, event.target.value)">
+                                            <option value="">-- Select Field --</option>
+                                            <t t-foreach="this.getFieldsForLine(filter)" t-as="opt" t-key="opt.id">
+                                                <option t-att-value="opt.id" t-att-selected="filter.field_option_id &amp;&amp; filter.field_option_id[0] === opt.id">
+                                                    <t t-esc="opt.column_name"/>
+                                                </option>
+                                            </t>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateFilter(filter.id, {operator: event.target.value})">
+                                            <option value="=" t-att-selected="filter.operator === '='">=</option>
+                                            <option value="&lt;&gt;" t-att-selected="filter.operator === '&lt;&gt;'">&lt;&gt;</option>
+                                            <option value="&gt;" t-att-selected="filter.operator === '&gt;'">&gt;</option>
+                                            <option value="&gt;=" t-att-selected="filter.operator === '&gt;='">&gt;=</option>
+                                            <option value="&lt;" t-att-selected="filter.operator === '&lt;'">&lt;</option>
+                                            <option value="&lt;=" t-att-selected="filter.operator === '&lt;='">&lt;=</option>
+                                            <option value="LIKE" t-att-selected="filter.operator === 'LIKE'">LIKE</option>
+                                            <option value="ILIKE" t-att-selected="filter.operator === 'ILIKE'">ILIKE</option>
+                                            <option value="NOT LIKE" t-att-selected="filter.operator === 'NOT LIKE'">NOT LIKE</option>
+                                            <option value="IN" t-att-selected="filter.operator === 'IN'">IN</option>
+                                            <option value="NOT IN" t-att-selected="filter.operator === 'NOT IN'">NOT IN</option>
+                                            <option value="BETWEEN" t-att-selected="filter.operator === 'BETWEEN'">BETWEEN</option>
+                                            <option value="IS NULL" t-att-selected="filter.operator === 'IS NULL'">IS NULL</option>
+                                            <option value="IS NOT NULL" t-att-selected="filter.operator === 'IS NOT NULL'">IS NOT NULL</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" t-att-value="filter.value || ''"
+                                               t-on-change="event => this.updateFilter(filter.id, {value: event.target.value})"
+                                               t-att-disabled="filter.operator === 'IS NULL' || filter.operator === 'IS NOT NULL'"/>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" t-att-value="filter.value_to || ''"
+                                               t-on-change="event => this.updateFilter(filter.id, {value_to: event.target.value})"
+                                               t-att-disabled="filter.operator !== 'BETWEEN'"/>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" t-on-click="() => this.removeFilter(filter.id)"><i class="fa fa-trash"/></button>
+                                    </td>
+                                </tr>
+                                <tr t-if="!state.filters.length">
+                                    <td colspan="7" class="text-center text-muted p-3 bg-light">No WHERE conditions configured.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- STEP 4: GROUP BY -->
+                <div t-if="state.step === 4" class="o_psql_wizard_step_content o_psql_active_section">
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <h5 class="fw-semibold mb-0">5. GROUP BY Fields</h5>
+                        <button type="button" class="btn btn-secondary btn-sm" t-on-click="addGroup"><i class="fa fa-plus me-1"/>Add GROUP BY</button>
+                    </div>
+                    <div class="table-responsive" style="max-width: 600px;">
+                        <table class="table table-sm" style="font-size: 13px;">
+                            <thead>
+                                <tr class="bg-light">
+                                    <th style="width: 220px;">Table</th>
+                                    <th>Field</th>
+                                    <th style="width: 50px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="state.groups" t-as="group" t-key="group.id">
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateGroupSource(group.id, event.target.value)">
+                                            <option value="">-- Select Table --</option>
+                                            <t t-foreach="this.getSourceOptions()" t-as="source" t-key="source.alias">
+                                                <option t-att-value="source.alias" t-att-selected="this.getLineAlias(group) === source.alias"><t t-esc="source.label"/></option>
+                                            </t>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateGroupField(group, event.target.value)">
+                                            <option value="">-- Select Field --</option>
+                                            <t t-foreach="this.getFieldsForLine(group)" t-as="opt" t-key="opt.id">
+                                                <option t-att-value="opt.id" t-att-selected="group.field_option_id &amp;&amp; group.field_option_id[0] === opt.id">
+                                                    <t t-esc="opt.column_name"/>
+                                                </option>
+                                            </t>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" t-on-click="() => this.removeGroup(group.id)"><i class="fa fa-trash"/></button>
+                                    </td>
+                                </tr>
+                                <tr t-if="!state.groups.length">
+                                    <td colspan="3" class="text-center text-muted p-3 bg-light">No additional GROUP BY configured (any checked columns on Columns will be grouped automatically).</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- STEP 5: HAVING FILTERS -->
+                <div t-if="state.step === 5" class="o_psql_wizard_step_content o_psql_active_section">
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <h5 class="fw-semibold mb-0">6. Configure HAVING Conditions</h5>
+                        <button type="button" class="btn btn-secondary btn-sm" t-on-click="addHaving"><i class="fa fa-plus me-1"/>Add HAVING Filter</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm" style="font-size: 13px;">
+                            <thead>
+                                <tr class="bg-light">
+                                    <th style="width: 100px;">Connector</th>
+                                    <th>Aggregate Function</th>
+                                    <th style="width: 220px;">Table</th>
+                                    <th>Field</th>
+                                    <th style="width: 120px;">Operator</th>
+                                    <th>Value</th>
+                                    <th style="width: 50px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="state.havings" t-as="having" t-key="having.id">
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateHaving(having.id, {connector: event.target.value})">
+                                            <option value="AND" t-att-selected="having.connector === 'AND'">AND</option>
+                                            <option value="OR" t-att-selected="having.connector === 'OR'">OR</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateHaving(having.id, {aggregate: event.target.value})">
+                                            <option value="count" t-att-selected="having.aggregate === 'count'">COUNT</option>
+                                            <option value="sum" t-att-selected="having.aggregate === 'sum'">SUM</option>
+                                            <option value="avg" t-att-selected="having.aggregate === 'avg'">AVG</option>
+                                            <option value="min" t-att-selected="having.aggregate === 'min'">MIN</option>
+                                            <option value="max" t-att-selected="having.aggregate === 'max'">MAX</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateHavingSource(having.id, event.target.value)">
+                                            <option value="">-- Select Table --</option>
+                                            <t t-foreach="this.getSourceOptions()" t-as="source" t-key="source.alias">
+                                                <option t-att-value="source.alias" t-att-selected="this.getLineAlias(having) === source.alias"><t t-esc="source.label"/></option>
+                                            </t>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateHavingField(having, event.target.value)">
+                                            <option value="">-- Select Field --</option>
+                                            <t t-foreach="this.getFieldsForLine(having)" t-as="opt" t-key="opt.id">
+                                                <option t-att-value="opt.id" t-att-selected="having.field_option_id &amp;&amp; having.field_option_id[0] === opt.id">
+                                                    <t t-esc="opt.column_name"/>
+                                                </option>
+                                            </t>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateHaving(having.id, {operator: event.target.value})">
+                                            <option value="=" t-att-selected="having.operator === '='">=</option>
+                                            <option value="&lt;&gt;" t-att-selected="having.operator === '&lt;&gt;'">&lt;&gt;</option>
+                                            <option value="&gt;" t-att-selected="having.operator === '&gt;'">&gt;</option>
+                                            <option value="&gt;=" t-att-selected="having.operator === '&gt;='">&gt;=</option>
+                                            <option value="&lt;" t-att-selected="having.operator === '&lt;'">&lt;</option>
+                                            <option value="&lt;=" t-att-selected="having.operator === '&lt;='">&lt;=</option>
+                                            <option value="IS NULL" t-att-selected="having.operator === 'IS NULL'">IS NULL</option>
+                                            <option value="IS NOT NULL" t-att-selected="having.operator === 'IS NOT NULL'">IS NOT NULL</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" t-att-value="having.value || ''"
+                                               t-on-change="event => this.updateHaving(having.id, {value: event.target.value})"
+                                               t-att-disabled="having.operator === 'IS NULL' || having.operator === 'IS NOT NULL'"/>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" t-on-click="() => this.removeHaving(having.id)"><i class="fa fa-trash"/></button>
+                                    </td>
+                                </tr>
+                                <tr t-if="!state.havings.length">
+                                    <td colspan="7" class="text-center text-muted p-3 bg-light">No HAVING conditions configured.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- STEP 6: ORDER BY -->
+                <div t-if="state.step === 6" class="o_psql_wizard_step_content o_psql_active_section">
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <h5 class="fw-semibold mb-0">7. Configure ORDER BY</h5>
+                        <button type="button" class="btn btn-secondary btn-sm" t-on-click="addOrder"><i class="fa fa-plus me-1"/>Add ORDER BY</button>
+                    </div>
+                    <div class="table-responsive" style="max-width: 700px;">
+                        <table class="table table-sm" style="font-size: 13px;">
+                            <thead>
+                                <tr class="bg-light">
+                                    <th style="width: 220px;">Table</th>
+                                    <th>Field</th>
+                                    <th style="width: 150px;">Direction</th>
+                                    <th style="width: 150px;">Nulls Position</th>
+                                    <th style="width: 50px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="state.orders" t-as="order" t-key="order.id">
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateOrderSource(order.id, event.target.value)">
+                                            <option value="">-- Select Table --</option>
+                                            <t t-foreach="this.getSourceOptions()" t-as="source" t-key="source.alias">
+                                                <option t-att-value="source.alias" t-att-selected="this.getLineAlias(order) === source.alias"><t t-esc="source.label"/></option>
+                                            </t>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateOrderField(order, event.target.value)">
+                                            <option value="">-- Select Field --</option>
+                                            <t t-foreach="this.getFieldsForLine(order)" t-as="opt" t-key="opt.id">
+                                                <option t-att-value="opt.id" t-att-selected="order.field_option_id &amp;&amp; order.field_option_id[0] === opt.id">
+                                                    <t t-esc="opt.column_name"/>
+                                                </option>
+                                            </t>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateOrder(order.id, {direction: event.target.value})">
+                                            <option value="asc" t-att-selected="order.direction === 'asc'">ASC</option>
+                                            <option value="desc" t-att-selected="order.direction === 'desc'">DESC</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" t-on-change="event => this.updateOrder(order.id, {nulls: event.target.value})">
+                                            <option value="first" t-att-selected="order.nulls === 'first'">FIRST</option>
+                                            <option value="last" t-att-selected="order.nulls === 'last'">LAST</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" t-on-click="() => this.removeOrder(order.id)"><i class="fa fa-trash"/></button>
+                                    </td>
+                                </tr>
+                                <tr t-if="!state.orders.length">
+                                    <td colspan="5" class="text-center text-muted p-3 bg-light">No explicit ORDER BY lines configured (any sort set on Columns will be applied).</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- STEP 7: UNION -->
+                <div t-if="state.step === 7" class="o_psql_wizard_step_content o_psql_active_section">
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <div>
+                            <h5 class="fw-semibold mb-1">8. UNION / UNION ALL</h5>
+                            <p class="text-muted small mb-0">Combine this query with another SELECT that returns the same columns.</p>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" t-on-click="addUnion"><i class="fa fa-plus me-1"/>Add UNION</button>
+                    </div>
+                    <div class="o_psql_union_list">
+                        <div t-foreach="state.unions" t-as="union" t-key="union.id" class="o_psql_union_card">
+                            <div class="o_psql_union_card_header">
+                                <select class="form-select form-select-sm" t-on-change="event => this.updateUnion(union.id, {union_type: event.target.value})">
+                                    <option value="union" t-att-selected="union.union_type === 'union'">UNION</option>
+                                    <option value="union_all" t-att-selected="union.union_type === 'union_all'">UNION ALL</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-danger btn-sm" t-on-click="() => this.removeUnion(union.id)"><i class="fa fa-trash"/></button>
+                            </div>
+                            <textarea class="form-control o_psql_union_sql" rows="5"
+                                      placeholder="SELECT matching columns..."
+                                      t-on-change="event => this.updateUnion(union.id, {sql_text: event.target.value})"><t t-esc="union.sql_text || ''"/></textarea>
+                        </div>
+                        <div t-if="!state.unions.length" class="text-center text-muted p-3 bg-light border rounded">
+                            No UNION configured. Use this only when you need to combine multiple SELECT queries.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 8: PREVIEW & INSERT -->
+                <div t-if="state.step === 8" class="o_psql_wizard_step_content o_psql_active_section">
+                    <h5 class="fw-semibold mb-3 border-bottom pb-2">9. Generated SQL Preview</h5>
+                    <div class="o_psql_preview_actions mb-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" t-on-click="copySql" t-att-disabled="!state.sqlPreview">
+                            <i class="fa fa-copy me-1"/>Copy SQL
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" t-on-click="generateSql">
+                            <i class="fa fa-refresh me-1"/>Refresh Preview
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" t-on-click="insertIntoEditor" t-att-disabled="!state.previewReady">
+                            <i class="fa fa-level-down me-1"/>Insert into Editor
+                        </button>
+                    </div>
+                    <div class="o_psql_sql_preview">
+                        <div class="o_psql_sql_preview_toolbar">
+                            <span><i class="fa fa-code me-2"/>Generated SQL</span>
+                        </div>
+                        <CodeEditor
+                            mode="'sql'"
+                            value="state.sqlPreview || '-- Click Generate SQL below to compile the query.'"
+                            readonly="true"
+                            sessionId="'psql-wizard-ui-preview'"
+                            class="'o_psql_sql_preview_editor'"
+                            showLineNumbers="true"
+                        />
+                    </div>
+                    <div t-if="state.editorHasSql" class="o_psql_preview_mode_box">
+                        <strong class="text-warning-dark"><i class="fa fa-exclamation-triangle me-1"/>The SQL Editor already contains a query.</strong>
+                        <p class="mb-2 mt-1 small text-muted">Choose how the generated SQL should be inserted:</p>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="insertModeRadio" id="modeReplace" value="replace" t-model="state.insertMode"/>
+                            <label class="form-check-label fw-semibold" for="modeReplace">Replace Existing SQL</label>
+                        </div>
+                        <div class="form-check form-check-inline ml-3">
+                            <input class="form-check-input" type="radio" name="insertModeRadio" id="modeAppend" value="append" t-model="state.insertMode"/>
+                            <label class="form-check-label fw-semibold" for="modeAppend">Append SQL</label>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Wizard Footer Buttons -->
+            <div class="o_psql_wizard_footer">
+                <div class="o_psql_wizard_footer_left">
+                    <button type="button" class="btn btn-secondary" t-on-click="prevStep" t-att-disabled="state.step &lt;= 2">
+                        <i class="fa fa-chevron-left me-1"/>Back
+                    </button>
+                    <button type="button" class="btn btn-primary" t-on-click="nextStep" t-att-disabled="state.step &gt;= 8">
+                        Next<i class="fa fa-chevron-right ms-1"/>
+                    </button>
+                </div>
+                <div class="o_psql_wizard_footer_right">
+                    <button type="button" class="btn btn-primary" t-on-click="generateSql">
+                        <i class="fa fa-magic me-1"/>Generate SQL
+                    </button>
+                    <button type="button" class="btn btn-success" t-on-click="insertIntoEditor" t-att-disabled="!state.previewReady">
+                        <i class="fa fa-level-down me-1"/>Insert into Editor
+                    </button>
+                    <button type="button" class="btn btn-secondary" t-on-click="cancelWizard">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

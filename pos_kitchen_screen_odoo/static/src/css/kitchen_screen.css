@@ -1,0 +1,387 @@
+.o_kitchen_display {
+  min-height: 100vh;
+  background: #f7f7f7;
+  color: #1f2937;
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.o_kitchen_display *,
+.o_kitchen_display *::before,
+.o_kitchen_display *::after {
+  box-sizing: border-box;
+}
+
+.kitchen_shell {
+  min-height: 100vh;
+  padding: 64px 5vw 56px;
+}
+
+.kitchen_stage_bar {
+  width: min(1160px, 100%);
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  align-items: center;
+  margin: 0 auto;
+  border: 1px solid #d8dadd;
+  border-radius: 4px;
+  background: #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.24);
+}
+
+.kitchen_stage {
+  min-width: 0;
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #4b5563;
+  font: inherit;
+  cursor: pointer;
+}
+
+.kitchen_stage:focus-visible,
+.kitchen_stage.is-active {
+  border-color: #0d6efd;
+  outline: 0;
+}
+
+.stage_check {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #c4c7cc;
+  box-shadow: 0 4px 5px rgba(0, 0, 0, 0.24);
+}
+
+.stage_label {
+  min-width: 0;
+  font-size: clamp(22px, 2vw, 30px);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.stage-ready .stage_label {
+  color: #1f8aaa;
+}
+
+.stage-completed .stage_label {
+  color: #16721f;
+}
+
+.stage_count {
+  min-width: 30px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
+  border-radius: 5px;
+  background: #ff3b3f;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.kitchen_board {
+  margin-top: 72px;
+}
+
+.kitchen_grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 28px;
+  align-items: start;
+}
+
+.kitchen_order {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #d8dadd;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.22);
+}
+
+.order_select {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  width: 42px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #c4c7cc;
+  box-shadow: 0 4px 5px rgba(0, 0, 0, 0.24);
+}
+
+.order_head {
+  min-height: 126px;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 18px 18px 66px;
+}
+
+.kitchen_status_draft .order_head {
+  background: #dedede;
+}
+
+.kitchen_status_waiting .order_head {
+  background: #dcebf0;
+}
+
+.kitchen_status_ready .order_head {
+  background: #dcefdc;
+}
+
+.order_title h2 {
+  margin: 0 0 12px;
+  color: #111827;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.kitchen_status_waiting .order_title h2 {
+  color: #1f8aaa;
+}
+
+.kitchen_status_ready .order_title h2 {
+  color: #16721f;
+}
+
+.order_title strong {
+  display: block;
+  margin-left: 24px;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.order_user {
+  max-width: 180px;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.order_meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 0 18px 16px 66px;
+  margin-top: -38px;
+  color: #111827;
+  font-size: 12px;
+}
+
+.order_lines {
+  background: #ffffff;
+}
+
+.order_line_empty {
+  border-top: 1px solid #eceff3;
+  padding: 18px 20px;
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.order_line {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  border: 0;
+  border-top: 1px solid #eceff3;
+  padding: 16px 20px;
+  background: #ffffff;
+  color: #1f2937;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.order_line:hover,
+.order_line:focus-visible {
+  background: #f8fafc;
+  outline: 0;
+}
+
+.order_line:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.order_line:disabled:hover {
+  background: #ffffff;
+}
+
+.line_qty {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.line_name {
+  min-width: 0;
+  font-size: 18px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.line_done {
+  visibility: hidden;
+  color: #16721f;
+  font-size: 16px;
+}
+
+.order_line.is-done {
+  color: #64748b;
+}
+
+.order_line.is-done .line_name {
+  text-decoration: line-through;
+}
+
+.order_line.is-done .line_done {
+  visibility: visible;
+}
+
+.line_note {
+  grid-column: 2 / 4;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.order_actions {
+  min-height: 70px;
+  display: flex;
+  justify-content: space-evenly;
+  gap: 18px;
+  padding: 14px 18px;
+  border-top: 1px solid #eceff3;
+  background: #ffffff;
+}
+
+.kitchen_btn {
+  min-width: 98px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 4px;
+  padding: 0 24px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.kitchen_btn.primary {
+  background: #1f8aaa;
+}
+
+.kitchen_btn.secondary {
+  background: #555555;
+}
+
+.kitchen_btn:hover,
+.kitchen_btn:focus-visible {
+  filter: brightness(0.94);
+  outline: 2px solid rgba(13, 110, 253, 0.35);
+  outline-offset: 2px;
+}
+
+.kitchen_empty {
+  width: min(760px, 100%);
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  border: 1px solid #d8dadd;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #4b5563;
+  font-size: 22px;
+  font-weight: 800;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.18);
+}
+
+@media screen and (max-width: 900px) {
+  .kitchen_shell {
+    padding: 28px 16px 40px;
+  }
+
+  .kitchen_stage_bar {
+    grid-template-columns: 1fr;
+  }
+
+  .kitchen_stage {
+    justify-content: flex-start;
+    padding: 0 18px;
+  }
+
+  .stage_count {
+    margin-left: auto;
+  }
+
+  .kitchen_board {
+    margin-top: 32px;
+  }
+
+  .kitchen_grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media screen and (max-width: 520px) {
+  .kitchen_grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .order_head {
+    flex-direction: column;
+    min-height: 138px;
+    padding-right: 14px;
+  }
+
+  .order_user {
+    max-width: none;
+    text-align: left;
+  }
+
+  .order_actions {
+    flex-direction: column;
+  }
+
+  .kitchen_btn {
+    width: 100%;
+  }
+}

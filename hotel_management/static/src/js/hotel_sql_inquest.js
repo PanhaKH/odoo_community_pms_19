@@ -153,7 +153,7 @@ export const hotelSqlInquestClickService = {
                 name: "SQL Inquest",
                 res_model: "hotel.sql.inquest.wizard",
                 views: [[false, "form"]],
-                target: "new",
+                target: "current",
                 context: {
                     default_sql_query: trigger.dataset.query || "",
                 },

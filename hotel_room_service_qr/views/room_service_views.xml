@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_room_service_order_list" model="ir.ui.view">
+        <field name="name">hotel.room.service.order.list</field>
+        <field name="model">hotel.room.service.order</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="state in ('pos_failed', 'cancelled')" decoration-warning="state in ('confirmed', 'sent_pos', 'kitchen_preparing')" decoration-success="state in ('folio_posted', 'paid_pos', 'closed')">
+                <field name="name"/>
+                <field name="display_order_number"/>
+                <field name="create_date"/>
+                <field name="outlet_id"/>
+                <field name="room_number"/>
+                <field name="partner_id"/>
+                <field name="payment_method"/>
+                <field name="hotel_business_date"/>
+                <field name="total_amount"/>
+                <field name="state" widget="badge"/>
+                <field name="pms_sync_state" widget="badge"/>
+                <field name="retry_count"/>
+                <button name="action_sync_to_pms" string="Post Bill to Room" type="object" invisible="payment_method != 'bill_to_room' or pms_sync_state == 'posted'"/>
+                <button name="action_retry_pos_send" string="Retry POS" type="object" invisible="state != 'pos_failed'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_room_service_order_form" model="ir.ui.view">
+        <field name="name">hotel.room.service.order.form</field>
+        <field name="model">hotel.room.service.order</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm_to_pos" string="Accept Order" type="object" class="btn-primary" invisible="state not in ('draft', 'confirmed')"/>
+                    <button name="action_cancel_before_pos" string="Cancel" type="object" class="btn-secondary" invisible="state not in ('draft', 'confirmed', 'pos_failed')"/>
+                    <button name="action_send_to_pos" string="Send to POS" type="object" class="btn-primary" invisible="1"/>
+                    <button name="action_retry_pos_send" string="Retry POS" type="object" class="btn-primary" invisible="state != 'pos_failed'"/>
+                    <button name="action_kitchen_preparing" string="Preparing" type="object" invisible="state not in ('sent_pos', 'pos_failed')"/>
+                    <button name="action_kitchen_ready" string="Ready" type="object" invisible="state != 'kitchen_preparing'"/>
+                    <button name="action_delivered" string="Delivered" type="object" invisible="state not in ('sent_pos', 'pos_failed', 'kitchen_preparing', 'kitchen_ready')"/>
+                    <button name="action_guest_confirm_completed" string="Guest Confirmed" type="object" class="btn-success" invisible="state != 'delivered'"/>
+                    <button name="action_sync_to_pms" string="Post Bill to Room" type="object" class="btn-primary" invisible="state == 'draft' or payment_method != 'bill_to_room' or pms_sync_state == 'posted'"/>
+                    <button name="action_mark_paid_pos" string="Mark Paid at POS" type="object" class="btn-success" invisible="payment_method != 'pay_at_pos' or state not in ('sent_pos', 'kitchen_preparing', 'kitchen_ready', 'delivered', 'guest_confirmed')"/>
+                    <button name="action_print_receipt" string="Print Receipt" type="object" class="btn-secondary" icon="fa-print"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="outlet_id"/>
+                            <field name="token_id" optional="1" string="Room QR Token"/>
+                            <field name="room_id" readonly="1"/>
+                            <field name="reservation_id"/>
+                            <field name="partner_id"/>
+                        </group>
+                        <group>
+                            <field name="payment_method"/>
+                            <field name="hotel_business_date"/>
+                            <field name="pms_sync_state" widget="badge"/>
+                            <field name="pms_folio_id"/>
+                            <field name="total_amount"/>
+                            <field name="pos_order_id"/>
+                            <field name="pos_reference"/>
+                            <field name="sent_to_pos_at"/>
+                            <field name="folio_posted_at"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Items">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="product_id"/>
+                                    <field name="name"/>
+                                    <field name="quantity"/>
+                                    <field name="price_unit"/>
+                                    <field name="subtotal"/>
+                                    <field name="note"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Guest Note">
+                            <field name="guest_note"/>
+                        </page>
+                        <page string="History / Integration Logs">
+                            <field name="log_ids" readonly="1">
+                                <list>
+                                    <field name="create_date" string="Date"/>
+                                    <field name="adapter" widget="badge"/>
+                                    <field name="status" widget="badge" decoration-success="status == 'success'" decoration-danger="status == 'failed'" decoration-warning="status == 'retry'"/>
+                                    <field name="message"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Adapter Payload">
+                            <field name="adapter_payload" readonly="1"/>
+                            <field name="last_error" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_room_service_order_search" model="ir.ui.view">
+        <field name="name">hotel.room.service.order.search</field>
+        <field name="model">hotel.room.service.order</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="display_order_number"/>
+                <field name="room_number"/>
+                <field name="partner_id"/>
+                <field name="outlet_id"/>
+                <field name="state"/>
+                <field name="hotel_business_date"/>
+                <field name="pms_sync_state"/>
+                <filter string="Needs Attention" name="needs_attention" domain="[('state', 'in', ['draft', 'confirmed', 'pos_failed', 'sent_pos', 'kitchen_preparing', 'kitchen_ready', 'delivered'])]"/>
+                <filter string="Failed POS Send" name="pos_failed" domain="[('state', '=', 'pos_failed')]"/>
+                <filter string="PMS Pending" name="pms_pending" domain="[('pms_sync_state', '=', 'pending')]"/>
+                <filter string="PMS Failed" name="pms_failed" domain="[('pms_sync_state', '=', 'failed')]"/>
+                <filter string="PMS Posted" name="pms_posted" domain="[('pms_sync_state', '=', 'posted')]"/>
+                <group>
+                    <filter string="Outlet" name="group_outlet" context="{'group_by': 'outlet_id'}"/>
+                    <filter string="Room" name="group_room" context="{'group_by': 'room_number'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Payment" name="group_payment" context="{'group_by': 'payment_method'}"/>
+                    <filter string="Business Date" name="group_business_date" context="{'group_by': 'hotel_business_date'}"/>
+                    <filter string="PMS Sync" name="group_pms_sync" context="{'group_by': 'pms_sync_state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_room_service_order_monitor" model="ir.actions.act_window">
+        <field name="name">Service Order Monitor</field>
+        <field name="res_model">hotel.room.service.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_room_service_order_search"/>
+        <field name="context">{'search_default_needs_attention': 1, 'search_default_group_outlet': 1}</field>
+    </record>
+
+    <record id="action_room_service_order_history" model="ir.actions.act_window">
+        <field name="name">Service Order History</field>
+        <field name="res_model">hotel.room.service.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_room_service_order_search"/>
+        <field name="domain">[('state', 'in', ['folio_posted', 'paid_pos', 'closed', 'cancelled'])]</field>
+        <field name="context">{'create': False}</field>
+    </record>
+
+    <record id="view_room_service_token_list" model="ir.ui.view">
+        <field name="name">hotel.room.service.room.token.list</field>
+        <field name="model">hotel.room.service.room.token</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="room_id"/>
+                <field name="token"/>
+                <field name="qr_url"/>
+                <field name="active" widget="boolean_toggle"/>
+                <field name="last_scanned_at"/>
+                <button name="action_regenerate_token" string="Regenerate" type="object"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_room_service_token_form" model="ir.ui.view">
+        <field name="name">hotel.room.service.room.token.form</field>
+        <field name="model">hotel.room.service.room.token</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_regenerate_token" string="Regenerate Token" type="object" class="btn-secondary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="room_id"/>
+                            <field name="token"/>
+                            <field name="qr_url" readonly="1"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="last_scanned_at" readonly="1"/>
+                            <field name="qr_image_url" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_room_service_tokens" model="ir.actions.act_window">
+        <field name="name">Room QR Tokens</field>
+        <field name="res_model">hotel.room.service.room.token</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_generate_missing_room_service_tokens" model="ir.actions.server">
+        <field name="name">Generate Missing Room QR Tokens</field>
+        <field name="model_id" ref="model_hotel_room_service_room_token"/>
+        <field name="state">code</field>
+        <field name="code">action = env['hotel.room.service.room.token'].sudo().action_generate_missing_room_tokens()</field>
+    </record>
+
+    <record id="view_room_service_outlet_list" model="ir.ui.view">
+        <field name="name">hotel.room.service.outlet.list</field>
+        <field name="model">hotel.room.service.outlet</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="pos_config_id" optional="hide"/>
+                <field name="auto_create_pos_order"/>
+                <field name="hide_in_pos" widget="boolean_toggle"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_room_service_outlet_form" model="ir.ui.view">
+        <field name="name">hotel.room.service.outlet.form</field>
+        <field name="model">hotel.room.service.outlet</field>
+        <field name="arch" type="xml">
+            <form string="Room Service Outlet">
+                <header>
+                    <button name="action_configure_pos_outlet"
+                            type="object"
+                            string="Configure POS Integration"
+                            class="btn-primary"
+                            invisible="not active"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                        <group string="Optional POS Integration">
+                            <field name="pos_config_id"/>
+                            <field name="auto_create_pos_order"/>
+                            <field name="hide_in_pos"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="notes" placeholder="Internal notes..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_room_service_outlets" model="ir.actions.act_window">
+        <field name="name">Room Service Outlets</field>
+        <field name="res_model">hotel.room.service.outlet</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_room_service_menu_item_list" model="ir.ui.view">
+        <field name="name">hotel.room.service.menu.item.list</field>
+        <field name="model">hotel.room.service.menu.item</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="category_id"/>
+                <field name="outlet_id"/>
+                <field name="product_id"/>
+                <field name="price"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_room_service_menu_items" model="ir.actions.act_window">
+        <field name="name">Legacy Room Service Menu Items</field>
+        <field name="res_model">hotel.room.service.menu.item</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_room_service_logs" model="ir.actions.act_window">
+        <field name="name">Room Service Retry Logs</field>
+        <field name="res_model">hotel.room.service.integration.log</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="paperformat_room_service_receipt" model="report.paperformat">
+        <field name="name">Room Service Receipt 80mm</field>
+        <field name="default" eval="False"/>
+        <field name="format">custom</field>
+        <field name="page_height">210</field>
+        <field name="page_width">80</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">4</field>
+        <field name="margin_bottom">4</field>
+        <field name="margin_left">4</field>
+        <field name="margin_right">4</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="action_report_room_service_order" model="ir.actions.report">
+        <field name="name">Room Service Order Receipt</field>
+        <field name="model">hotel.room.service.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_room_service_qr.report_room_service_order_template</field>
+        <field name="report_file">hotel_room_service_qr.report_room_service_order_template</field>
+        <field name="print_report_name">'Room_Service_Receipt_%s' % ((object.name or str(object.id)).replace('/', '_'))</field>
+        <field name="paperformat_id" ref="hotel_room_service_qr.paperformat_room_service_receipt"/>
+        <field name="binding_model_id" ref="model_hotel_room_service_order"/>
+        <field name="binding_type">report</field>
+    </record>
+    <record id="view_hotel_room_service_report_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.room.service.report.wizard.form</field>
+        <field name="model">hotel.room.service.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generate Room Service Sales Report">
+                <group>
+                    <group>
+                        <field name="report_category"/>
+                        <field name="report_type"/>
+                        <field name="outlet_id"/>
+                    </group>
+                    <group>
+                        <field name="date_start" readonly="report_type != 'custom'" force_save="1"/>
+                        <field name="date_end" readonly="report_type != 'custom'" force_save="1"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_print_pdf" string="Print PDF" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_room_service_report_wizard" model="ir.actions.act_window">
+        <field name="name">Sales Report</field>
+        <field name="res_model">hotel.room.service.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="action_report_room_service_sales" model="ir.actions.report">
+        <field name="name">Room Service Sales Report</field>
+        <field name="model">hotel.room.service.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_room_service_qr.report_rs_sales_template</field>
+        <field name="report_file">hotel_room_service_qr.report_rs_sales_template</field>
+        <field name="binding_model_id" ref="model_hotel_room_service_report_wizard"/>
+        <field name="binding_type">report</field>
+    </record>
+    <!-- New Reporting Views -->
+    <record id="view_room_service_order_graph" model="ir.ui.view">
+        <field name="name">hotel.room.service.order.graph</field>
+        <field name="model">hotel.room.service.order</field>
+        <field name="arch" type="xml">
+            <graph string="Room Service Sales Analysis" type="bar" sample="1">
+                <field name="create_date" interval="day"/>
+                <field name="total_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_room_service_order_pivot" model="ir.ui.view">
+        <field name="name">hotel.room.service.order.pivot</field>
+        <field name="model">hotel.room.service.order</field>
+        <field name="arch" type="xml">
+            <pivot string="Room Service Sales Analysis" sample="1">
+                <field name="create_date" interval="month" type="col"/>
+                <field name="outlet_id" type="row"/>
+                <field name="total_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_room_service_order_calendar" model="ir.ui.view">
+        <field name="name">hotel.room.service.order.calendar</field>
+        <field name="model">hotel.room.service.order</field>
+        <field name="arch" type="xml">
+            <calendar string="Room Service Orders" date_start="create_date" color="state">
+                <field name="name"/>
+                <field name="room_number"/>
+                <field name="total_amount" widget="monetary"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- New Operational and Dashboard Actions -->
+    <record id="action_room_service_all_orders" model="ir.actions.act_window">
+        <field name="name">Room Service Orders</field>
+        <field name="res_model">hotel.room.service.order</field>
+        <field name="view_mode">list,kanban,form,calendar,graph,pivot</field>
+        <field name="search_view_id" ref="view_room_service_order_search"/>
+    </record>
+
+    <record id="action_room_service_dashboard" model="ir.actions.act_window">
+        <field name="name">Room Service Dashboard</field>
+        <field name="res_model">hotel.room.service.order</field>
+        <field name="view_mode">graph,pivot</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Analyze your Room Service sales and trends!
+            </p>
+        </field>
+    </record>
+
+    <record id="action_room_service_bill_to_room" model="ir.actions.act_window">
+        <field name="name">Bill to Room</field>
+        <field name="res_model">hotel.room.service.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_room_service_order_search"/>
+        <field name="domain">[('payment_method', '=', 'bill_to_room'), ('state', 'in', ['confirmed', 'sent_pos', 'kitchen_preparing', 'kitchen_ready', 'delivered']), ('pms_sync_state', '!=', 'posted')]</field>
+    </record>
+
+    <record id="action_room_service_posted_bills" model="ir.actions.act_window">
+        <field name="name">Posted Bills</field>
+        <field name="res_model">hotel.room.service.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_room_service_order_search"/>
+        <field name="domain">[('state', '=', 'folio_posted')]</field>
+    </record>
+
+    <!-- Detailed Reporting Actions -->
+    <record id="action_room_service_report_dashboard" model="ir.actions.act_window">
+        <field name="name">Dashboard Report</field>
+        <field name="res_model">hotel.room.service.order</field>
+        <field name="view_mode">pivot,graph</field>
+    </record>
+
+    <record id="action_room_service_report_sales_analysis" model="ir.actions.act_window">
+        <field name="name">Sales Analysis</field>
+        <field name="res_model">hotel.room.service.order</field>
+        <field name="view_mode">graph,pivot</field>
+    </record>
+
+    <record id="action_room_service_report_revenue_analysis" model="ir.actions.act_window">
+        <field name="name">Revenue Analysis</field>
+        <field name="res_model">hotel.room.service.order</field>
+        <field name="view_mode">graph,pivot</field>
+        <field name="context">{'search_default_group_outlet': 1}</field>
+    </record>
+
+    <record id="action_room_service_report_order_list" model="ir.actions.act_window">
+        <field name="name">Service Order Report</field>
+        <field name="res_model">hotel.room.service.order</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="search_view_id" ref="view_room_service_order_search"/>
+    </record>
+
+    <record id="action_room_service_report_bill_to_room" model="ir.actions.act_window">
+        <field name="name">Bill to Room Report</field>
+        <field name="res_model">hotel.room.service.order</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="domain">[('payment_method', '=', 'bill_to_room')]</field>
+    </record>
+
+
+    <record id="action_room_service_report_daily" model="ir.actions.act_window">
+        <field name="name">Daily Report</field>
+        <field name="res_model">hotel.room.service.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_report_type': 'daily'}</field>
+    </record>
+
+    <record id="action_room_service_report_weekly" model="ir.actions.act_window">
+        <field name="name">Weekly Report</field>
+        <field name="res_model">hotel.room.service.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_report_type': 'weekly'}</field>
+    </record>
+
+    <record id="action_room_service_report_monthly" model="ir.actions.act_window">
+        <field name="name">Monthly Report</field>
+        <field name="res_model">hotel.room.service.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_report_type': 'monthly'}</field>
+    </record>
+
+    <record id="action_room_service_report_yearly" model="ir.actions.act_window">
+        <field name="name">Yearly Report</field>
+        <field name="res_model">hotel.room.service.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_report_type': 'yearly'}</field>
+    </record>
+
+    <!-- Structured Log Actions -->
+    <record id="action_room_service_sync_logs" model="ir.actions.act_window">
+        <field name="name">Synchronization Logs</field>
+        <field name="res_model">hotel.room.service.integration.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('adapter', '=', 'pos')]</field>
+    </record>
+
+    <record id="action_room_service_activity_logs" model="ir.actions.act_window">
+        <field name="name">Activity Logs</field>
+        <field name="res_model">hotel.room.service.integration.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('adapter', 'in', ['guest', 'system'])]</field>
+    </record>
+
+    <record id="action_room_service_bill_to_room_logs" model="ir.actions.act_window">
+        <field name="name">Bill to Room Logs</field>
+        <field name="res_model">hotel.room.service.integration.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('adapter', '=', 'pms')]</field>
+    </record>
+
+    <record id="action_room_service_retry_logs" model="ir.actions.act_window">
+        <field name="name">Retry Logs</field>
+        <field name="res_model">hotel.room.service.integration.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('status', 'in', ['failed', 'retry'])]</field>
+    </record>
+</odoo>

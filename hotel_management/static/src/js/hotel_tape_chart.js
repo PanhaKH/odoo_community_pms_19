@@ -339,35 +339,168 @@ export class HotelTapeChart extends Component {
             res_model: booking.res_model || 'hotel.reservation',
             res_id: booking.res_id || booking.id,
             views: [[false, 'form']],
-            target: 'new',
+            target: "current",
         });
     }
-    onEmptyCellClick(roomId, dateStr) {
-        if (!this.state.canManageReservations) {
-            this.dialogService.add(AlertDialog, {
-                title: _t("Reservation Review Only"),
-                body: _t("Housekeeping users can review reservations only and cannot move or modify bookings."),
+    _addDaysIso(dateStr, days) {
+        const dateObj = new Date(`${dateStr}T00:00:00`);
+        dateObj.setDate(dateObj.getDate() + days);
+        return dateObj.toISOString().slice(0, 10);
+    }
+
+    _normalizeId(value) {
+        if (!value) {
+            return false;
+        }
+
+        if (typeof value === "number") {
+            return value;
+        }
+
+        if (typeof value === "string") {
+            const parsed = parseInt(value, 10);
+            return Number.isNaN(parsed) ? false : parsed;
+        }
+
+        if (Array.isArray(value)) {
+            return this._normalizeId(value[0]);
+        }
+
+        if (typeof value === "object") {
+            return this._normalizeId(
+                value.id ||
+                value.res_id ||
+                value.raw_value ||
+                value.value
+            );
+        }
+
+        return false;
+    }
+
+    _normalizeDate(value) {
+        if (!value) {
+            return false;
+        }
+
+        if (typeof value === "string") {
+            return value.slice(0, 10);
+        }
+
+        if (typeof value === "object") {
+            return (
+                value.date ||
+                value.value ||
+                value.raw_value ||
+                value.name ||
+                value.display_name ||
+                false
+            );
+        }
+
+        return false;
+    }
+
+    _addDaysIso(dateStr, days) {
+        const dateObj = new Date(`${dateStr}T00:00:00`);
+        dateObj.setDate(dateObj.getDate() + days);
+        return dateObj.toISOString().slice(0, 10);
+    }
+
+    async _getRoomTypeId(roomId) {
+        if (!roomId) {
+            return false;
+        }
+
+        try {
+            const rooms = await this.orm.read(
+                "hotel.room",
+                [roomId],
+                ["room_type_id"]
+            );
+
+            if (rooms.length && rooms[0].room_type_id) {
+                return this._normalizeId(rooms[0].room_type_id);
+            }
+        } catch (error) {
+            console.warn("Room Chart: could not read room type", error);
+        }
+
+        return false;
+    }
+
+    async onEmptyCellClick(roomArg, dateArg) {
+        let roomId = false;
+        let roomTypeId = false;
+        let checkinDate = false;
+
+        // Case 1: template sends browser event
+        if (roomArg && roomArg.currentTarget) {
+            const cell = roomArg.currentTarget;
+
+            roomId = this._normalizeId(
+                cell.dataset.roomId ||
+                cell.getAttribute("data-room-id") ||
+                cell.getAttribute("data-room")
+            );
+
+            roomTypeId = this._normalizeId(
+                cell.dataset.roomTypeId ||
+                cell.getAttribute("data-room-type-id") ||
+                cell.getAttribute("data-room-type")
+            );
+
+            checkinDate = this._normalizeDate(
+                cell.dataset.date ||
+                cell.getAttribute("data-date") ||
+                cell.getAttribute("data-day")
+            );
+        } else {
+            // Case 2: template sends room object/id and date
+            roomId = this._normalizeId(roomArg);
+            checkinDate = this._normalizeDate(dateArg);
+
+            if (roomArg && typeof roomArg === "object") {
+                roomTypeId = this._normalizeId(
+                    roomArg.room_type_id ||
+                    roomArg.room_type ||
+                    roomArg.roomTypeId ||
+                    roomArg.type_id
+                );
+            }
+        }
+
+        if (!roomId || !checkinDate) {
+            console.warn("Room Chart: missing room/date for reservation create", {
+                roomId,
+                roomTypeId,
+                checkinDate,
+                roomArg,
+                dateArg,
             });
             return;
         }
-        const clickedDate = new Date(dateStr);
-        const checkoutDate = new Date(clickedDate);
-        checkoutDate.setDate(clickedDate.getDate() + 1);
 
-        const room = this.state.rooms.find(r => r.id === roomId);
-        const roomTypeId = room && room.room_type_id ? room.room_type_id[0] : false;
+        if (!roomTypeId) {
+            roomTypeId = await this._getRoomTypeId(roomId);
+        }
 
-        this.action.doAction({
-            type: 'ir.actions.act_window',
-            res_model: 'hotel.reservation',
-            views: [[false, 'form']],
-            target: 'new',
+        const checkoutDate = this._addDaysIso(checkinDate, 1);
+        const actionService = this.action || this.actionService || this.env.services.action;
+
+        return actionService.doAction({
+            type: "ir.actions.act_window",
+            name: "New Reservation",
+            res_model: "hotel.reservation",
+            views: [[false, "form"]],
+            view_mode: "form",
+            target: "current",
             context: {
-                default_room_id: roomId,
                 default_room_type_id: roomTypeId,
-                default_checkin_date: dateStr,
-                default_checkout_date: checkoutDate.toISOString().split('T')[0],
-            }
+                default_room_id: roomId,
+                default_checkin_date: checkinDate,
+                default_checkout_date: checkoutDate,
+            },
         });
     }
     moveDate(days) {

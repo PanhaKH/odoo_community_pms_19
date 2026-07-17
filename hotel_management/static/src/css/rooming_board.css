@@ -87,3 +87,89 @@
     white-space: normal !important;      /* Let long names wrap neatly */
     color: #333333 !important;
 }
+/* =========================================================
+   Phase 1 - Group Rooming Board Cleanup
+   Purpose: clean aligned cards and clearer staff view
+   ========================================================= */
+
+.o_kanban_view.o_hotel_rooming_board .o_kanban_renderer {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 14px !important;
+    overflow-x: auto !important;
+}
+
+/* Each reservation/room column */
+.o_kanban_view.o_hotel_rooming_board .o_kanban_group {
+    flex: 0 0 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
+    border: 1px solid #d8dee4 !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    overflow: hidden !important;
+}
+
+/* Guest pool column */
+.o_kanban_view.o_hotel_rooming_board .o_kanban_group:first-child {
+    flex-basis: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+    background: #f8f9fa !important;
+    border: 2px solid #17a2b8 !important;
+}
+
+/* Column header */
+.o_kanban_view.o_hotel_rooming_board .o_kanban_header {
+    min-height: 50px !important;
+    padding: 10px 12px !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #d8dee4 !important;
+}
+
+/* Header text */
+.o_kanban_view.o_hotel_rooming_board .o_kanban_header_title {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+}
+
+/* Hide quick add button in rooming board */
+.o_kanban_view.o_hotel_rooming_board .o_kanban_quick_add {
+    display: none !important;
+}
+
+/* Reservation/guest card */
+.o_kanban_view.o_hotel_rooming_board .o_kanban_record {
+    margin: 8px 10px !important;
+    width: auto !important;
+}
+
+/* Card body */
+.o_kanban_view.o_hotel_rooming_board .oe_kanban_global_click {
+    min-height: 42px !important;
+    padding: 9px 10px !important;
+    border-radius: 6px !important;
+    border-left: 4px solid #17a2b8 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,.10) !important;
+    overflow: hidden !important;
+}
+
+/* Guest name text */
+.o_kanban_view.o_hotel_rooming_board .oe_kanban_global_click strong,
+.o_kanban_view.o_hotel_rooming_board .oe_kanban_global_click span {
+    display: block !important;
+    font-size: 13px !important;
+    line-height: 1.3 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+}
+
+/* Keep cards from looking oversized */
+.o_kanban_view.o_hotel_rooming_board .o_kanban_record > div {
+    max-width: 100% !important;
+}

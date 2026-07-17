@@ -294,13 +294,15 @@ export class HotelFloorPlan extends Component {
                 await this.showReservationSummary(targetModel, targetId);
                 return;
             }
-            // OPEN EXISTING RESERVATION
+            // OPEN EXISTING RESERVATION / BLOCK
             this.action.doAction({
-                type: 'ir.actions.act_window',
+                type: "ir.actions.act_window",
+                name: targetModel === "hotel.room.block" ? "Room Block" : "Reservation",
                 res_model: targetModel,
                 res_id: targetId,
-                views: [[false, 'form']],
-                target: 'current'
+                views: [[false, "form"]],
+                view_mode: "form",
+                target: "current",
             });
         } else {
             if (!this.state.canManageReservations) {
@@ -312,7 +314,7 @@ export class HotelFloorPlan extends Component {
                 type: 'ir.actions.act_window', 
                 res_model: 'hotel.reservation', 
                 views: [[false, 'form']], 
-                target: 'new', 
+                target: "current", 
                 context: { 
                     default_room_id: room.id,
                     // ADDED: Auto-fill the Room Type field as well

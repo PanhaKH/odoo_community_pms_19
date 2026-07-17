@@ -11,8 +11,7 @@
     'depends': ['base', 'mail', 'sale_management', 'maintenance', 'portal', 'website', 'account', 'point_of_sale'],
     'data': [
         'security/hotel_security.xml',
-        'security/ir.model.access.csv',
-        'views/hotel_quick_access_views.xml',
+        'security/ir.model.access.csv',        
         'views/hotel_quick_access_defaults.xml',
         'data/hotel_nationality_data.xml',
         'data/sequence.xml',
@@ -25,6 +24,7 @@
         'data/hotel_guest_classification_data.xml',
         'data/hotel_document_template_data.xml',
         'data/hotel_daily_transaction_refresh.xml',
+        'views/hotel_report_center_views.xml',
         # --- VIEWS ---
         'views/hotel_room_views.xml',    
         'views/product_minibar_views.xml',
@@ -36,23 +36,19 @@
         'report/hotel_folio_reports.xml',
         'views/pre_arrival_portal_views.xml',
         'wizard/hotel_room_block_wizard_views.xml',
-        'views/hotel_housekeeping_views.xml',
-        
+        'views/hotel_housekeeping_views.xml',        
         'views/hotel_maintenance_views.xml',
         'views/hotel_lost_found_views.xml',
         'wizard/hotel_guest_request_submit_wizard_views.xml',
         'views/hotel_service_request_views.xml',
         'views/hotel_email_audit_views.xml',
         'views/hotel_guest_message_views.xml',
-        'views/hotel_portal_templates.xml',
-        
+        'views/hotel_portal_templates.xml',        
         # --- NEW PAYMENT & POS VIEWS ---
         'views/hotel_payment_views.xml',
-        'views/pos_payment_method_views.xml', # Configuration for "Is Room Charge"
-        
+        'views/pos_payment_method_views.xml', # Configuration for "Is Room Charge"        
         'views/hotel_daily_stats_views.xml',
-        'views/hotel_change_log_views.xml',
-        
+        'views/hotel_change_log_views.xml',        
         'views/hotel_print_reports.xml', # <-- ADD THIS LINE!
         'views/hotel_document_template_views.xml',
         'views/res_users_hotel_role_views.xml',
@@ -64,8 +60,9 @@
         'wizard/reservation_document_print_wizard_views.xml',
         # --- MENUS (Load Last) ---
         'views/res_config_settings_views.xml',
-        'views/hotel_default_setup_views.xml',
-        'views/hotel_menus.xml', 
+        'views/hotel_default_setup_views.xml',         
+        'views/hotel_quick_access_views.xml',
+        'views/hotel_menus.xml',
         'views/hotel_guest_duplicate_review_views.xml',
         'views/hotel_floor_plan_views.xml',
         'views/minibar_charge_wizard_views.xml',
@@ -77,7 +74,7 @@
             # Tape Chart & Grid
             'hotel_management/static/src/css/hotel_quick_access.css',
             'hotel_management/static/src/js/hotel_dashboard_escape_shortcut.js',
-            'hotel_management/static/src/js/hotel_dashboard_tab_memory.js',
+            #'hotel_management/static/src/js/hotel_dashboard_tab_memory.js',
             'hotel_management/static/src/css/rooming_board.css',
             'hotel_management/static/src/css/hotel_tape_chart.css',
             'hotel_management/static/src/xml/hotel_tape_chart.xml',
@@ -87,6 +84,7 @@
             'hotel_management/static/src/xml/availability_grid.xml',
             'hotel_management/static/src/js/availability_grid.js',
             'hotel_management/static/src/css/tax_audit.css',
+            'hotel_management/static/src/js/hotel_qr_auto_find_guest.js',
             # Occupancy & Reporting
             'hotel_management/static/src/css/hotel_occupancy.css',
             'hotel_management/static/src/js/hotel_occupancy_comparison.js',

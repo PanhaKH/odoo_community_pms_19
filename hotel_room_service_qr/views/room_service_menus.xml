@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Root Application Menu (No Action to act as a container) -->
+    <menuitem id="menu_room_service_config"
+              name="Room Service"
+              web_icon="hotel_room_service_qr,static/description/icon.png"
+              sequence="48"
+              groups="hotel_management.group_hotel_front_office,hotel_management.group_hotel_manager,base.group_system"/>
+
+    <!-- 1. Dashboard -->
+    <menuitem id="menu_room_service_dashboard"
+              name="Dashboard"
+              parent="menu_room_service_config"
+              action="action_room_service_dashboard"
+              sequence="10"
+              groups="hotel_management.group_hotel_front_office,hotel_management.group_hotel_manager,base.group_system"/>
+
+    <!-- 2. Operations Submenu -->
+    <menuitem id="menu_room_service_operations"
+              name="Operations"
+              parent="menu_room_service_config"
+              sequence="20"
+              groups="hotel_management.group_hotel_front_office,hotel_management.group_hotel_manager,base.group_system"/>
+
+    <record id="action_room_service_pos_outlets" model="ir.actions.act_window">
+        <field name="name">POS Outlets</field>
+        <field name="res_model">pos.config</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'from_room_service': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No POS Outlets found.
+            </p>
+            <p>
+                Configure your Room Service Outlets and link them to POS configurations to see them here.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_room_service_pos_outlets"
+              name="POS Outlets"
+              parent="menu_room_service_operations"
+              action="action_room_service_pos_outlets"
+              sequence="5"/>
+
+    <menuitem id="menu_room_service_all_orders"
+              name="Room Service Orders"
+              parent="menu_room_service_operations"
+              action="action_room_service_all_orders"
+              sequence="10"/>
+
+    <record id="action_room_service_room_status" model="ir.actions.act_url">
+        <field name="name">Room Status</field>
+        <field name="url">/room-service/room-status</field>
+        <field name="target">self</field>
+    </record>
+
+    <menuitem id="menu_room_service_room_status"
+              name="Room Status"
+              parent="menu_room_service_operations"
+              action="action_room_service_room_status"
+              sequence="15"/>
+
+    <record id="action_room_service_order_display" model="ir.actions.act_url">
+        <field name="name">Service Order Monitor</field>
+        <field name="url">/room-service/order-display</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_room_service_monitor"
+              name="Service Order Monitor"
+              parent="menu_room_service_operations"
+              action="action_room_service_order_display"
+              sequence="20"/>
+
+    <menuitem id="menu_room_service_order_history"
+              name="Service Order History"
+              parent="menu_room_service_operations"
+              action="action_room_service_order_history"
+              sequence="60"/>
+
+    <!-- 3. QR Management Submenu -->
+
+
+    <!-- 4. Reporting Submenu -->
+    <menuitem id="menu_room_service_reporting_parent"
+              name="Reporting"
+              parent="menu_room_service_config"
+              sequence="40"
+              groups="hotel_management.group_hotel_manager,base.group_system"/>
+
+    <menuitem id="menu_room_service_report_dashboard"
+              name="Dashboard Report"
+              parent="menu_room_service_reporting_parent"
+              action="action_room_service_report_dashboard"
+              sequence="10"/>
+
+    <menuitem id="menu_room_service_report_daily"
+              name="Daily Report"
+              parent="menu_room_service_reporting_parent"
+              action="action_room_service_report_daily"
+              sequence="20"/>
+
+    <menuitem id="menu_room_service_report_weekly"
+              name="Weekly Report"
+              parent="menu_room_service_reporting_parent"
+              action="action_room_service_report_weekly"
+              sequence="30"/>
+
+    <menuitem id="menu_room_service_report_monthly"
+              name="Monthly Report"
+              parent="menu_room_service_reporting_parent"
+              action="action_room_service_report_monthly"
+              sequence="40"/>
+
+    <menuitem id="menu_room_service_report_yearly"
+              name="Yearly Report"
+              parent="menu_room_service_reporting_parent"
+              action="action_room_service_report_yearly"
+              sequence="50"/>
+
+    <menuitem id="menu_room_service_report_revenue"
+              name="Revenue Analysis"
+              parent="menu_room_service_reporting_parent"
+              action="action_room_service_report_revenue_analysis"
+              sequence="60"/>
+
+    <menuitem id="menu_room_service_report_sales"
+              name="Sales Analysis"
+              parent="menu_room_service_reporting_parent"
+              action="action_room_service_report_sales_analysis"
+              sequence="70"/>
+
+    <menuitem id="menu_room_service_report_order_list"
+              name="Service Order Report"
+              parent="menu_room_service_reporting_parent"
+              action="action_room_service_report_order_list"
+              sequence="80"/>
+
+    <menuitem id="menu_room_service_report_bill_to_room_list"
+              name="Bill to Room Report"
+              parent="menu_room_service_reporting_parent"
+              action="action_room_service_report_bill_to_room"
+              sequence="90"/>
+
+
+
+    <!-- 5. Configuration Submenu -->
+    <menuitem id="menu_room_service_config_parent"
+              name="Configuration"
+              parent="menu_room_service_config"
+              sequence="50"
+              groups="hotel_management.group_hotel_manager,base.group_system"/>
+
+    <menuitem id="menu_room_service_outlets"
+              name="Outlets"
+              parent="menu_room_service_config_parent"
+              action="action_room_service_outlets"
+              sequence="10"/>
+
+    <menuitem id="menu_room_service_settings"
+              name="Room Service Settings"
+              parent="menu_room_service_config_parent"
+              action="action_room_service_outlets"
+              sequence="20"/>
+
+    <menuitem id="menu_room_service_qr_directory"
+              name="All Room Service QR Codes"
+              parent="menu_room_service_config_parent"
+              action="action_room_service_qr_directory"
+              sequence="30"/>
+
+    <menuitem id="menu_room_service_tokens"
+              name="Room QR Tokens"
+              parent="menu_room_service_config_parent"
+              action="action_room_service_tokens"
+              sequence="40"/>
+
+    <menuitem id="menu_room_service_generate_tokens"
+              name="Generate Missing QR Tokens"
+              parent="menu_room_service_config_parent"
+              action="action_generate_missing_room_service_tokens"
+              sequence="50"/>
+
+    <!-- Legacy / Hidden menu items config overrides -->
+    <menuitem id="menu_room_service_menu_items"
+              name="Legacy Menu Items"
+              parent="menu_room_service_config_parent"
+              action="action_room_service_menu_items"
+              sequence="60"/>
+
+    <record id="menu_room_service_menu_items" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
+    <!-- 6. Logs Submenu -->
+    <menuitem id="menu_room_service_logs_parent"
+              name="Logs"
+              parent="menu_room_service_config"
+              sequence="60"
+              groups="hotel_management.group_hotel_manager,base.group_system"/>
+
+    <menuitem id="menu_room_service_retry_logs"
+              name="Retry Logs"
+              parent="menu_room_service_logs_parent"
+              action="action_room_service_retry_logs"
+              sequence="10"/>
+
+    <menuitem id="menu_room_service_sync_logs"
+              name="Synchronization Logs"
+              parent="menu_room_service_logs_parent"
+              action="action_room_service_sync_logs"
+              sequence="20"/>
+
+    <menuitem id="menu_room_service_activity_logs"
+              name="Activity Logs"
+              parent="menu_room_service_logs_parent"
+              action="action_room_service_activity_logs"
+              sequence="30"/>
+
+    <menuitem id="menu_room_service_bill_to_room_logs"
+              name="Bill to Room Logs"
+              parent="menu_room_service_logs_parent"
+              action="action_room_service_bill_to_room_logs"
+              sequence="40"/>
+
+    <!-- Filter Point of Sale App Dashboard to hide specific outlets -->
+    <record id="point_of_sale.action_pos_config_kanban" model="ir.actions.act_window">
+        <field name="domain">[('hide_in_pos', '=', False)]</field>
+    </record>
+</odoo>

@@ -22,6 +22,21 @@
               groups="hotel_management.group_hotel_night_auditor"/>
     <menuitem id="menu_hotel_config" name="Configuration" parent="menu_hotel_root" sequence="100"
               groups="hotel_management.group_hotel_manager,base.group_system"/>
+
+    <menuitem id="menu_hotel_report_center"
+              name="Report Center"
+              parent="menu_hotel_root"
+              action="action_hotel_report_center"
+              sequence="68"
+              groups="hotel_management.group_hotel_manager,base.group_system"/>
+
+    <menuitem id="menu_hotel_quick_access_item"
+              name="Quick Access Toolbar"
+              parent="menu_hotel_config"
+              action="action_hotel_quick_access_item"
+              sequence="2"
+              groups="hotel_management.group_hotel_manager,hotel_management.group_hotel_system_admin,base.group_system"/>
+
     <menuitem id="menu_hotel_rate_plan" 
               name="Rate Plans" 
               parent="hotel_management.menu_hotel_config" 

@@ -1,0 +1,1771 @@
+/*
+ * Odoo deliberately caps form renderers and sheet backgrounds. SQL reports
+ * are a workspace, not a document form, so remove those caps only on this
+ * view. The :has() scope prevents these rules from affecting other forms.
+ */
+.o_form_renderer.o_psql_form,
+.o_form_view:has(.o_psql_workspace),
+.o_form_view:has(.o_psql_workspace) .o_form_view_container,
+.o_form_view:has(.o_psql_workspace) .o_form_renderer {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
+}
+
+.o_form_view:has(.o_psql_workspace) .o_form_view_container,
+.o_form_view:has(.o_psql_workspace) .o_form_renderer {
+    flex: 1 1 auto;
+}
+
+.o_form_renderer.o_psql_form .o_form_sheet_bg,
+.o_form_view:has(.o_psql_workspace) .o_form_sheet_bg {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
+    min-height: calc(100vh - 112px);
+    margin: 0 !important;
+    padding-inline: 16px !important;
+    box-sizing: border-box;
+    background: #f6f7f9;
+}
+
+.o_form_renderer.o_psql_form .o_form_sheet,
+.o_form_view:has(.o_psql_workspace) .o_form_sheet {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
+    margin-inline: 0 !important;
+    box-sizing: border-box;
+}
+
+.o_form_view:has(.o_psql_workspace) .o_field_widget[name="result_data"] {
+    display: block;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+}
+
+.o_psql_identity {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(320px, 2fr);
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.o_psql_workspace {
+    --qsql-border: #d8dde6;
+    --qsql-muted: #667085;
+    --qsql-primary: var(--o-brand-primary, #714b67);
+    color: #172033;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    min-height: 680px;
+    box-sizing: border-box;
+}
+
+.o_psql_page_header {
+    padding: 4px 2px 14px;
+}
+
+.o_psql_page_header h2 {
+    margin: 0;
+    color: #172033;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.o_psql_page_header p {
+    margin: 4px 0 0;
+    color: var(--qsql-muted);
+    font-size: 14px;
+}
+
+.o_psql_fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 1055;
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+    background: #f6f7f9;
+    padding: 12px;
+}
+
+.o_psql_fullscreen .o_psql_main {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 24vw);
+}
+
+.o_psql_fullscreen .o_psql_editor_panel,
+.o_psql_fullscreen .o_psql_browser {
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.o_psql_fullscreen .o_psql_editor_host {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 320px;
+    overflow: hidden;
+}
+
+.o_psql_fullscreen .o_psql_ace_editor {
+    position: relative;
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100% !important;
+    min-height: 320px;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.o_psql_fullscreen .o_psql_object_tree {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+}
+
+.o_psql_fullscreen .o_psql_browser {
+    position: static;
+    align-self: stretch;
+    height: 100%;
+}
+
+.o_psql_fullscreen .o_psql_page_header {
+    padding-top: 0;
+}
+
+.o_psql_toolbar,
+.o_psql_toolbar_primary,
+.o_psql_toolbar_secondary,
+.o_psql_statusbar,
+.o_psql_result_tools,
+.o_psql_pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.o_psql_toolbar {
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 12px;
+    background: #fff;
+    border: 1px solid var(--qsql-border);
+    border-radius: 12px 12px 0 0;
+}
+
+.o_psql_toolbar_primary,
+.o_psql_toolbar_secondary {
+    flex-wrap: wrap;
+}
+
+.o_psql_toolbar .btn {
+    min-height: 36px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.o_psql_statusbar {
+    flex-wrap: wrap;
+    min-height: 42px;
+    padding: 8px 12px;
+    color: var(--qsql-muted);
+    background: #fbfcfd;
+    border: 1px solid var(--qsql-border);
+    border-top: 0;
+}
+
+.o_psql_statusbar > span:not(:last-child) {
+    padding-right: 12px;
+    border-right: 1px solid var(--qsql-border);
+}
+
+.o_psql_status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px !important;
+    border: 0 !important;
+    border-radius: 999px;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.o_psql_status_success { color: #067647; background: #ecfdf3; }
+.o_psql_status_empty, .o_psql_status_never { color: #475467; background: #f2f4f7; }
+.o_psql_status_error { color: #b42318; background: #fef3f2; }
+.o_psql_shortcut_hint { margin-left: auto; border: 0 !important; }
+
+.o_psql_message {
+    margin: 10px 0 0;
+    border-radius: 10px;
+}
+
+.o_psql_parameter_popup .modal-dialog,
+.modal-dialog:has(.o_psql_parameter_popup) {
+    width: calc(100vw - 32px);
+    max-width: 760px;
+}
+
+.o_psql_parameter_popup .o_form_sheet {
+    max-width: none;
+}
+
+.modal:has(.o_psql_parameter_popup) .modal-content,
+.modal:has(.o_psql_parameter_popup) .modal-body {
+    overflow: visible;
+}
+
+.o_psql_parameter_popup .oe_title {
+    margin-bottom: 18px !important;
+}
+
+.o_psql_parameter_popup .oe_title h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.o_psql_parameter_popup .o_inner_group {
+    margin-bottom: 8px;
+}
+
+.o_psql_parameter_popup,
+.modal:has(.o_psql_parameter_popup) {
+    --sql-date-primary: #5b8def;
+    --sql-date-primary-hover: #3b82f6;
+    --sql-date-text: #1f2937;
+    --sql-date-muted: #6b7280;
+    --sql-date-border: #e5e7eb;
+    --sql-date-border-strong: #cbd5e1;
+    --sql-date-background: #ffffff;
+    --sql-date-hover: #f3f6fb;
+    --sql-date-radius: 10px;
+    --sql-date-shadow: 0 5px 16px rgba(15, 23, 42, 0.08);
+    --sql-date-ring: rgba(91, 141, 239, 0.18);
+}
+
+.o_psql_runtime_form {
+    display: grid;
+    gap: 14px;
+    max-width: 690px;
+    padding-top: 4px;
+}
+
+.o_psql_runtime_row {
+    display: grid;
+    grid-template-columns: 170px minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+}
+
+.o_psql_runtime_label {
+    margin: 0;
+    color: #172033;
+    font-weight: 650;
+}
+
+.o_psql_runtime_control,
+.o_psql_runtime_pair .form-control {
+    width: 100%;
+    min-height: 36px;
+}
+
+.o_psql_runtime_pair {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr);
+    gap: 16px;
+    align-items: end;
+}
+
+.o_psql_runtime_pair label {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.sql-report-parameter-dialog .o_psql_runtime_date_pair {
+    gap: 18px;
+}
+
+.sql-report-parameter-dialog .o_psql_date_field {
+    min-width: 0;
+}
+
+.sql-report-parameter-dialog .o_psql_date_field > span {
+    color: var(--sql-date-text);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 18px;
+}
+
+.sql-report-parameter-dialog .o_psql_date_input {
+    width: 100%;
+    min-height: 44px;
+    height: 44px;
+    padding: 9px 42px 9px 13px;
+    border: 1px solid var(--sql-date-border);
+    border-radius: var(--sql-date-radius);
+    background-color: var(--sql-date-background);
+    color: var(--sql-date-text);
+    font-size: 14px;
+    line-height: 20px;
+    box-shadow: none;
+    transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+
+.sql-report-parameter-dialog .o_psql_date_input:hover:not(:disabled) {
+    border-color: var(--sql-date-border-strong);
+    background-color: #fbfdff;
+}
+
+.sql-report-parameter-dialog .o_psql_date_input:focus,
+.sql-report-parameter-dialog .o_psql_date_input:focus-visible {
+    border-color: var(--sql-date-primary);
+    box-shadow: 0 0 0 3px var(--sql-date-ring);
+    outline: 0;
+}
+
+.sql-report-parameter-dialog .o_psql_date_input::placeholder {
+    color: #9ca3af;
+    opacity: 1;
+}
+
+.sql-report-parameter-dialog .o_psql_date_input:disabled {
+    color: var(--sql-date-muted);
+    background-color: #f8fafc;
+    cursor: not-allowed;
+    opacity: .85;
+}
+
+.sql-report-parameter-dialog .o_psql_date_input::-webkit-calendar-picker-indicator {
+    width: 18px;
+    height: 18px;
+    margin-right: 2px;
+    padding: 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    opacity: .72;
+    transition: opacity .16s ease, background-color .16s ease;
+}
+
+.sql-report-parameter-dialog .o_psql_date_input::-webkit-calendar-picker-indicator:hover {
+    background-color: var(--sql-date-hover);
+    opacity: 1;
+}
+
+.sql-report-parameter-dialog .o_psql_modern_date {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+
+.sql-report-parameter-dialog .o_psql_date_trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 9px 12px 9px 14px;
+    border: 1px solid var(--sql-date-border);
+    border-radius: var(--sql-date-radius);
+    background: var(--sql-date-background);
+    color: var(--sql-date-text);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    text-align: left;
+    transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+
+.sql-report-parameter-dialog .o_psql_date_trigger:hover:not(:disabled) {
+    border-color: var(--sql-date-border-strong);
+    background: #fbfdff;
+}
+
+.sql-report-parameter-dialog .o_psql_date_trigger:focus,
+.sql-report-parameter-dialog .o_psql_date_trigger:focus-visible,
+.sql-report-parameter-dialog .o_psql_modern_date.is-open .o_psql_date_trigger {
+    border-color: var(--sql-date-primary);
+    box-shadow: 0 0 0 3px var(--sql-date-ring);
+    outline: 0;
+}
+
+.sql-report-parameter-dialog .o_psql_date_trigger:disabled {
+    color: var(--sql-date-muted);
+    background: #f8fafc;
+    cursor: not-allowed;
+    opacity: .85;
+}
+
+.sql-report-parameter-dialog .o_psql_date_trigger .fa {
+    flex: 0 0 auto;
+    color: var(--sql-date-primary-hover);
+    font-size: 16px;
+    opacity: .9;
+}
+
+.sql-report-parameter-dialog .o_psql_date_value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sql-report-parameter-dialog .o_psql_date_value.is-placeholder {
+    color: #9ca3af;
+    font-weight: 450;
+}
+
+.sql-report-parameter-dialog .o_psql_date_calendar {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 3000;
+    width: 232px;
+    max-width: calc(100vw - 32px);
+    margin-top: 0;
+    overflow: hidden;
+    border: 1px solid var(--sql-date-border);
+    border-radius: 10px;
+    background: var(--sql-date-background);
+    box-shadow: var(--sql-date-shadow);
+    color: var(--sql-date-text);
+}
+
+.sql-report-parameter-dialog .o_psql_date_calendar_right {
+    right: 0;
+    left: auto;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_year {
+    padding: 2px 10px 0;
+    color: var(--sql-date-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_month_grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 7px 9px 9px;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_month {
+    min-height: 28px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--sql-date-text);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_month:hover,
+.sql-report-parameter-dialog .o_psql_calendar_month:focus-visible {
+    background: var(--sql-date-hover);
+    color: var(--sql-date-primary-hover);
+    outline: 0;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_month.is-selected {
+    background: var(--sql-date-primary);
+    color: #fff;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    padding: 8px 9px 6px;
+    background: #fff;
+}
+
+.sql-report-parameter-dialog .o_psql_month_title {
+    display: inline-flex;
+    align-items: center;
+    max-width: 132px;
+    padding: 2px 4px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 750;
+    line-height: 20px;
+    text-align: left;
+}
+
+.sql-report-parameter-dialog .o_psql_month_title:hover {
+    background: var(--sql-date-hover);
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_nav button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #111827;
+    font-size: 12px;
+    transition: background-color .16s ease, color .16s ease;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_nav button:hover,
+.sql-report-parameter-dialog .o_psql_calendar_nav button:focus-visible {
+    background: var(--sql-date-hover);
+    color: var(--sql-date-primary-hover);
+    outline: 0;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 1px;
+    padding: 6px 9px 7px;
+    border-bottom: 1px solid var(--sql-date-border);
+    color: #111827;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 3px 2px;
+    padding: 7px 9px 9px;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_day {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin: 0 auto;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    transition: background-color .14s ease, color .14s ease, box-shadow .14s ease;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_day:hover,
+.sql-report-parameter-dialog .o_psql_calendar_day:focus-visible {
+    background: var(--sql-date-hover);
+    color: var(--sql-date-primary-hover);
+    outline: 0;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_day.is-outside {
+    color: #a8b1bf;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_day.is-today:not(.is-selected) {
+    box-shadow: inset 0 0 0 1px var(--sql-date-primary);
+    color: var(--sql-date-primary-hover);
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_day.is-selected {
+    background: linear-gradient(180deg, #4f8df7 0%, #2f74e8 100%);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, .22);
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 34px;
+    padding: 4px 9px;
+    border-top: 1px solid var(--sql-date-border);
+    background: #fff;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_footer button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 3px 5px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--sql-date-primary-hover);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.sql-report-parameter-dialog .o_psql_calendar_footer button:hover,
+.sql-report-parameter-dialog .o_psql_calendar_footer button:focus-visible {
+    background: var(--sql-date-hover);
+    outline: 0;
+}
+
+.modal:has(.o_psql_parameter_popup) .o_datetime_picker,
+.modal:has(.o_psql_parameter_popup) .bootstrap-datetimepicker-widget,
+.modal:has(.o_psql_parameter_popup) .datepicker,
+.modal:has(.o_psql_parameter_popup) .ui-datepicker {
+    overflow: hidden;
+    border: 1px solid var(--sql-date-border);
+    border-radius: 14px;
+    background: var(--sql-date-background);
+    box-shadow: var(--sql-date-shadow);
+    color: var(--sql-date-text);
+    font-size: 13px;
+}
+
+.modal:has(.o_psql_parameter_popup) .o_datetime_picker_header,
+.modal:has(.o_psql_parameter_popup) .datepicker-days thead,
+.modal:has(.o_psql_parameter_popup) .ui-datepicker-header {
+    border-bottom: 1px solid var(--sql-date-border);
+    background: #fff;
+    color: var(--sql-date-text);
+    font-weight: 700;
+}
+
+.modal:has(.o_psql_parameter_popup) .o_datetime_picker button,
+.modal:has(.o_psql_parameter_popup) .bootstrap-datetimepicker-widget button,
+.modal:has(.o_psql_parameter_popup) .datepicker .prev,
+.modal:has(.o_psql_parameter_popup) .datepicker .next,
+.modal:has(.o_psql_parameter_popup) .ui-datepicker-prev,
+.modal:has(.o_psql_parameter_popup) .ui-datepicker-next {
+    min-width: 32px;
+    min-height: 32px;
+    border-radius: 8px;
+    color: var(--sql-date-text);
+}
+
+.modal:has(.o_psql_parameter_popup) .o_datetime_picker button:hover,
+.modal:has(.o_psql_parameter_popup) .bootstrap-datetimepicker-widget button:hover,
+.modal:has(.o_psql_parameter_popup) .datepicker .prev:hover,
+.modal:has(.o_psql_parameter_popup) .datepicker .next:hover,
+.modal:has(.o_psql_parameter_popup) .ui-datepicker-prev:hover,
+.modal:has(.o_psql_parameter_popup) .ui-datepicker-next:hover {
+    background: var(--sql-date-hover);
+}
+
+.modal:has(.o_psql_parameter_popup) .datepicker table tr td,
+.modal:has(.o_psql_parameter_popup) .datepicker table tr th,
+.modal:has(.o_psql_parameter_popup) .ui-datepicker-calendar td a,
+.modal:has(.o_psql_parameter_popup) .ui-datepicker-calendar td span {
+    border-radius: 8px;
+    color: var(--sql-date-text);
+}
+
+.modal:has(.o_psql_parameter_popup) .datepicker table tr td.day:hover,
+.modal:has(.o_psql_parameter_popup) .ui-datepicker-calendar td a:hover {
+    background: var(--sql-date-hover);
+}
+
+.modal:has(.o_psql_parameter_popup) .datepicker table tr td.active,
+.modal:has(.o_psql_parameter_popup) .datepicker table tr td.active:hover,
+.modal:has(.o_psql_parameter_popup) .ui-datepicker-calendar .ui-state-active {
+    background: var(--sql-date-primary) !important;
+    color: #fff !important;
+    text-shadow: none;
+}
+
+.modal:has(.o_psql_parameter_popup) .datepicker table tr td.old,
+.modal:has(.o_psql_parameter_popup) .datepicker table tr td.new,
+.modal:has(.o_psql_parameter_popup) .ui-datepicker-other-month a,
+.modal:has(.o_psql_parameter_popup) .ui-datepicker-other-month span {
+    color: #b6beca !important;
+}
+
+.o_psql_runtime_check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    min-height: 36px;
+}
+
+.o_psql_runtime_multi {
+    min-height: 74px;
+}
+
+.o_psql_runtime_help {
+    margin: -8px 0 0 186px;
+    color: #667085;
+    font-size: 12px;
+}
+
+@media (max-width: 720px) {
+    .o_psql_runtime_row {
+        grid-template-columns: 1fr;
+        gap: 7px;
+    }
+
+    .o_psql_runtime_pair {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .sql-report-parameter-dialog .o_psql_date_input {
+        min-height: 42px;
+        height: 42px;
+    }
+
+    .sql-report-parameter-dialog .o_psql_date_trigger {
+        min-height: 42px;
+    }
+
+    .sql-report-parameter-dialog .o_psql_date_calendar,
+    .sql-report-parameter-dialog .o_psql_date_calendar_right {
+        left: 0;
+        right: auto;
+        width: 232px;
+        max-width: calc(100vw - 42px);
+    }
+
+    .o_psql_runtime_help {
+        margin-left: 0;
+    }
+}
+
+.o_psql_main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: stretch;
+    gap: 14px;
+    min-height: 560px;
+    margin-top: 14px;
+}
+
+.o_psql_panel {
+    min-width: 0;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--qsql-border);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(16, 24, 40, 0.05);
+}
+
+.o_psql_panel_header {
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--qsql-border);
+    font-weight: 700;
+}
+
+.o_psql_panel_header small { color: var(--qsql-muted); font-weight: 500; }
+
+.o_psql_editor_host {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    background: #fbfcfe;
+}
+
+.o_psql_ace_editor {
+    height: 100% !important;
+    min-height: 520px;
+    font: 14px/1.6 "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+}
+
+.o_psql_editor_panel,
+.o_psql_browser {
+    min-height: 560px;
+    height: calc(100vh - 330px);
+    display: flex;
+    flex-direction: column;
+}
+
+.o_psql_result_header { flex-wrap: wrap; }
+.o_psql_result_tools { margin-left: auto; }
+.o_psql_result_tools .input-group {
+    width: 280px;
+    max-width: 45vw;
+}
+.o_psql_result_tools .form-select { width: 110px; }
+
+.o_psql_table_scroll {
+    max-height: 420px;
+    overflow: auto;
+}
+
+.o_psql_result_table {
+    width: max-content;
+    min-width: 100%;
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.o_psql_result_table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    min-width: 130px;
+    padding: 9px 12px;
+    background: #eef2f7;
+    border-bottom: 1px solid #cfd6e0;
+    white-space: nowrap;
+}
+
+.o_psql_result_table td {
+    max-width: 420px;
+    padding: 7px 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: copy;
+}
+
+.o_psql_result_table tbody tr:nth-child(even) td { background: #fafbfc; }
+.o_psql_result_table tbody tr:hover td { background: #eef5ff; }
+.o_psql_result_table .o_psql_row_number {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    min-width: 58px;
+    width: 58px;
+    color: var(--qsql-muted);
+    text-align: right;
+    background: #f8fafc;
+}
+.o_psql_result_table thead .o_psql_row_number { z-index: 3; }
+.o_psql_sortable { cursor: pointer; user-select: none; }
+.o_psql_null { color: #98a2b3; font-style: italic; }
+
+.o_psql_empty_state {
+    min-height: 210px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--qsql-muted);
+}
+
+.o_psql_pagination {
+    justify-content: space-between;
+    min-height: 48px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--qsql-border);
+    color: var(--qsql-muted);
+}
+
+.o_psql_browser {
+    align-self: stretch;
+    position: sticky;
+    top: 8px;
+}
+
+.o_psql_browser_search { padding: 10px; border-bottom: 1px solid var(--qsql-border); }
+.o_psql_object_tree { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 8px; }
+.o_psql_schema { margin-bottom: 8px; }
+.o_psql_schema_name { padding: 7px 8px; color: #344054; font-weight: 700; }
+.o_psql_table_name,
+.o_psql_column {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 30px;
+    padding: 4px 6px 4px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.o_psql_table_name:hover,
+.o_psql_column:hover { background: #f1f5f9; }
+.o_psql_table_name span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.o_psql_table_name .btn { margin-left: auto; padding: 2px 5px; }
+.o_psql_columns { margin-left: 20px; border-left: 1px solid var(--qsql-border); }
+.o_psql_column { padding-left: 12px; font-size: 12px; }
+.o_psql_column small { margin-left: auto; color: var(--qsql-muted); }
+.o_psql_browser_help { padding: 9px 12px; border-top: 1px solid var(--qsql-border); color: var(--qsql-muted); font-size: 12px; }
+
+/* Query results are rendered in a focused OWL dialog instead of below the editor. */
+.o_psql_result_dialog_content {
+    --qsql-border: #d8dde6;
+    --qsql-muted: #667085;
+    height: calc(100vh - 24px);
+    overflow: hidden;
+}
+
+.o_psql_result_dialog_body {
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.o_psql_result_dialog {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+}
+
+.o_psql_result_dialog_toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--qsql-border);
+    background: #fbfcfd;
+}
+
+.o_psql_result_search { width: 360px; max-width: 55vw; }
+.o_psql_page_size { width: 120px; }
+.o_psql_dialog_table_scroll { flex: 1 1 auto; min-height: 0; max-height: none; }
+.o_psql_dialog_empty { flex: 1 1 auto; }
+
+/* Visual SQL Wizard: wide, review-first query builder. */
+.modal:has(.o_psql_sql_wizard) .modal-dialog {
+    width: 96vw;
+    max-width: 1440px;
+    margin: 1.25rem auto;
+}
+
+.modal:has(.o_psql_sql_wizard) .modal-content {
+    max-height: calc(100vh - 2.5rem);
+}
+
+.o_psql_sql_wizard {
+    min-width: 0;
+}
+
+.o_psql_wizard_heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 0 12px;
+    padding: 4px 2px 14px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.o_psql_wizard_heading h2 { margin: 0; color: #0f172a; font-size: 22px; font-weight: 700; }
+.o_psql_wizard_heading p { margin: 4px 0 0; color: #64748b; }
+.o_psql_wizard_source { margin-bottom: 12px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; }
+.o_psql_metadata_picker .o_input,
+.o_psql_metadata_picker input {
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px;
+    background: #fff;
+}
+.o_psql_metadata_picker .o_input:focus,
+.o_psql_metadata_picker input:focus { border-color: #2563eb !important; box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
+.o_psql_metadata_summary {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: -4px 0 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #eff6ff;
+    color: #1e40af;
+    font-size: 13px;
+}
+.o_psql_wizard_notebook { min-height: 420px; }
+.o_psql_wizard_notebook .tab-content { min-height: 350px; }
+.o_psql_wizard_notebook .o_list_renderer { max-height: 390px; overflow: auto; }
+.o_psql_preview_actions { display: flex; gap: 8px; margin-bottom: 10px; }
+
+.o_psql_sql_preview {
+    overflow: hidden;
+    min-height: 340px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.o_psql_sql_preview_toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    padding: 7px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+}
+
+.o_psql_sql_preview_editor { width: 100%; min-height: 290px; height: 290px; font-family: "Cascadia Code", Consolas, monospace; }
+
+@media (max-width: 900px) {
+    .modal:has(.o_psql_sql_wizard) .modal-dialog { width: 99vw; margin: .25rem auto; }
+    .modal:has(.o_psql_sql_wizard) .modal-content { max-height: calc(100vh - .5rem); }
+}
+
+@media (max-width: 1100px) {
+    .o_psql_main { grid-template-columns: 1fr; }
+    .o_psql_editor_panel { height: calc(100vh - 300px); }
+    .o_psql_browser { position: static; height: 420px; min-height: 420px; }
+}
+
+@media (max-width: 700px) {
+    .o_psql_identity { grid-template-columns: 1fr; }
+    .o_psql_toolbar, .o_psql_toolbar_primary, .o_psql_toolbar_secondary { align-items: stretch; }
+    .o_psql_toolbar_primary, .o_psql_toolbar_secondary { width: 100%; }
+    .o_psql_toolbar .btn { flex: 1 1 auto; }
+    .o_psql_result_tools { width: 100%; }
+    .o_psql_result_tools .input-group { width: 100%; }
+    .o_psql_editor_panel { height: 520px; min-height: 520px; }
+    .o_psql_ace_editor { min-height: 460px; }
+    .o_psql_result_search { width: 100%; max-width: none; }
+    .o_psql_shortcut_hint { display: none; }
+}
+
+/* Custom Step-by-Step SQL Wizard styling */
+.o_psql_sql_wizard_modal_form {
+    padding: 16px 24px;
+    background: #f8fafc;
+}
+
+.o_psql_wizard_container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 580px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+    overflow: hidden;
+}
+
+/* Simple section tabs matching Odoo's notebook navigation. */
+.o_psql_wizard_tabs {
+    display: flex;
+    align-items: stretch;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-bottom: 1px solid #d8dde3;
+    background: #ffffff;
+    scrollbar-width: thin;
+}
+
+.o_psql_wizard_tab {
+    flex: 0 0 auto;
+    min-height: 38px;
+    margin: 0;
+    padding: 9px 16px 8px;
+    border: 0;
+    border-right: 1px solid #d8dde3;
+    border-top: 2px solid transparent;
+    border-radius: 0;
+    background: #f8f9fa;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 18px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.o_psql_wizard_tab:hover {
+    background: #ffffff;
+    color: #714b67;
+}
+
+.o_psql_wizard_tab.active {
+    border-top-color: #714b67;
+    background: #ffffff;
+    color: #714b67;
+    font-weight: 600;
+}
+
+.o_psql_wizard_tab:focus-visible {
+    position: relative;
+    z-index: 1;
+    outline: 2px solid rgba(113, 75, 103, 0.35);
+    outline-offset: -2px;
+}
+
+/* Wizard Body */
+.o_psql_wizard_body {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    min-height: 420px;
+}
+
+/* Step 1: Source Settings grid */
+.o_psql_source_grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.o_psql_field_group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.o_psql_field_group label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #334155;
+}
+
+/* Step 2: Redesigned Dual Panel layout */
+.o_psql_dual_panel_layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.o_psql_panels_container {
+    display: grid;
+    grid-template-columns: 1fr 110px 1.25fr;
+    gap: 12px;
+    align-items: stretch;
+    height: 400px;
+}
+
+.o_psql_panel_column {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.o_psql_panel_header {
+    background: #f1f5f9;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #334155;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.o_psql_panel_search_bar {
+    padding: 8px 12px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.o_psql_panel_list_wrapper {
+    flex: 1;
+    overflow-y: auto;
+    background: #ffffff;
+}
+
+/* Actions panel in the middle */
+.o_psql_panel_actions {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 8px;
+}
+
+.o_psql_panel_actions button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Badging and rows formatting */
+.o_psql_badge_pk {
+    background-color: #fef3c7;
+    color: #d97706;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid #fcd34d;
+}
+
+.o_psql_badge_fk {
+    background-color: #dbeafe;
+    color: #2563eb;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid #bfdbfe;
+}
+
+.o_psql_row_clickable {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.o_psql_row_clickable:hover {
+    background-color: #f1f5f9;
+}
+
+.o_psql_row_clickable.active {
+    background-color: #e0f2fe;
+}
+
+/* Selected list items sorting buttons */
+.o_psql_sort_actions_cell {
+    display: flex;
+    gap: 4px;
+}
+
+.o_psql_btn_sort_arrow {
+    padding: 1px 4px;
+    font-size: 11px;
+    color: #64748b;
+}
+
+.o_psql_btn_sort_arrow:hover {
+    color: #0f172a;
+}
+
+/* Compact spreadsheet-style JOIN editor */
+.o_psql_join_step {
+    min-width: 0;
+}
+
+.o_psql_join_toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.o_psql_join_grid_wrapper {
+    border: 1px solid #dfe3e8;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.o_psql_join_grid {
+    min-width: 1100px;
+    font-size: 12px;
+
+    thead th {
+        padding: 10px 8px;
+        border-bottom: 1px solid #dfe3e8;
+        background: #f7f8fa;
+        color: #3f4a5a;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+    }
+
+    tbody td {
+        padding: 7px 6px;
+        border-color: #edf0f3;
+        background: #fff;
+    }
+
+    tbody tr:hover td,
+    tbody tr.o_psql_join_row_editing td {
+        background: #fafbfc;
+    }
+
+    .form-select,
+    .form-control {
+        min-width: 126px;
+        height: 30px;
+        border-color: #d7dce2;
+        border-radius: 5px;
+        font-size: 12px;
+    }
+
+    .form-select:disabled,
+    .form-control:disabled {
+        border-color: transparent;
+        background-color: transparent;
+        color: #374151;
+        opacity: 1;
+    }
+}
+
+.o_psql_join_reorder_col {
+    width: 34px;
+    min-width: 34px;
+}
+
+.o_psql_join_reorder_buttons {
+    display: flex;
+    flex-direction: column;
+
+    .btn {
+        height: 14px;
+        padding: 0 4px;
+        color: #77808d;
+        font-size: 9px;
+        line-height: 12px;
+    }
+}
+
+.o_psql_join_type_col { width: 94px; }
+.o_psql_join_operator_col { width: 78px; }
+.o_psql_join_alias_col { width: 130px; }
+.o_psql_join_actions_col { width: 84px; min-width: 84px; }
+
+.o_psql_join_actions_col .btn-link {
+    padding: 4px 7px;
+    text-decoration: none;
+}
+
+.o_psql_join_edit_btn { color: #714b67; }
+
+.o_psql_join_empty_state {
+    padding: 44px 20px !important;
+    background: #fafbfc !important;
+    color: #77808d;
+    text-align: center;
+
+    .fa {
+        color: #a9b0ba;
+        font-size: 22px;
+    }
+}
+
+@media (max-width: 768px) {
+    .o_psql_join_toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+/* Wizard Footer */
+.o_psql_wizard_footer {
+    border-top: 1px solid #e2e8f0;
+    background: #f1f5f9;
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.o_psql_wizard_footer_left {
+    display: flex;
+    gap: 10px;
+}
+
+.o_psql_wizard_footer_right {
+    display: flex;
+    gap: 10px;
+}
+
+/* Preview tab elements styling */
+.o_psql_preview_mode_box {
+    margin-top: 16px;
+    padding: 14px;
+    border: 1px solid #fef08a;
+    border-radius: 8px;
+    background-color: #fef9c3;
+}
+
+/* Figma-aligned desktop SQL Wizard shell. Scoped to this wizard only. */
+.modal-dialog:has(.o_psql_sql_wizard_modal_form) {
+    width: 96vw;
+    max-width: 96vw;
+    height: 94vh;
+    margin: 3vh auto;
+
+    .modal-content {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .modal-body {
+        flex: 1 1 auto;
+        height: auto;
+        min-height: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+}
+
+.o_psql_sql_wizard_modal_form {
+    height: 100%;
+    min-height: 0;
+    padding: 0 !important;
+    background: #fff;
+}
+
+.o_psql_sql_wizard_modal_form .o_form_renderer,
+.o_psql_sql_wizard_modal_form .o_field_widget[name="sql_preview"] {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.o_psql_sql_wizard_modal_form .o_field_widget[name="sql_preview"] {
+    min-width: 0;
+}
+
+.o_psql_wizard_container {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.o_psql_wizard_body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #fff;
+}
+
+.o_psql_columns_section {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    padding: 12px 16px 10px;
+
+    > h5 {
+        color: #1f2937;
+        font-size: 14px;
+        line-height: 20px;
+    }
+
+    > p { margin-bottom: 9px !important; }
+
+    .o_psql_table_dropdown_container {
+        max-width: 520px !important;
+        margin-bottom: 10px !important;
+    }
+}
+
+.o_psql_panels_container {
+    grid-template-columns: minmax(280px, 0.9fr) 92px minmax(520px, 1.35fr);
+    gap: 12px;
+    flex: 1 1 auto;
+    min-height: 220px;
+    height: auto;
+}
+
+.o_psql_panel_column {
+    min-width: 0;
+    border-color: #dbe1e8;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
+}
+
+.o_psql_panel_header {
+    min-height: 36px;
+    padding: 8px 12px;
+    background: #f3f6f9;
+}
+
+.o_psql_panel_header .badge {
+    min-width: 22px;
+    padding: 3px 7px;
+    background-color: #714b67 !important;
+    font-size: 10px;
+}
+
+.o_psql_panel_search_bar { padding: 7px 10px; }
+
+.o_psql_panel_list_wrapper {
+    min-height: 0;
+
+    table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    th {
+        position: sticky;
+        z-index: 1;
+        top: 0;
+        padding: 7px 6px;
+        background: #fff !important;
+        color: #374151;
+        font-size: 10.5px;
+        font-weight: 600;
+    }
+
+    td {
+        padding: 6px;
+        border-color: #edf0f3;
+        vertical-align: middle;
+    }
+
+    input.form-control,
+    select.form-select {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+.o_psql_panel_actions {
+    gap: 6px;
+    padding: 6px 0;
+
+    button {
+        min-height: 28px;
+        padding: 4px 6px;
+        border-radius: 5px;
+        font-size: 11px;
+    }
+}
+
+.o_psql_action_symbol {
+    min-width: 14px;
+    font-family: monospace;
+    font-weight: 700;
+    text-align: center;
+}
+
+.o_psql_row_clickable[draggable="true"] { cursor: grab; }
+.o_psql_row_clickable[draggable="true"]:active { cursor: grabbing; }
+
+.o_psql_wizard_tabs {
+    position: sticky;
+    z-index: 5;
+    top: 0;
+    flex: 0 0 36px;
+    min-height: 36px;
+    padding-left: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-top: 1px solid #d8dde3;
+    border-bottom: 1px solid #d8dde3;
+    background: #f7f8fa;
+    scrollbar-width: thin;
+}
+
+.o_psql_wizard_tab {
+    min-height: 35px;
+    padding: 7px 14px 6px;
+    border-top-width: 2px;
+    background: #f7f8fa;
+    font-size: 11px;
+}
+
+.o_psql_active_section {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 12px 16px 16px;
+    overflow: auto;
+
+    > .table-responsive {
+        overflow-x: hidden;
+    }
+
+    table {
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    .form-control,
+    .form-select {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+.o_psql_join_toolbar {
+    margin-bottom: 9px;
+    padding-bottom: 8px;
+
+    h5 { font-size: 13px; }
+}
+
+.o_psql_join_grid_wrapper { overflow: hidden; }
+
+.o_psql_join_grid {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+
+    thead th {
+        padding: 8px 5px;
+        font-size: 10px;
+    }
+
+    tbody td { padding: 5px 4px; }
+
+    .form-select,
+    .form-control {
+        width: 100%;
+        min-width: 0;
+        height: 28px;
+        padding-right: 22px;
+        font-size: 10.5px;
+    }
+}
+
+.o_psql_join_reorder_col { width: 28px; min-width: 28px; }
+.o_psql_join_type_col { width: 86px; }
+.o_psql_join_operator_col { width: 72px; }
+.o_psql_join_alias_col { width: 118px; }
+.o_psql_join_actions_col { width: 74px; min-width: 74px; }
+
+.o_psql_preview_actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.o_psql_dual_panel_layout {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.o_psql_join_step {
+    min-height: 0;
+}
+
+.o_psql_join_grid_wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+.o_psql_active_section > .table-responsive {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+.o_psql_sql_preview {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.o_psql_sql_preview_editor {
+    flex: 1 1 auto;
+    min-height: 220px;
+    height: auto;
+}
+
+.o_psql_preview_mode_box {
+    flex: 0 0 auto;
+}
+
+.o_psql_union_list {
+    display: grid;
+    gap: 10px;
+}
+
+.o_psql_union_card {
+    border: 1px solid #d8dde6;
+    border-radius: 6px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.o_psql_union_card_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f8fafc;
+}
+
+.o_psql_union_card_header .form-select {
+    max-width: 150px;
+}
+
+.o_psql_union_sql {
+    min-height: 120px;
+    border: 0;
+    border-radius: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+}
+
+.o_psql_wizard_footer {
+    position: relative;
+    z-index: 10;
+    flex: 0 0 auto;
+    min-height: 52px;
+    padding: 9px 16px;
+    background: #f3f6f9;
+    box-shadow: 0 -2px 8px rgba(15, 23, 42, 0.04);
+
+    .btn {
+        min-height: 32px;
+        padding: 5px 11px;
+        border-radius: 5px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .o_psql_panels_container {
+        grid-template-columns: minmax(240px, 0.85fr) 82px minmax(460px, 1.3fr);
+    }
+
+    .o_psql_columns_section { padding-inline: 12px; }
+    .o_psql_active_section { padding-inline: 12px; }
+    .o_psql_wizard_tab { padding-inline: 10px; }
+}
+
+@media (max-height: 800px) {
+    .o_psql_columns_section {
+        padding-top: 9px;
+        padding-bottom: 7px;
+    }
+
+    .o_psql_panels_container { min-height: 190px; }
+    .o_psql_active_section { padding-top: 9px; }
+}

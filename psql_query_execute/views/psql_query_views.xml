@@ -1,0 +1,605 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="psql_query_category_view_list" model="ir.ui.view">
+        <field name="name">psql.query.category.view.list</field>
+        <field name="model">psql.query.category</field>
+        <field name="arch" type="xml">
+            <list string="SQL Report Folders" default_order="sequence, name" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name" string="Folder Name"/>
+                <field name="complete_name" string="Full Path" readonly="1" optional="show"/>
+                <field name="parent_id" optional="show"/>
+                <field name="icon" optional="hide" placeholder="fa-folder-o"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="psql_query_category_view_form" model="ir.ui.view">
+        <field name="name">psql.query.category.view.form</field>
+        <field name="model">psql.query.category</field>
+        <field name="arch" type="xml">
+            <form string="SQL Report Folder">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Folder Name"/>
+                        <h1><field name="name" placeholder="Example: Reservations"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="parent_id" placeholder="Top-level folder"/>
+                            <field name="sequence"/>
+                        </group>
+                        <group>
+                            <field name="icon" placeholder="fa-folder-o"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Subfolders" name="subfolders">
+                            <field name="child_ids" context="{'default_parent_id': id}">
+                                <list editable="bottom" default_order="sequence, name">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="icon" optional="hide"/>
+                                    <field name="active" widget="boolean_toggle"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Reports" name="reports">
+                            <field name="report_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="last_execution_status" widget="badge"/>
+                                    <field name="last_executed_date"/>
+                                    <field name="create_uid" widget="many2one_avatar_user"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="psql_query_category_view_search" model="ir.ui.view">
+        <field name="name">psql.query.category.view.search</field>
+        <field name="model">psql.query.category</field>
+        <field name="arch" type="xml">
+            <search string="Search Report Folders">
+                <field name="name"/>
+                <field name="complete_name"/>
+                <field name="parent_id"/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_parent" string="Parent Folder" context="{'group_by': 'parent_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="psql_query_parameter_view_list" model="ir.ui.view">
+        <field name="name">psql.query.parameter.view.list</field>
+        <field name="model">psql.query.parameter</field>
+        <field name="arch" type="xml">
+            <list string="SQL Report Parameters" default_order="sequence, name">
+                <header>
+                    <button name="action_auto_generate_defaults"
+                            string="Auto Generate Defaults"
+                            type="object"
+                            class="btn-primary"
+                            icon="fa-magic"
+                            display="always"
+                            groups="base.group_system"/>
+                </header>
+                <field name="sequence" widget="handle"/>
+                <field name="active" widget="boolean_toggle"/>
+                <field name="name"/>
+                <field name="technical_name"/>
+                <field name="label"/>
+                <field name="filter_type"/>
+                <field name="placeholder" readonly="1"/>
+                <field name="required"/>
+                <field name="hidden"/>
+                <field name="source_type"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="psql_query_parameter_view_form" model="ir.ui.view">
+        <field name="name">psql.query.parameter.view.form</field>
+        <field name="model">psql.query.parameter</field>
+        <field name="arch" type="xml">
+            <form string="SQL Report Parameter">
+                <header>
+                    <button name="action_auto_generate_defaults"
+                            string="Auto Generate Defaults"
+                            type="object"
+                            class="btn-primary"
+                            icon="fa-magic"
+                            groups="base.group_system"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Parameter Name"/>
+                        <h1><field name="name" placeholder="Example: Stay Date Range"/></h1>
+                    </div>
+                    <group string="Parameter Configuration" col="4">
+                        <field name="technical_name"/>
+                        <field name="label"/>
+                        <field name="filter_type"/>
+                        <field name="placeholder" readonly="1"/>
+                        <field name="sequence"/>
+                        <field name="required"/>
+                        <field name="active"/>
+                        <field name="hidden"/>
+                        <field name="read_only"/>
+                        <field name="allow_multiple_values"/>
+                        <field name="show_in_report_header"/>
+                        <field name="show_in_pdf_header"/>
+                        <field name="description" colspan="2"/>
+                        <field name="help_text" colspan="2"/>
+                    </group>
+                    <group string="Data Source" col="4">
+                        <field name="source_type"/>
+                        <field name="fixed_selection_values"
+                               colspan="4"
+                               invisible="source_type != 'fixed'"
+                               placeholder="Draft|Confirmed|Completed&#10;Cancelled=cancel"/>
+                        <field name="sql_lookup_query"
+                               colspan="4"
+                               invisible="source_type != 'sql'"
+                               placeholder="SELECT value, label FROM ..."/>
+                        <field name="source_table"
+                               invisible="source_type != 'table'"/>
+                        <field name="source_field"
+                               invisible="source_type != 'table'"/>
+                        <field name="odoo_model_id"
+                               invisible="source_type != 'odoo_model'"
+                               options="{'no_create': True, 'no_open': True}"/>
+                        <field name="display_field"
+                               invisible="source_type != 'odoo_model'"/>
+                        <field name="value_field"
+                               invisible="source_type != 'odoo_model'"/>
+                        <field name="domain"
+                               invisible="source_type != 'odoo_model'"/>
+                        <field name="parent_parameter_id"
+                               options="{'no_create': True}"/>
+                    </group>
+                    <group string="Default Value" col="4">
+                        <field name="default_value_type"/>
+                        <field name="default_text"
+                               invisible="filter_type not in ['text', 'long_text', 'time', 'hidden']"/>
+                        <field name="default_number"
+                               invisible="filter_type not in ['integer', 'decimal', 'number_range']"/>
+                        <field name="default_number_to"
+                               invisible="filter_type != 'number_range'"/>
+                        <field name="default_date"
+                               invisible="filter_type not in ['date', 'date_range', 'current_date', 'relative_date']"/>
+                        <field name="default_date_to"
+                               invisible="filter_type != 'date_range'"/>
+                        <field name="default_datetime"
+                               invisible="filter_type != 'datetime'"/>
+                        <field name="default_boolean"
+                               invisible="filter_type != 'boolean'"/>
+                        <field name="default_relation_id"
+                               invisible="filter_type not in ['many2one', 'odoo_model_multi']"/>
+                    </group>
+                    <group string="Validation and Formatting" col="4">
+                        <field name="validation_rule"
+                               placeholder="min=1; max=100; max_length=30; min_date=2026-01-01"/>
+                        <field name="date_format"/>
+                        <field name="number_format"/>
+                    </group>
+                    <notebook>
+                        <page string="Linked Reports">
+                            <field name="report_definition_ids" readonly="1">
+                                <list>
+                                    <field name="query_id"/>
+                                    <field name="name"/>
+                                    <field name="technical_name"/>
+                                    <field name="filter_type"/>
+                                    <field name="required"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="psql_query_parameter_view_search" model="ir.ui.view">
+        <field name="name">psql.query.parameter.view.search</field>
+        <field name="model">psql.query.parameter</field>
+        <field name="arch" type="xml">
+            <search string="Search Parameters">
+                <field name="name"/>
+                <field name="technical_name"/>
+                <field name="label"/>
+                <field name="filter_type"/>
+                <filter name="active" string="Active" domain="[('active', '=', True)]"/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_type" string="Parameter Type" context="{'group_by': 'filter_type'}"/>
+                    <filter name="group_source" string="Data Source" context="{'group_by': 'source_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Existing form external ID retained and enhanced in place. -->
+    <record id="psql_query_view_form" model="ir.ui.view">
+        <field name="name">psql.query.view.form</field>
+        <field name="model">psql.query</field>
+        <field name="arch" type="xml">
+            <form string="Interactive SQL Report" class="o_psql_form">
+                <header>
+                    <button name="action_export_xlsx" string="Export XLSX" type="object"
+                            class="btn-secondary" icon="fa-file-excel-o" invisible="not has_result"/>
+                    <button name="action_export_csv" string="Export CSV" type="object"
+                            class="btn-secondary" icon="fa-file-text-o" invisible="not has_result"/>
+                </header>
+                <sheet>
+                    <div class="o_psql_identity">
+                        <div>
+                             <label for="name" string="Report Name"/>
+                             <h1><field name="name" placeholder="Example: Current Database Information"/></h1>
+                        </div>
+                    </div>
+
+                    <group string="Report Information" col="2" class="o_psql_report_information">
+                        <field name="category_id" required="1" placeholder="Select Folder"/>
+                        <field name="description" placeholder="Purpose, users, and expected output of this report..."/>
+                    </group>
+
+                    <!-- Loaded invisibly for the interactive field component and compatibility. -->
+                    <field name="query_name" invisible="1"/>
+                    <field name="report_date_from" invisible="1"/>
+                    <field name="report_date_to" invisible="1"/>
+                    <field name="report_filter_summary" invisible="1"/>
+                    <field name="paper_orientation" invisible="1"/>
+                    <field name="parameter_memory_mode" invisible="1"/>
+                    <field name="parameter_ids" invisible="1"/>
+                    <field name="report_column_ids" invisible="1"/>
+                    <field name="query_preview" invisible="1"/>
+                    <field name="last_executed_date" invisible="1"/>
+                    <field name="last_filter_summary" invisible="1"/>
+                    <field name="query_result" invisible="1"/>
+                    <field name="last_result_metadata" invisible="1"/>
+                    <field name="last_error" invisible="1"/>
+                    <field name="execution_duration" invisible="1"/>
+                    <field name="returned_row_count" invisible="1"/>
+                    <field name="result_limited" invisible="1"/>
+                    <field name="has_result" invisible="1"/>
+                    <field name="is_interactive_session" invisible="1"/>
+                    <field name="result_data" widget="psql_interactive_workspace" nolabel="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Dedicated direct-entry workspace. It uses the same model and execution widget,
+         while keeping its technical session metadata out of the saved Reports list. -->
+    <record id="psql_query_interactive_view_form" model="ir.ui.view">
+        <field name="name">psql.query.interactive.view.form</field>
+        <field name="model">psql.query</field>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <form string="Interactive SQL" class="o_psql_form o_psql_interactive_session_form">
+                <sheet>
+                    <field name="name" invisible="1"/>
+                    <field name="description" invisible="1"/>
+                    <field name="report_date_from" invisible="1"/>
+                    <field name="report_date_to" invisible="1"/>
+                    <field name="report_filter_summary" invisible="1"/>
+                    <field name="last_filter_summary" invisible="1"/>
+                    <field name="last_filter_values" invisible="1"/>
+                    <field name="paper_orientation" invisible="1"/>
+                    <field name="is_interactive_session" invisible="1"/>
+                    <field name="query_name" invisible="1"/>
+                    <field name="query_result" invisible="1"/>
+                    <field name="last_result_metadata" invisible="1"/>
+                    <field name="last_executed_date" invisible="1"/>
+                    <field name="last_execution_status" invisible="1"/>
+                    <field name="last_error" invisible="1"/>
+                    <field name="execution_duration" invisible="1"/>
+                    <field name="returned_row_count" invisible="1"/>
+                    <field name="result_limited" invisible="1"/>
+                    <field name="has_result" invisible="1"/>
+                    <field name="result_data" widget="psql_interactive_workspace" nolabel="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="psql_query_filter_wizard_view_form" model="ir.ui.view">
+        <field name="name">psql.query.filter.wizard.form</field>
+        <field name="model">psql.query.filter.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Report Parameters" class="o_psql_parameter_popup">
+                <sheet>
+                    <div class="oe_title mb-3">
+                        <h2>Run Report</h2>
+                    </div>
+                    <field name="filter_line_ids" nolabel="1" widget="psql_parameter_form">
+                        <list create="false" delete="false" editable="bottom" default_order="sequence,id">
+                            <field name="sequence"/>
+                            <field name="apply_parameter"/>
+                            <field name="name"/>
+                            <field name="required"/>
+                            <field name="read_only"/>
+                            <field name="filter_type"/>
+                            <field name="technical_name"/>
+                            <field name="definition_id"/>
+                            <field name="value_text"/>
+                            <field name="value_integer"/>
+                            <field name="value_decimal"/>
+                            <field name="value_date"/>
+                            <field name="value_datetime"/>
+                            <field name="value_boolean"/>
+                            <field name="selection_value_id"/>
+                            <field name="multiple_selection_value_ids"/>
+                            <field name="many2one_value"/>
+                            <field name="date_preset"/>
+                            <field name="value_date_from"/>
+                            <field name="value_date_to"/>
+                            <field name="value_number_from"/>
+                            <field name="value_number_to"/>
+                            <field name="help_text"/>
+                        </list>
+                    </field>
+                    <field name="has_date_range_lines" invisible="1"/>
+                    <field name="has_other_lines" invisible="1"/>
+                    <div invisible="1">
+                        <field name="date_range_line_ids">
+                            <list create="false" delete="false" editable="bottom" default_order="sequence,id">
+                                <field name="name"/>
+                            </list>
+                        </field>
+                    </div>
+                </sheet>
+                <footer>
+                    <button name="action_preview_report" string="Run Report"
+                            type="object" class="btn-primary" icon="fa-search"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Existing list external ID retained and enhanced in place. -->
+    <record id="psql_query_view_tree" model="ir.ui.view">
+        <field name="name">psql.query.view.list</field>
+        <field name="model">psql.query</field>
+        <field name="arch" type="xml">
+            <list string="SQL Reports" default_order="name">
+                <field name="name" string="Report Name"/>
+                <field name="description" string="Description"/>
+                <button name="action_run_business_report" type="object"
+                        string="Run Report" icon="fa-play" class="btn-primary"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="psql_query_view_search" model="ir.ui.view">
+        <field name="name">psql.query.view.search</field>
+        <field name="model">psql.query</field>
+        <field name="arch" type="xml">
+            <search string="Search SQL Reports">
+                <field name="name" string="Search Reports"
+                       filter_domain="['|', '|', ('name', 'ilike', self), ('category_id', 'ilike', self), ('description', 'ilike', self)]"/>
+                <field name="category_id"/>
+                <field name="description"/>
+                <group>
+                    <filter name="group_category" string="Report Category" context="{'group_by':'category_id'}"/>
+                </group>
+                <searchpanel>
+                    <field name="category_id" string="Report Tree" icon="fa-folder-o"
+                           enable_counters="1" hierarchize="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <record id="psql_query_wizard_view_form" model="ir.ui.view">
+        <field name="name">psql.query.wizard.view.form</field>
+        <field name="model">psql.query.wizard</field>
+        <field name="arch" type="xml">
+            <form string="SQL Query Builder" class="o_psql_sql_wizard_modal_form">
+                <field name="query_id" invisible="1"/>
+                <field name="schema_name" invisible="1"/>
+                <field name="table_option_id" invisible="1"/>
+                <field name="table_alias" invisible="1"/>
+                <field name="distinct" invisible="1"/>
+                <field name="row_limit" invisible="1"/>
+                <field name="row_offset" invisible="1"/>
+                <field name="preview_ready" invisible="1"/>
+                <field name="editor_has_sql" invisible="1"/>
+                <field name="insert_mode" invisible="1"/>
+                <field name="table_option_count" invisible="1"/>
+                <field name="field_option_count" invisible="1"/>
+                
+                <field name="column_line_ids" invisible="1">
+                    <list>
+                        <field name="selected"/>
+                        <field name="field_option_id"/>
+                        <field name="column_name"/>
+                        <field name="data_type"/>
+                        <field name="nullable"/>
+                        <field name="default_value"/>
+                        <field name="primary_key"/>
+                        <field name="foreign_key"/>
+                        <field name="position"/>
+                        <field name="description"/>
+                        <field name="aggregate"/>
+                        <field name="column_alias"/>
+                        <field name="group_by"/>
+                        <field name="sort_direction"/>
+                        <field name="sort_nulls"/>
+                    </list>
+                </field>
+                <field name="join_line_ids" invisible="1">
+                    <list>
+                        <field name="join_type"/>
+                        <field name="table_option_id"/>
+                        <field name="alias"/>
+                        <field name="left_field_option_id"/>
+                        <field name="operator"/>
+                        <field name="right_field_option_id"/>
+                        <field name="left_field"/>
+                        <field name="right_field"/>
+                    </list>
+                </field>
+                <field name="filter_line_ids" invisible="1">
+                    <list>
+                        <field name="connector"/>
+                        <field name="field_option_id"/>
+                        <field name="field_name"/>
+                        <field name="operator"/>
+                        <field name="value"/>
+                        <field name="value_to"/>
+                    </list>
+                </field>
+                <field name="group_line_ids" invisible="1">
+                    <list>
+                        <field name="field_option_id"/>
+                        <field name="field_name"/>
+                    </list>
+                </field>
+                <field name="having_line_ids" invisible="1">
+                    <list>
+                        <field name="connector"/>
+                        <field name="aggregate"/>
+                        <field name="field_option_id"/>
+                        <field name="field_name"/>
+                        <field name="operator"/>
+                        <field name="value"/>
+                    </list>
+                </field>
+                <field name="order_line_ids" invisible="1">
+                    <list>
+                        <field name="field_option_id"/>
+                        <field name="field_name"/>
+                        <field name="direction"/>
+                        <field name="nulls"/>
+                    </list>
+                </field>
+                <field name="union_line_ids" invisible="1">
+                    <list>
+                        <field name="sequence"/>
+                        <field name="union_type"/>
+                        <field name="sql_text"/>
+                    </list>
+                </field>
+
+                <field name="sql_preview" widget="psql_sql_wizard_ui" nolabel="1"/>
+                <footer class="d-none"/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Existing action external ID retained. -->
+    <record id="action_psql_query_categories" model="ir.actions.act_window">
+        <field name="name">Report Folders</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">psql.query.category</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="psql_query_category_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a report folder</p>
+            <p>Organize SQL reports into an unlimited hierarchy of folders.</p>
+        </field>
+    </record>
+
+    <record id="action_psql_query_parameters" model="ir.actions.act_window">
+        <field name="name">Parameters</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">psql.query.parameter</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="psql_query_parameter_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a reusable report parameter</p>
+            <p>Configure reusable filters for Interactive SQL reports.</p>
+        </field>
+    </record>
+
+    <record id="action_psql_query" model="ir.actions.act_window">
+        <field name="name">SQL Reports</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">psql.query</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="psql_query_view_tree"/>
+        <field name="domain">[('is_interactive_session', '=', False)]</field>
+        <field name="search_view_id" ref="psql_query_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first SQL Report</p>
+            <p>Build a library of reusable business reports.</p>
+        </field>
+    </record>
+
+    <record id="action_psql_interactive" model="ir.actions.act_window">
+        <field name="name">Interactive SQL</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">psql.query</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="psql_query_interactive_view_form"/>
+        <field name="target">current</field>
+        <field name="context">{
+            'interactive_sql': True,
+            'default_name': 'Interactive SQL Session',
+            'default_query_name': '',
+            'default_is_interactive_session': True
+        }</field>
+    </record>
+
+    <record id="action_psql_query_wizard" model="ir.actions.act_window">
+        <field name="name">SQL Wizard</field>
+        <field name="res_model">psql.query.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="psql_query_wizard_view_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Existing top-level application menu external ID retained. -->
+    <menuitem id="psql_query_root"
+              name="SQL Reports"
+              action="action_psql_query"
+              sequence="15"
+              groups="base.group_system"
+              web_icon="psql_query_execute,static/description/icon.png"/>
+
+    <menuitem id="psql_query_interactive_menu"
+              name="Interactive SQL"
+              parent="psql_query_root"
+              action="action_psql_interactive"
+              sequence="20"
+              groups="base.group_system"/>
+
+    <menuitem id="psql_query_reports_menu"
+              name="Reports"
+              parent="psql_query_root"
+              action="action_psql_query"
+              sequence="10"
+              groups="base.group_system"/>
+
+    <menuitem id="psql_query_configuration_menu"
+              name="Configuration"
+              parent="psql_query_root"
+              sequence="30"
+              groups="base.group_system"/>
+
+    <menuitem id="psql_query_categories_menu"
+              name="Report Folders"
+              parent="psql_query_configuration_menu"
+              action="action_psql_query_categories"
+              sequence="10"
+              groups="base.group_system"/>
+
+    <menuitem id="psql_query_parameters_menu"
+              name="Parameters"
+              parent="psql_query_configuration_menu"
+              action="action_psql_query_parameters"
+              sequence="20"
+              groups="base.group_system"/>
+</odoo>

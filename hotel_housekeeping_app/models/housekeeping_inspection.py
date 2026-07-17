@@ -509,19 +509,30 @@ class HotelDashboardInspection(models.Model):
             )
 
     def action_view_rooms_ready_for_inspection(self):
-        return {
+        self.ensure_one()
+
+        action = self.env.ref(
+            'hotel_housekeeping_app.action_housekeeping_supervisor_inspection'
+        ).sudo().read()[0]
+
+        action.update({
             'name': _('Ready for Inspection'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'hotel.room',
-            'view_mode': 'kanban,list,form',
+            'target': 'current',
             'domain': [
                 ('occupancy_status', '=', 'vacant'),
                 ('availability_status', '=', 'available'),
                 ('housekeeping_status', '=', 'clean'),
                 ('release_ready', '=', False),
             ],
-            'context': {'create': False},
-        }
+            'context': {
+                'search_default_ready': 1,
+                'create': False,
+                'edit': False,
+                'delete': False,
+            },
+        })
+
+        return action
 
     def action_view_failed_inspection_reclean(self):
         return {

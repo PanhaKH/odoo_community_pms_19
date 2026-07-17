@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--Kitchen screen dashboard for cook    -->
+    <record id="kitchen_custom_dashboard_action" model="ir.actions.client">
+        <field name="name">Kitchen Display</field>
+        <field name="tag">kitchen_custom_dashboard_tags</field>
+        <field name="target">fullscreen</field>
+    </record>
+    <!--Kitchen screen action-->
+    <record id="kitchen_screen_action" model="ir.actions.act_window">
+        <field name="name">Kitchen Displays</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">kitchen.screen</field>
+        <field name="view_mode">kanban,list,form</field>
+    </record>
+    <!--    Kitchen screen Form & Tree view -->
+    <record id="kitchen_screen_view_kanban" model="ir.ui.view">
+        <field name="name">kitchen.screen.view.kanban</field>
+        <field name="model">kitchen.screen</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_small_column" create="true">
+                <field name="sequence"/>
+                <field name="pos_config_id"/>
+                <field name="to_prepare_count"/>
+                <field name="ready_count"/>
+                <field name="completed_count"/>
+                <field name="in_progress_count"/>
+                <field name="average_time_display"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="p-3 h-100" style="min-width: 500px; border: 1px solid #d8dee6; border-radius: 4px; background: #fff;">
+                            <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                <div>
+                                    <strong class="d-block fs-5 text-dark">Kitchen Display</strong>
+                                    <span class="text-muted" t-if="record.pos_config_id.value">
+                                        <t t-esc="record.pos_config_id.value"/>
+                                    </span>
+                                    <span class="text-muted" t-else="">
+                                        Select outlet
+                                    </span>
+                                </div>
+                                <button type="open"
+                                        class="btn btn-link text-muted p-0"
+                                        title="Configure Display">
+                                    <i class="fa fa-ellipsis-v"/>
+                                </button>
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-1 mb-4">
+                                <span class="badge rounded-pill text-bg-light">
+                                    To prepare
+                                    <t t-if="record.to_prepare_count.raw_value">
+                                        <t t-esc="record.to_prepare_count.raw_value"/>
+                                    </t>
+                                </span>
+                                <span class="badge rounded-pill text-bg-light">
+                                    Ready
+                                    <t t-if="record.ready_count.raw_value">
+                                        <t t-esc="record.ready_count.raw_value"/>
+                                    </t>
+                                </span>
+                                <span class="badge rounded-pill text-bg-light">
+                                    Completed
+                                    <t t-if="record.completed_count.raw_value">
+                                        <t t-esc="record.completed_count.raw_value"/>
+                                    </t>
+                                </span>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-end gap-4">
+                                <div class="d-flex gap-2">
+                                    <button type="object"
+                                            name="action_open_preparation_screen"
+                                            class="btn btn-primary fw-bold px-3"
+                                            style="background: #714b67; border-color: #714b67;">
+                                        Preparation Screen
+                                    </button>
+                                    <button type="object"
+                                            name="action_open_status_display"
+                                            class="btn btn-light fw-bold px-3"
+                                            style="background: #eef0f4;">
+                                        Order Status Screen
+                                    </button>
+                                </div>
+                                <div class="text-end text-dark" style="min-width: 150px;">
+                                    <div class="d-flex justify-content-between gap-4">
+                                        <span>In progress</span>
+                                        <strong><t t-esc="record.in_progress_count.raw_value"/></strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between gap-4">
+                                        <span>Average time</span>
+                                        <strong><t t-esc="record.average_time_display.value or &quot;0'&quot;"/></strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="kitchen_screen_view_form" model="ir.ui.view">
+        <field name="name">kitchen.screen.view.form</field>
+        <field name="model">kitchen.screen</field>
+        <field name="arch" type="xml">
+            <form class="kitchen_form_view">
+                <sheet>
+                    <div class="row mt16 o_settings_container"
+                         name="auto_approval">
+                        <div class="col-12 col-lg-6 o_setting_box"
+                             id="pos_config_id">
+                            <div class="o_setting_left_pane">
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="pos_config_id"/>
+                                <div class="text-muted">
+                                    <div>
+                                        <field name="pos_config_id"/>
+                                    </div>
+                                    This will be the Allowed POS for this pos
+                                    Kitchen
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6 o_setting_box"
+                             id="pos_categ_ids">
+                            <div class="o_setting_left_pane">
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="pos_categ_ids"/>
+                                <div class="text-muted">
+                                    <div>
+                                        <field name="pos_categ_ids"
+                                               widget="many2many_tags"/>
+                                    </div>
+                                    This will be the Allowed POS category for
+                                    this pos Kitchen
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box"
+                             id="is_preparation_complete">
+                            <div class="o_setting_left_pane">
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="is_preparation_complete"/>
+                                <div class="text-muted">
+                                    <div>
+                                        <field name="is_preparation_complete"/>
+                                    </div>
+                                    Change the cooking stage when completing the preparation time
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box"
+                             id="kitchen_screen">
+                            <div class="o_setting_left_pane">
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <div class="text-muted">
+                                    <div>
+                                        <field name="shop_number" invisible="1"/>
+                                        <button name="%(kitchen_custom_dashboard_action)d"
+                                                type="action"
+                                                context="{'default_shop_id': shop_number}"
+                                                string="Kitchen Screen"
+                                                target="new"
+                                                class="btn-primary kitchen_screen1"
+                                                help="Got To the Kitchen Screen"/>
+                                        <br/>
+                                        <br/>
+                                    </div>
+                                    Click Here to See the kitchen Orders
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box"
+                             id="kitchen_status_display">
+                            <div class="o_setting_left_pane">
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <div class="text-muted">
+                                    <div>
+                                        <button name="action_open_status_display"
+                                                type="object"
+                                                string="Order Status Display"
+                                                target="new"
+                                                class="btn-primary"
+                                                help="Open the customer-facing kitchen order status display"/>
+                                        <br/>
+                                        <br/>
+                                    </div>
+                                    Show almost-ready and ready orders on a customer display screen
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="kitchen_screen_view_tree" model="ir.ui.view">
+        <field name="name">kitchen.screen.view.tree</field>
+        <field name="model">kitchen.screen</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence"/>
+                <field name="pos_config_id"/>
+                <field name="pos_categ_ids"/>
+            </list>
+        </field>
+    </record>
+</odoo>

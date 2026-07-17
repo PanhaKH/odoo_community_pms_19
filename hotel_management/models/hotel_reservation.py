@@ -333,6 +333,46 @@ class HotelReservation(models.Model):
         store=True,
         string='VIP Level',
     )
+    rooming_board_label = fields.Char(
+        string='Rooming Board Label',
+        compute='_compute_rooming_board_label',
+    )
+
+    def _compute_rooming_board_label(self):
+        for rec in self:
+            if rec.is_desk_folio and rec.group_id:
+                rec.rooming_board_label = 'PAYMASTER'
+            elif rec.group_id:
+                rec.rooming_board_label = 'ROOM'
+            else:
+                rec.rooming_board_label = ''
+
+    group_folio_role = fields.Selection(
+        [
+            ('normal', 'Normal'),
+            ('room', 'Group Room'),
+            ('paymaster', 'Group Paymaster'),
+        ],
+        string='Group Role',
+        compute='_compute_group_folio_role',
+    )
+
+    @api.constrains('room_type_id', 'is_desk_folio')
+    def _check_room_type_not_desk_folio_for_guest_reservation(self):
+        for rec in self:
+            if not rec.is_desk_folio and rec.room_type_id:
+                room_type_name = (rec.room_type_id.name or '').strip().lower()
+                if room_type_name == 'desk folio':
+                    raise ValidationError(_("Desk Folio room type cannot be selected for a normal guest reservation."))
+
+    def _compute_group_folio_role(self):
+        for rec in self:
+            if rec.is_desk_folio and rec.group_id:
+                rec.group_folio_role = 'paymaster'
+            elif rec.group_id and not rec.is_desk_folio:
+                rec.group_folio_role = 'room'
+            else:
+                rec.group_folio_role = 'normal'
 
     # --- PRE-ARRIVAL & PREFERENCES ---
     estimated_arrival = fields.Selection([
@@ -1296,6 +1336,26 @@ class HotelReservation(models.Model):
             rec.guest_net_position = position['operational_balance']
             rec.guest_credit_balance = position['credit_balance']
             rec.guest_balance_button_amount = rec.guest_balance_due or rec.guest_credit_balance
+            # Group Paymaster correction:
+            # If the group advance deposit was already applied to the invoice,
+            # do not keep showing it as an unused guest ledger credit.
+            if rec.is_desk_folio and rec.group_id:
+                available_deposit = calc_rec._get_deposit_balance_amount()
+
+                rec.deposit_balance = available_deposit
+                rec.advance_deposit_credit = available_deposit
+                rec.remaining_deposit_available = available_deposit
+
+                if available_deposit <= 0.01:
+                    rec.guest_balance_due = 0.0
+                    rec.guest_credit_balance = 0.0
+                    rec.guest_net_position = 0.0
+                    rec.folio_balance = 0.0
+                else:
+                    rec.guest_credit_balance = available_deposit
+                    rec.guest_balance_due = 0.0
+                    rec.guest_net_position = -available_deposit
+                    rec.folio_balance = 0.0
             if rec.guest_credit_balance > 0.01 and rec.guest_balance_due <= 0.01:
                 rec.guest_balance_button_label = _('Guest Credit Balance')
             elif rec.guest_balance_due > 0.01:
@@ -1964,7 +2024,7 @@ class HotelReservation(models.Model):
         self.ensure_one()
         payments = self.advance_deposit_payment_ids.filtered(lambda pay: pay.is_advance_deposit)
         if posted_only:
-            payments = payments.filtered(lambda pay: pay.state in ('in_process', 'paid'))
+            payments = payments.filtered(lambda pay: pay.state in ('in_process', 'paid', 'posted'))
         if inbound_only:
             payments = payments.filtered(lambda pay: pay.payment_type == 'inbound')
         return payments
@@ -2014,21 +2074,43 @@ class HotelReservation(models.Model):
         )
         return sum(abs(line.price_total) for line in application_lines)
 
+    def _get_advance_deposit_applied_to_invoice_amount(self):
+        self.ensure_one()
+
+        lines = self.env['account.move.line'].sudo().search([
+            ('move_id.move_type', '=', 'out_invoice'),
+            ('move_id.state', '!=', 'cancel'),
+            ('hotel_reservation_id', '=', self.id),
+            ('is_advance_deposit_application', '=', True),
+        ])
+
+        amount = abs(sum(lines.mapped('price_total')))
+        return amount    
+    
     def _get_deposit_balance_amount(self):
         self.ensure_one()
-        return max(self._get_posted_advance_deposit_amount() - self._get_applied_advance_deposit_amount(), 0.0)
+        currency = self.currency_id or self.company_id.currency_id
+
+        posted_deposit = self._get_posted_advance_deposit_amount()
+        applied_internal = self._get_applied_advance_deposit_amount()
+        applied_to_invoice = self._get_advance_deposit_applied_to_invoice_amount()
+
+        remaining = max(
+            posted_deposit - applied_internal - applied_to_invoice,
+            0.0
+        )
+
+        return currency.round(remaining) if currency else remaining
 
     def _get_operational_advance_deposit_credit_amount(self):
         self.ensure_one()
-        if self.is_desk_folio or self.folio_type != 'guest':
+
+        is_group_paymaster = bool(self.is_desk_folio and self.group_id)
+
+        if not is_group_paymaster and (self.is_desk_folio or self.folio_type != 'guest'):
             return 0.0
-        currency = self.currency_id or self.company_id.currency_id
-        available_credit = max(
-            self._get_posted_advance_deposit_amount()
-            - self._get_applied_advance_deposit_amount(posted_only=False),
-            0.0,
-        )
-        return currency.round(available_credit) if currency else available_credit
+
+        return self._get_deposit_balance_amount()
 
     def _get_available_advance_deposit_credit_payments(self):
         self.ensure_one()
@@ -2279,7 +2361,12 @@ class HotelReservation(models.Model):
     def _apply_advance_deposit_to_invoices(self, invoices):
         self.ensure_one()
         invoices = invoices.filtered(lambda move: move.move_type == 'out_invoice' and move.state != 'cancel')
-        if not invoices or self.is_desk_folio or self.folio_type != 'guest':
+        is_group_paymaster = bool(self.is_desk_folio and self.group_id)
+
+        if not invoices:
+            return self.env['account.move.line']
+
+        if not is_group_paymaster and (self.is_desk_folio or self.folio_type != 'guest'):
             return self.env['account.move.line']
 
         deposit_account = self._get_advance_deposit_liability_account()
@@ -2323,6 +2410,10 @@ class HotelReservation(models.Model):
                  % ((self.currency_id.symbol or ''), application_amount, self.name),
             subtype_xmlid='mail.mt_note',
         )
+        if hasattr(self, '_refresh_operational_folio_status'):
+            self._refresh_operational_folio_status()
+        if hasattr(self, '_compute_folio_status'):
+            self._compute_folio_status()
         return application_line
 
     def _is_room_charge_billing_line(self, line):
@@ -2468,6 +2559,16 @@ class HotelReservation(models.Model):
         folio_total_debit = rounding(line_debits)
         folio_total_credit = rounding(line_credits + deposit_credit + payments_received)
         operational_balance = rounding(folio_total_debit - folio_total_credit)
+        # Group Paymaster correction:
+        # Historical deposit paid can remain visible, but once the deposit
+        # is applied to an invoice, it must not remain as unused ledger credit.
+        if self.is_desk_folio and self.group_id:
+            available_deposit = self._get_deposit_balance_amount()
+
+            deposit_credit = available_deposit
+            balance_due = 0.0
+            credit_balance = available_deposit
+            operational_balance = -available_deposit if available_deposit > 0.01 else 0.0
 
         return {
             'folio_total_debit': folio_total_debit,
@@ -5660,17 +5761,24 @@ class HotelDepositWizard(models.TransientModel):
             raise UserError(_("Deposit amount must be greater than zero."))
 
         res = self.reservation_id
-        if res.is_desk_folio or res.folio_type in ['desk', 'group_master']:
+        is_group_deposit = bool(
+            self.env.context.get('group_deposit')
+            and res.is_desk_folio
+            and res.group_id
+        )
+
+        if (res.is_desk_folio or res.folio_type in ['desk', 'group_master']) and not is_group_deposit:
             raise UserError(_("Advance deposits are only available for future room reservations."))
 
         rounding = res.currency_id.rounding or 0.01
         # Allow any deposit amount — hotels commonly collect larger deposits
         # to cover incidentals, security, or advance payment for multiple stays.
         # Only block if reservation already has a credit balance (already overpaid).
-        if res.guest_balance_due <= rounding and res.guest_credit_balance > rounding:
+        if not is_group_deposit and res.guest_balance_due <= rounding and res.guest_credit_balance > rounding:
             raise UserError(_("This reservation already has a credit balance of %.2f. Please use Deposit Settlement to refund or transfer it first.") % res.guest_credit_balance)
 
-        self._validate_required_deposit_policy()
+        if not is_group_deposit:
+            self._validate_required_deposit_policy()
 
         if self._find_duplicate_deposit_registration():
             raise UserError(duplicate_error)
@@ -5690,6 +5798,18 @@ class HotelDepositWizard(models.TransientModel):
         # No customer invoice is created for advance deposits. Deposit tax
         # invoice mode is deferred to Version 2.
         # =========================================================
+
+        payment_memo = res.name
+        payment_reference = _("Advance Deposit - %s") % res.name
+        posting_description = _("Advance Deposit Received (%s)") % self.journal_id.name
+
+        if is_group_deposit:
+            # Keep memo as the Paymaster reservation number, e.g. RES/2026/0023.
+            # The PMS uses this to link the payment back to the reservation.
+            payment_memo = res.name
+            payment_reference = _("Group Advance Deposit - %s") % (res.group_id.name or res.name)
+            posting_description = _("Group Advance Deposit Received (%s)") % self.journal_id.name
+
         payment = self.env['account.payment'].create({
             'payment_type': 'inbound',
             'partner_type': 'customer',
@@ -5698,8 +5818,8 @@ class HotelDepositWizard(models.TransientModel):
             'date': self.payment_date,
             'journal_id': self.journal_id.id,
             'payment_method_line_id': payment_method_line.id,
-            'memo': res.name,
-            'payment_reference': _("Advance Deposit - %s") % res.name,
+            'memo': payment_memo,
+            'payment_reference': payment_reference,
             'hotel_business_date': self.business_date,
             'is_advance_deposit': True,
             'hotel_reservation_id': res.id,
@@ -5707,6 +5827,15 @@ class HotelDepositWizard(models.TransientModel):
         })
         payment.write({'destination_account_id': deposit_account.id})
         payment.sudo().action_post()
+
+        if hasattr(payment, '_compute_hotel_info'):
+            payment._compute_hotel_info()
+        if hasattr(payment, '_compute_hotel_payment_activity_type'):
+            payment._compute_hotel_payment_activity_type()
+        if hasattr(res, '_compute_folio_status'):
+            res._compute_folio_status()
+        if hasattr(res, '_refresh_operational_folio_status'):
+            res._refresh_operational_folio_status()
 
         existing_entry = self.env['hotel.posting.journal'].search([
             ('reservation_id', '=', res.id),
@@ -5716,7 +5845,7 @@ class HotelDepositWizard(models.TransientModel):
         deposit_entry_vals = {
             'reservation_id': res.id,
             'journal_type': 'payment',
-            'description': _("Advance Deposit Received (%s)") % payment.journal_id.name,
+            'description': posting_description,
             'amount': -payment.amount,
             'business_date': self.business_date,
             'date': payment.create_date or fields.Datetime.now(),
@@ -5729,7 +5858,9 @@ class HotelDepositWizard(models.TransientModel):
             existing_entry.write(deposit_entry_vals)
         else:
             self.env['hotel.posting.journal'].create(deposit_entry_vals)
-        
+        if hasattr(res, '_refresh_operational_folio_status'):
+            res._refresh_operational_folio_status()
+            
         res._log_exchange_event(
             _("Advance Deposit Receipt"),
             '',
@@ -6664,6 +6795,14 @@ class HotelPostingJournal(models.Model):
 # =========================================================
 class AccountMoveHotelAudit(models.Model):
     _inherit = 'account.move'
+
+    hotel_group_master_id = fields.Many2one(
+        'hotel.group.master',
+        string='Hotel Group Master',
+        copy=False,
+        index=True,
+    )
+
     hotel_business_date = fields.Date(string="Business Date", default=lambda self: self.env.company.hotel_business_date or fields.Date.context_today(self), index=True)
     hotel_folio_id = fields.Many2one('sale.order', string="Folio No.", compute="_compute_hotel_folio", store=True)
     hotel_guest_name = fields.Char(string="Guest Name", compute="_compute_hotel_folio", store=True)
@@ -7506,6 +7645,139 @@ class HotelGroupMaster(models.Model):
     # 2. This gives the PM its own dedicated shortcut link
     paymaster_id = fields.Many2one('hotel.reservation', string='Group Paymaster (PM)', compute='_compute_paymaster')
 
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        default=lambda self: self.env.company,
+    )
+    currency_id = fields.Many2one(
+        'res.currency',
+        related='company_id.currency_id',
+        readonly=True,
+    )
+
+    group_deposit_received = fields.Monetary(
+        string="Group Deposit Received",
+        compute="_compute_group_financial_summary",
+        currency_field="currency_id",
+    )
+    group_deposit_remaining = fields.Monetary(
+        string="Group Deposit Remaining",
+        compute="_compute_group_financial_summary",
+        currency_field="currency_id",
+    )
+    group_total_charges = fields.Monetary(
+        string="Group Total Charges",
+        compute="_compute_group_financial_summary",
+        currency_field="currency_id",
+    )
+    group_balance_due = fields.Monetary(
+        string="Group Balance Due",
+        compute="_compute_group_financial_summary",
+        currency_field="currency_id",
+    )
+    group_credit_balance = fields.Monetary(
+        string="Group Credit Balance",
+        compute="_compute_group_financial_summary",
+        currency_field="currency_id",
+    )
+
+    def _compute_group_financial_summary(self):
+        AccountMove = self.env['account.move'].sudo()
+
+        for group in self:
+            paymaster = group.paymaster_id or self.env['hotel.reservation'].sudo().search([
+                ('group_id', '=', group.id),
+                ('is_desk_folio', '=', True),
+            ], limit=1)
+
+            reservations = (group.reservation_ids | paymaster).exists()
+
+            deposit_received = 0.0
+            deposit_remaining = 0.0
+            total_charges = 0.0
+            balance_due = 0.0
+            credit_balance = 0.0
+
+            for reservation in reservations:
+                deposit_received += reservation.sudo()._get_posted_advance_deposit_amount()
+
+            # Find invoice by reservation numbers inside invoice lines.
+            # Example invoice lines contain: RES/2026/0020, RES/2026/0021, RES/2026/0022.
+            child_reservations = group.reservation_ids.sudo().filtered(lambda r: not r.is_desk_folio)
+            reservation_names = [name for name in child_reservations.mapped('name') if name]
+
+            if paymaster and paymaster.name:
+                reservation_names.append(paymaster.name)
+
+            invoices = AccountMove.browse()
+
+            # Directly linked invoices, if the custom field exists.
+            if 'hotel_group_master_id' in AccountMove._fields:
+                invoices |= AccountMove.search([
+                    ('hotel_group_master_id', '=', group.id),
+                    ('move_type', '=', 'out_invoice'),
+                    ('state', '!=', 'cancel'),
+                ])
+
+            # Fallback: search recent invoices and match invoice line text.
+            candidate_invoices = AccountMove.search([
+                ('move_type', '=', 'out_invoice'),
+                ('state', '!=', 'cancel'),
+            ], order='id desc', limit=300)
+
+            for invoice in candidate_invoices:
+                invoice_text = " ".join(invoice.invoice_line_ids.mapped('name') or [])
+                if any(res_name in invoice_text for res_name in reservation_names):
+                    invoices |= invoice
+
+            if invoices:
+                deposit_applied_total = 0.0
+
+                for invoice in invoices:
+                    deposit_lines = invoice.invoice_line_ids.filtered(
+                        lambda line: getattr(line, 'is_advance_deposit_application', False)
+                    )
+
+                    if not deposit_lines and paymaster:
+                        deposit_account = paymaster._get_advance_deposit_liability_account()
+                        if deposit_account:
+                            deposit_lines = invoice.invoice_line_ids.filtered(
+                                lambda line: line.account_id == deposit_account and line.price_total < 0
+                            )
+
+                    deposit_applied = abs(sum(deposit_lines.mapped('price_total')))
+                    deposit_applied_total += deposit_applied
+
+                    # invoice.amount_total already includes the negative deposit line.
+                    # Add deposit back to show the real gross group charge.
+                    total_charges += invoice.amount_total + deposit_applied
+
+                    # Draft invoice: amount_total is remaining due after deposit line.
+                    # Posted invoice: amount_residual is safer.
+                    if invoice.state == 'posted':
+                        balance_due += invoice.amount_residual
+                    else:
+                        balance_due += invoice.amount_total
+
+                deposit_remaining = max(deposit_received - deposit_applied_total, 0.0)
+                credit_balance = max(deposit_remaining - balance_due, 0.0)
+
+            else:
+                # Before invoice exists, use operational folio values.
+                for reservation in reservations:
+                    calc_reservation = reservation.sudo()
+                    deposit_remaining += calc_reservation._get_deposit_balance_amount()
+                    total_charges += calc_reservation.guest_total_charges or 0.0
+                    balance_due += calc_reservation.guest_balance_due or 0.0
+                    credit_balance += calc_reservation.guest_credit_balance or 0.0
+
+            group.group_deposit_received = deposit_received
+            group.group_deposit_remaining = deposit_remaining
+            group.group_total_charges = total_charges
+            group.group_balance_due = balance_due
+            group.group_credit_balance = credit_balance
+
     def _compute_paymaster(self):
         for group in self:
             pm = self.env['hotel.reservation'].search([
@@ -7587,6 +7859,106 @@ class HotelGroupMaster(models.Model):
                 }))
                 
             group.room_line_ids = lines
+
+    def _ensure_group_paymaster(self):
+        self.ensure_one()
+
+        pm = self.env['hotel.reservation'].search([
+            ('group_id', '=', self.id),
+            ('is_desk_folio', '=', True),
+        ], limit=1)
+
+        if pm:
+            return pm
+
+        desk_type = self.env['hotel.reservation']._get_or_create_desk_folio_room_type()
+
+        checkin_date = self.arrival_date or fields.Date.context_today(self)
+        checkout_date = self.departure_date or (checkin_date + timedelta(days=1))
+        if checkout_date <= checkin_date:
+            checkout_date = checkin_date + timedelta(days=1)
+
+        pm = self.env['hotel.reservation'].create({
+            'is_desk_folio': True,
+            'group_id': self.id,
+            'partner_id': self.partner_id.id,
+            'city_ledger_id': self.city_ledger_id.id if self.city_ledger_id else False,
+            'billing_routing': self.billing_routing,
+            'room_type_id': desk_type.id,
+            'checkin_date': checkin_date,
+            'checkout_date': checkout_date,
+            'adults': 0,
+            'is_manual_rate': True,
+            'manual_rate': 0.0,
+            'state': 'draft',
+        })
+
+        return pm
+
+    def _ensure_group_paymaster(self):
+        self.ensure_one()
+
+        paymaster = self.env['hotel.reservation'].search([
+            ('group_id', '=', self.id),
+            ('is_desk_folio', '=', True),
+        ], limit=1)
+
+        if paymaster:
+            return paymaster
+
+        desk_type = self.env['hotel.reservation']._get_or_create_desk_folio_room_type()
+
+        checkin_date = self.arrival_date or fields.Date.context_today(self)
+        checkout_date = self.departure_date or (checkin_date + timedelta(days=1))
+        if checkout_date <= checkin_date:
+            checkout_date = checkin_date + timedelta(days=1)
+
+        paymaster = self.env['hotel.reservation'].create({
+            'is_desk_folio': True,
+            'group_id': self.id,
+            'partner_id': self.partner_id.id,
+            'city_ledger_id': self.city_ledger_id.id if self.city_ledger_id else False,
+            'billing_routing': self.billing_routing,
+            'room_type_id': desk_type.id,
+            'checkin_date': checkin_date,
+            'checkout_date': checkout_date,
+            'adults': 0,
+            'is_manual_rate': True,
+            'manual_rate': 0.0,
+            'state': 'draft',
+        })
+
+        return paymaster
+
+    def action_create_group_deposit(self):
+        self.ensure_one()
+
+        if self.state == 'draft':
+            raise UserError(_("Please confirm and generate group rooms before receiving a group deposit."))
+
+        paymaster = self._ensure_group_paymaster()
+
+        if not paymaster.partner_id:
+            raise UserError(_("The Group Paymaster has no customer/partner. Please check Company / Agent."))
+
+        if not paymaster._get_advance_deposit_liability_account():
+            raise UserError(_("Please configure the Advance Deposit Liability Account in Hotel Settings before registering group deposits."))
+
+        return {
+            'name': _('Register Group Deposit'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.deposit.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'active_model': 'hotel.reservation',
+                'active_id': paymaster.id,
+                'active_ids': [paymaster.id],
+                'default_reservation_id': paymaster.id,
+                'default_business_date': self.env.company.hotel_business_date or fields.Date.context_today(self),
+                'group_deposit': True,
+            },
+        }       
 
     def action_confirm_and_generate(self):
         for group in self:
@@ -7815,6 +8187,136 @@ class HotelGroupMaster(models.Model):
         self._finish_group_checkout_if_complete()
         return {'type': 'ir.actions.client', 'tag': 'reload'}
 
+    def _get_required_group_paymaster(self):
+        self.ensure_one()
+        paymaster = self.paymaster_id or self.env['hotel.reservation'].search([
+            ('group_id', '=', self.id),
+            ('is_desk_folio', '=', True),
+        ], limit=1)
+
+        if not paymaster:
+            raise UserError(_("No Group Paymaster / Desk Folio found. Please register a group deposit or check in the group first."))
+
+        return paymaster
+
+    def action_open_group_paymaster(self):
+        self.ensure_one()
+        paymaster = self._get_required_group_paymaster()
+        return {
+            'name': _('Group Paymaster'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.reservation',
+            'res_id': paymaster.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+
+    def action_create_group_invoice(self):
+        self.ensure_one()
+
+        if self.state != 'checkin':
+            raise UserError(_("Group invoice can be created only after the group is checked in."))
+
+        paymaster = self._get_required_group_paymaster()
+
+        if not paymaster.sale_order_id:
+            paymaster.action_create_folio()
+
+        existing_invoices = paymaster._get_folio_customer_invoices()
+
+        action = paymaster.action_create_invoice_from_reservation()
+
+        new_invoices = paymaster._get_folio_customer_invoices() - existing_invoices
+
+        # If the action directly opens an invoice, capture it.
+        if action and action.get('res_model') == 'account.move' and action.get('res_id'):
+            new_invoices |= self.env['account.move'].browse(action['res_id'])
+
+        # Fallback: find newest draft invoice for this paymaster sale order.
+        if not new_invoices and paymaster.sale_order_id:
+            new_invoices = self.env['account.move'].search([
+                ('move_type', '=', 'out_invoice'),
+                ('state', '!=', 'cancel'),
+                '|',
+                ('invoice_origin', '=', paymaster.sale_order_id.name),
+                ('invoice_line_ids.sale_line_ids.order_id', '=', paymaster.sale_order_id.id),
+            ], order='id desc', limit=1)
+
+        # Tag invoice to this group so Group Summary can find it directly.
+        if new_invoices:
+            new_invoices.sudo().write({'hotel_group_master_id': self.id})
+
+        draft_invoices = new_invoices.filtered(lambda inv: inv.state == 'draft')
+
+        if draft_invoices and paymaster._get_deposit_balance_amount() > 0:
+            paymaster._apply_advance_deposit_to_invoices(draft_invoices)
+
+        if hasattr(paymaster, '_refresh_operational_folio_status'):
+            paymaster._refresh_operational_folio_status()
+        if hasattr(paymaster, '_compute_folio_status'):
+            paymaster._compute_folio_status()
+
+        return action
+
+    def action_sync_group_invoice_financials(self):
+        AccountMove = self.env['account.move'].sudo()
+
+        for group in self:
+            paymaster = group.paymaster_id or self.env['hotel.reservation'].sudo().search([
+                ('group_id', '=', group.id),
+                ('is_desk_folio', '=', True),
+            ], limit=1)
+
+            child_names = group.reservation_ids.sudo().filtered(
+                lambda r: not r.is_desk_folio
+            ).mapped('name')
+
+            invoices = AccountMove.browse()
+
+            # 1) Invoices from paymaster folio
+            if paymaster:
+                invoices |= paymaster._get_folio_customer_invoices().sudo()
+
+            # 2) Invoices from paymaster sale order
+            if paymaster and paymaster.sale_order_id:
+                invoices |= paymaster.sale_order_id.invoice_ids.sudo()
+
+            # 3) Invoices that contain child reservation numbers in invoice line text
+            for res_name in child_names:
+                invoices |= AccountMove.search([
+                    ('move_type', '=', 'out_invoice'),
+                    ('state', '!=', 'cancel'),
+                    ('invoice_line_ids.name', 'ilike', res_name),
+                ])
+
+            invoices = invoices.filtered(
+                lambda inv: inv.move_type == 'out_invoice' and inv.state != 'cancel'
+            )
+
+            if not invoices:
+                raise UserError(_("No invoice found for this group. Please create the group invoice first."))
+
+            if 'hotel_group_master_id' in AccountMove._fields:
+                invoices.write({'hotel_group_master_id': group.id})
+
+            if paymaster:
+                if hasattr(paymaster, '_refresh_operational_folio_status'):
+                    paymaster._refresh_operational_folio_status()
+                if hasattr(paymaster, '_compute_folio_status'):
+                    paymaster._compute_folio_status()
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Group Invoice Synced'),
+                'message': _('Existing group invoice has been linked to this group. Please refresh the group screen.'),
+                'type': 'success',
+                'sticky': False,
+            }
+        }
+
+
     def action_mass_group_checkout(self):
         for group in self:
             active_reservations = group._get_active_checkout_reservations()
@@ -7855,12 +8357,37 @@ class HotelGroupRoomingList(models.Model):
     partner_id = fields.Many2one('res.partner', string="Guest Name", required=True)
     reservation_id = fields.Many2one('hotel.reservation', string="Assigned Room", domain="[('group_id', '=', group_id)]", group_expand='_read_group_reservation_id')
 
+    group_folio_role = fields.Selection(
+        related='reservation_id.group_folio_role',
+        readonly=True,
+    )
+
+    rooming_board_label = fields.Char(
+        related='reservation_id.rooming_board_label',
+        readonly=True,
+    )
+
+    is_desk_folio = fields.Boolean(
+        related='reservation_id.is_desk_folio',
+        readonly=True,
+    )
+
+    group_id = fields.Many2one(
+        related='reservation_id.group_id',
+        readonly=True,
+    )
+
     @api.model
     def _read_group_reservation_id(self, reservations, domain, order=None):
         group_id = self._context.get('default_group_id')
+
         if group_id:
-            return self.env['hotel.reservation'].search([('group_id', '=', group_id)], order=order or 'name asc')
-        return reservations
+            return self.env['hotel.reservation'].search([
+                ('group_id', '=', group_id),
+                ('is_desk_folio', '=', False),
+            ], order=order or 'name asc')
+
+        return reservations.filtered(lambda reservation: not reservation.is_desk_folio)
 
     def write(self, vals):
         # 1. Capture the rooms before the drag-and-drop happens
@@ -8329,9 +8856,26 @@ class SaleOrderHotelAudit(models.Model):
             for entry in invoice_plan:
                 if entry['order'] == order:
                     order_moves |= entry['move']
-            for reservation in order.hotel_reservation_ids.filtered(
-                lambda res: not res.is_desk_folio and res.folio_type == 'guest' and res.deposit_balance > 0
-            ):
+
+            deposit_reservations = self.env['hotel.reservation']
+
+            # Normal guest reservation deposits
+            deposit_reservations |= order.hotel_reservation_ids.filtered(
+                lambda res: not res.is_desk_folio
+                and res.folio_type == 'guest'
+                and res._get_deposit_balance_amount() > 0
+            )
+
+            # Group Paymaster / Desk Folio deposits
+            for group in order.hotel_group_master_ids:
+                paymaster = group.paymaster_id or self.env['hotel.reservation'].search([
+                    ('group_id', '=', group.id),
+                    ('is_desk_folio', '=', True),
+                ], limit=1)
+                if paymaster and paymaster._get_deposit_balance_amount() > 0:
+                    deposit_reservations |= paymaster
+
+            for reservation in deposit_reservations:
                 reservation._apply_advance_deposit_to_invoices(order_moves)
         self._log_hotel_routed_invoice_results(invoice_plan)
         return moves

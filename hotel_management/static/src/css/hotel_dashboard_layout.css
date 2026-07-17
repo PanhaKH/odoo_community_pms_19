@@ -64,3 +64,813 @@
         border-bottom: 1px solid rgba(0, 0, 0, 0.18) !important;
     }
 }
+
+/* Hotel Overview Dashboard — balanced 2026 color theme.
+ * Dashboard scope only; the Tape/Room Chart is intentionally excluded.
+ */
+.o_hotel_dashboard_full_width {
+    --hotel-bg: #eef4f8;
+    --hotel-surface: #ffffff;
+    --hotel-text: #17324a;
+    --hotel-muted: #64748b;
+    --hotel-border: #d8e3ec;
+    --hotel-primary: #0b4968;
+    --hotel-radius: 16px;
+    --hotel-radius-sm: 11px;
+    --hotel-shadow: 0 10px 28px rgba(15, 42, 67, 0.10);
+    --hotel-shadow-hover: 0 17px 38px rgba(15, 42, 67, 0.17);
+    color: var(--hotel-text);
+    font-family: Inter, "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.o_hotel_dashboard_full_width .o_form_sheet_bg {
+    background:
+        radial-gradient(circle at 4% 0%, rgba(14, 116, 144, 0.10), transparent 30rem),
+        linear-gradient(145deg, #f8fbfd 0%, var(--hotel-bg) 58%, #eaf1f6 100%);
+    padding: clamp(12px, 1.35vw, 24px) !important;
+}
+
+.o_hotel_dashboard_full_width .o_form_sheet {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0 !important;
+}
+
+.o_hotel_dashboard_full_width .o_form_statusbar {
+    background: transparent !important;
+    backdrop-filter: none;
+    border: 0 !important;
+    box-shadow: none !important;
+    gap: 8px;
+    margin: 0 0 6px !important;
+    min-height: 0;
+    padding: 0 !important;
+    position: relative !important;
+    top: auto !important;
+}
+
+.o_hotel_dashboard_full_width .o_form_statusbar::before,
+.o_hotel_dashboard_full_width .o_form_statusbar::after {
+    display: none !important;
+}
+
+.o_hotel_dashboard_full_width .o_form_statusbar .o_statusbar_buttons {
+    align-items: center !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    column-gap: 10px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    row-gap: 8px !important;
+    width: 100%;
+}
+
+.o_hotel_dashboard_full_width .o_form_statusbar .btn {
+    border-radius: var(--hotel-radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    min-height: 40px;
+    padding: 9px 15px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.o_hotel_dashboard_full_width .o_form_statusbar .btn-primary {
+    background: linear-gradient(135deg, #0b4968, #08718e);
+    border-color: #0b4968;
+    box-shadow: 0 5px 14px rgba(11, 73, 104, 0.22);
+}
+
+.o_hotel_dashboard_full_width .o_form_statusbar .btn-secondary {
+    background: #fff;
+    border-color: #c9d7e2;
+    color: #304b63;
+}
+
+.o_hotel_dashboard_full_width .o_form_statusbar .btn:hover {
+    box-shadow: 0 8px 18px rgba(15, 42, 67, 0.17);
+    filter: brightness(1.04);
+    transform: translateY(-1px);
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar {
+    align-items: center !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    box-sizing: border-box;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    justify-content: flex-start !important;
+    margin: 0 0 14px !important;
+    min-height: 0 !important;
+    padding: 4px 0 !important;
+    position: relative !important;
+    width: 100% !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar > .hotel-dashboard-toolbar-items,
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar > .hotel-dashboard-toolbar-items > .o_x2m_control_panel,
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar > .hotel-dashboard-toolbar-items > .o_kanban_renderer,
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar > .hotel-dashboard-toolbar-items .o_kanban_record,
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar > .hotel-dashboard-toolbar-items .o_kanban_record > div {
+    display: contents !important;
+}
+
+/* Keep the dynamic actions content-sized so Setup follows Availability. */
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar > .hotel-dashboard-toolbar-items,
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar > [name="quick_access_item_ids"] {
+    display: inline-flex !important;
+    flex: 0 1 auto !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    width: auto !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar > .hotel-dashboard-toolbar-items > .o_x2m_control_panel {
+    display: none !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar > .hotel-dashboard-toolbar-items > .o_kanban_renderer,
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar > [name="quick_access_item_ids"] > .o_kanban_renderer {
+    align-items: center !important;
+    background: transparent !important;
+    display: inline-flex !important;
+    flex: 0 1 auto !important;
+    flex-wrap: nowrap !important;
+    gap: 10px !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    width: auto !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar .o_kanban_record {
+    flex: 0 0 auto !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar .btn {
+    align-items: center !important;
+    border-radius: 9px !important;
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    font-size: 12px !important;
+    font-weight: 700;
+    gap: 6px;
+    justify-content: center !important;
+    line-height: 18px !important;
+    margin: 0 !important;
+    max-width: none !important;
+    min-height: 40px !important;
+    min-width: 0 !important;
+    padding: 9px 14px !important;
+    position: relative !important;
+    transition: filter 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    white-space: nowrap !important;
+    width: auto !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar .btn img {
+    flex: 0 0 auto;
+    margin-right: 0 !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar .hotel_qa_setup_btn {
+    align-self: center;
+    font-size: 11px !important;
+    margin-left: 0 !important;
+    min-height: 36px !important;
+    padding: 7px 12px !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar .btn:hover {
+    box-shadow: 0 6px 14px rgba(15, 42, 67, 0.14) !important;
+    filter: brightness(1.04);
+    transform: translateY(-1px);
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar .btn:focus-visible {
+    box-shadow: 0 0 0 4px rgba(14, 116, 144, 0.18) !important;
+    outline: none;
+}
+
+.o_hotel_dashboard_full_width .alert {
+    backdrop-filter: blur(12px);
+    border-radius: var(--hotel-radius) !important;
+    box-shadow: 0 4px 14px rgba(15, 42, 67, 0.07);
+    margin-bottom: 16px !important;
+    padding: 14px 18px !important;
+}
+
+.o_hotel_dashboard_full_width .alert-info {
+    background: linear-gradient(135deg, #e9f7fb, #f7fcfd);
+    border-color: #b7dce8;
+    color: #15566b;
+}
+
+.o_hotel_dashboard_full_width .alert-danger {
+    background: linear-gradient(135deg, #fff1f2, #fffafa);
+    border-color: #f2b8bf;
+    border-left: 5px solid #dc3545;
+}
+
+.o_hotel_dashboard_full_width .alert-warning {
+    background: linear-gradient(135deg, #fff6dc, #fffdf6) !important;
+    border-color: #eed28b !important;
+    border-left: 5px solid #e5a000;
+}
+
+.o_hotel_dashboard_full_width .o_notebook {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_headers {
+    --Notebook__link-border-top-color--active: transparent;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none;
+    display: block;
+    margin: 0;
+    max-width: 100%;
+    overflow-x: visible;
+    overflow-y: visible;
+    padding: 0;
+    position: relative;
+    scrollbar-width: none;
+    width: fit-content;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_headers::-webkit-scrollbar {
+    display: none;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_headers::after {
+    display: none !important;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_headers .nav-tabs {
+    align-items: flex-end;
+    border: 0 !important;
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 3px 8px rgba(15, 42, 67, 0.06);
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: 0;
+    margin: 0;
+    max-width: none;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    padding: 0;
+    scrollbar-width: none;
+    white-space: nowrap;
+    width: auto;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_headers .nav-link {
+    align-items: center;
+    background: #f8fafc;
+    border: 0 !important;
+    border-left: 1px solid rgba(203, 213, 225, 0.78) !important;
+    border-top: 1px solid rgba(203, 213, 225, 0.78) !important;
+    border-bottom: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none;
+    color: #1f3548;
+    display: inline-flex;
+    font-size: 14.5px;
+    font-weight: 720;
+    justify-content: center;
+    line-height: 20px;
+    min-height: 48px;
+    min-width: 230px;
+    padding: 13px 30px 12px;
+    position: relative;
+    transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease, color 200ms ease;
+    white-space: nowrap;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_headers .nav-item:first-child .nav-link,
+.o_hotel_dashboard_full_width .o_notebook_headers .nav-tabs > .nav-link:first-child {
+    border-top-left-radius: 14px !important;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_headers .nav-item:last-child .nav-link,
+.o_hotel_dashboard_full_width .o_notebook_headers .nav-tabs > .nav-link:last-child {
+    border-right: 1px solid rgba(203, 213, 225, 0.78) !important;
+    border-top-right-radius: 14px !important;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_headers .nav-link::after {
+    background: transparent;
+    bottom: -1px;
+    content: "";
+    display: block !important;
+    height: 3px;
+    left: 16px;
+    position: absolute;
+    right: 16px;
+    transition: background 200ms ease;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_headers .nav-link:hover {
+    background: #fff;
+    color: #0b4968;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_headers .nav-link.active {
+    background: #fff;
+    border-bottom: 0 !important;
+    box-shadow: 0 4px 10px rgba(15, 42, 67, 0.09);
+    color: #07546d;
+    font-weight: 800;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_headers .nav-link.active::after {
+    background: #0e7490;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_content {
+    background: #fff;
+    border: 1px solid rgba(190, 205, 218, 0.95);
+    border-radius: 0 18px 18px 18px;
+    box-shadow: 0 8px 18px rgba(15, 42, 67, 0.08);
+    padding: clamp(12px, 1.2vw, 22px);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+}
+
+.o_hotel_dashboard_full_width .container-fluid {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.o_hotel_dashboard_full_width .card {
+    border: 1px solid rgba(255, 255, 255, 0.62) !important;
+    border-radius: var(--hotel-radius) !important;
+    box-shadow: 0 5px 14px rgba(15, 42, 67, 0.11) !important;
+    min-height: 128px;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.o_hotel_dashboard_full_width button:hover > .card,
+.o_hotel_dashboard_full_width button:focus > .card,
+.o_hotel_dashboard_full_width .card:hover {
+    box-shadow: 0 8px 18px rgba(15, 42, 67, 0.14) !important;
+    filter: saturate(1.03) brightness(1.015);
+    transform: translateY(-2px);
+}
+
+.o_hotel_dashboard_full_width .card::after {
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 50%;
+    content: "";
+    height: 104px;
+    pointer-events: none;
+    position: absolute;
+    right: -30px;
+    top: -42px;
+    width: 104px;
+}
+
+.o_hotel_dashboard_full_width .card-header {
+    background: rgba(255, 255, 255, 0.10) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.24) !important;
+    font-size: 12px;
+    font-weight: 800 !important;
+    letter-spacing: 0.035em;
+    padding: 13px 16px 9px !important;
+    text-transform: uppercase;
+}
+
+.o_hotel_dashboard_full_width .card-body {
+    padding: 16px !important;
+}
+
+.o_hotel_dashboard_full_width .card h1,
+.o_hotel_dashboard_full_width .card h2 {
+    font-variant-numeric: tabular-nums;
+    font-weight: 820 !important;
+    letter-spacing: 0;
+    line-height: 1.08;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_content .card,
+.o_hotel_dashboard_full_width .o_notebook_content .card *,
+.o_hotel_dashboard_full_width .o_notebook_content .btn,
+.o_hotel_dashboard_full_width .o_notebook_content .fa {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+}
+
+.o_hotel_dashboard_full_width .o_notebook_content .card small,
+.o_hotel_dashboard_full_width .o_notebook_content .card span {
+    font-weight: 520;
+    line-height: 1.25;
+}
+
+/* Rich but controlled gradients retain the original KPI color meaning. */
+.o_hotel_dashboard_full_width .card[style*="#28a745"] {
+    background: linear-gradient(145deg, #159447, #24b85a) !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#dc3545"] {
+    background: linear-gradient(145deg, #c92e3d, #e85462) !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#A0522D"] {
+    background: linear-gradient(145deg, #8d472b, #b7653e) !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#ffd700"] {
+    background: linear-gradient(145deg, #f3c800, #ffdf3e) !important;
+    border-color: rgba(190, 145, 0, 0.22) !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#F08080"] {
+    background: linear-gradient(145deg, #df666c, #f58c8c) !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#00BFFF"] {
+    background: linear-gradient(145deg, #039bcf, #22c7f2) !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#FF8C00"],
+.o_hotel_dashboard_full_width .card[style*="#fd7e14"] {
+    background: linear-gradient(145deg, #e87409, #ff9f37) !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#7B68EE"],
+.o_hotel_dashboard_full_width .o_hotel_guest_chat_card {
+    background: linear-gradient(145deg, #6852d7, #8b78f2) !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#17a2b8"] {
+    background: linear-gradient(145deg, #12899b, #28b5c8) !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#6f42c1"] {
+    background: linear-gradient(145deg, #6035ad, #8254d5) !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#34495e"] {
+    background: linear-gradient(145deg, #293d50, #455f78) !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#20c997"] {
+    background: linear-gradient(145deg, #12a77a, #2bd2a1) !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#e83e8c"] {
+    background: linear-gradient(145deg, #cf347c, #ee5da0) !important;
+}
+
+.o_hotel_dashboard_full_width .card.text-white,
+.o_hotel_dashboard_full_width .card.text-white .card-header,
+.o_hotel_dashboard_full_width .card.text-white .card-body,
+.o_hotel_dashboard_full_width .card.text-white h1,
+.o_hotel_dashboard_full_width .card.text-white h2,
+.o_hotel_dashboard_full_width .card.text-white small {
+    color: #fff !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#ffd700"],
+.o_hotel_dashboard_full_width .card[style*="#ffd700"] .card-header,
+.o_hotel_dashboard_full_width .card[style*="#ffd700"] .card-body,
+.o_hotel_dashboard_full_width .card[style*="#ffd700"] h2,
+.o_hotel_dashboard_full_width .card[style*="#ffd700"] small {
+    color: #2f2700 !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#ffd700"] .card-header,
+.o_hotel_dashboard_full_width .card[style*="#ffd700"] h2 {
+    font-weight: 820 !important;
+}
+
+.o_hotel_dashboard_full_width .card[style*="#FF8C00"] .card-body,
+.o_hotel_dashboard_full_width .card[style*="#fd7e14"] .card-body,
+.o_hotel_dashboard_full_width .card[style*="#6f42c1"] .card-body,
+.o_hotel_dashboard_full_width .card[style*="#7B68EE"] .card-body,
+.o_hotel_dashboard_full_width .o_hotel_guest_chat_card .card-body {
+    color: #fff !important;
+}
+
+.o_hotel_dashboard_full_width .o_hotel_guest_chat_card .card-body,
+.o_hotel_dashboard_full_width .o_hotel_guest_chat_card .card-body span,
+.o_hotel_dashboard_full_width .o_hotel_guest_chat_card .card-body small {
+    color: #fff !important;
+}
+
+.o_hotel_dashboard_full_width .o_hotel_guest_chat_card .card-body .h5 {
+    font-size: 15px;
+    font-weight: 780 !important;
+}
+
+.o_hotel_dashboard_full_width .o_hotel_repeat_guest_counters {
+    background: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.o_hotel_dashboard_full_width .o_hotel_repeat_guest_counter {
+    border-radius: 0;
+    color: inherit !important;
+    transition: background-color 0.18s ease;
+}
+
+.o_hotel_dashboard_full_width .o_hotel_repeat_guest_counter h2 {
+    font-weight: 820 !important;
+}
+
+.o_hotel_dashboard_full_width .o_hotel_repeat_guest_counter small {
+    font-weight: 620 !important;
+}
+
+.o_hotel_dashboard_full_width .o_hotel_repeat_guest_counter:hover,
+.o_hotel_dashboard_full_width .o_hotel_repeat_guest_counter:focus {
+    background: rgba(255, 255, 255, 0.26) !important;
+    box-shadow: none;
+    transform: none;
+}
+
+.o_hotel_dashboard_full_width .progress {
+    background: rgba(15, 42, 67, 0.09);
+    border-radius: 999px;
+    box-shadow: none !important;
+    height: 11px !important;
+    overflow: hidden;
+}
+
+.o_hotel_dashboard_full_width .progress-bar {
+    border-radius: 999px;
+}
+
+@media (max-width: 991.98px) {
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar {
+        gap: 8px !important;
+        padding: 4px 0 !important;
+    }
+
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar .btn {
+        flex: 1 1 auto !important;
+    }
+
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar > .hotel-dashboard-toolbar-items,
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar > [name="quick_access_item_ids"] {
+        flex: 1 1 auto !important;
+    }
+
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar > .hotel-dashboard-toolbar-items > .o_kanban_renderer,
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar > [name="quick_access_item_ids"] > .o_kanban_renderer {
+        flex-wrap: wrap !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .o_hotel_dashboard_full_width .o_form_sheet_bg {
+        padding: 10px !important;
+    }
+
+    .o_hotel_dashboard_full_width .o_form_statusbar {
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+
+    .o_hotel_dashboard_full_width .o_form_statusbar .btn {
+        flex: 1 1 140px;
+    }
+
+    .o_hotel_dashboard_full_width .o_notebook_headers {
+        overflow-x: visible;
+        scrollbar-width: none;
+    }
+
+    .o_hotel_dashboard_full_width .o_notebook_headers .nav-tabs {
+        flex-wrap: nowrap;
+        min-width: max-content;
+    }
+
+    .o_hotel_dashboard_full_width .card {
+        border-radius: 14px !important;
+        min-height: 112px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar {
+        align-items: stretch !important;
+        flex-direction: column !important;
+    }
+
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar .btn {
+        flex: 1 1 auto !important;
+        width: 100% !important;
+    }
+
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar > .hotel-dashboard-toolbar-items,
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar > [name="quick_access_item_ids"],
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar > .hotel-dashboard-toolbar-items > .o_kanban_renderer,
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar > [name="quick_access_item_ids"] > .o_kanban_renderer {
+        align-items: stretch !important;
+        flex-direction: column !important;
+        width: 100% !important;
+    }
+
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar .hotel_qa_setup_btn {
+        min-height: 36px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .o_hotel_dashboard_full_width .card,
+    .o_hotel_dashboard_full_width .btn {
+        transition: none !important;
+    }
+}
+
+/* Reference-matched compact two-row toolbar. */
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar {
+    align-items: stretch !important;
+    background: transparent !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    margin: 0 0 14px !important;
+    padding: 3px 0 2px !important;
+    width: 100% !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-primary,
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    justify-content: flex-start;
+    min-height: 0;
+    width: 100%;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary > .hotel-dashboard-toolbar-items,
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary > [name="quick_access_item_ids"] {
+    display: inline-flex !important;
+    flex: 0 1 auto !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    width: auto !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .o_x2m_control_panel {
+    display: none !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .o_kanban_renderer {
+    align-items: center !important;
+    background: transparent !important;
+    display: inline-flex !important;
+    flex-wrap: wrap !important;
+    gap: 7px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .o_kanban_record,
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .o_kanban_record > div {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    display: contents !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar .btn {
+    align-items: center !important;
+    border: 1px solid transparent;
+    border-radius: 7px !important;
+    box-shadow: 0 2px 7px rgba(15, 42, 67, 0.10) !important;
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    gap: 5px;
+    justify-content: center !important;
+    line-height: 16px !important;
+    margin: 0 !important;
+    max-width: none !important;
+    min-height: 34px !important;
+    min-width: 0 !important;
+    padding: 8px 12px !important;
+    position: relative !important;
+    transition: filter 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+    white-space: nowrap !important;
+    width: auto !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-primary .btn-primary {
+    background: linear-gradient(145deg, #07546d, #08718b) !important;
+    border-color: #07546d !important;
+    color: #fff !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-primary .btn-secondary {
+    background: linear-gradient(145deg, #ffffff, #f7fafc) !important;
+    border-color: #d2dde6 !important;
+    color: #19364a !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .o_kanban_record:nth-child(1) .hotel_qa_btn {
+    background: linear-gradient(145deg, #149b49, #20b65a) !important;
+    border-color: #149b49 !important;
+    color: #fff !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .o_kanban_record:nth-child(2) .hotel_qa_btn {
+    background: linear-gradient(145deg, #7a485f, #925a74) !important;
+    border-color: #7a485f !important;
+    color: #fff !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .o_kanban_record:nth-child(3) .hotel_qa_btn {
+    background: linear-gradient(145deg, #078da8, #14abc5) !important;
+    border-color: #078da8 !important;
+    color: #fff !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .o_kanban_record:nth-child(4) .hotel_qa_btn {
+    background: linear-gradient(145deg, #ee9700, #f6aa00) !important;
+    border-color: #e49300 !important;
+    color: #17212b !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .o_kanban_record:nth-child(5) .hotel_qa_btn {
+    background: linear-gradient(145deg, #f5f7f9, #e9eef2) !important;
+    border-color: #e2e8ee !important;
+    color: #1e3242 !important;
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar .btn:hover {
+    box-shadow: 0 5px 12px rgba(15, 42, 67, 0.16) !important;
+    filter: brightness(1.035);
+    transform: translateY(-1px);
+}
+
+.o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .hotel_qa_setup_btn {
+    background: linear-gradient(145deg, #ffffff, #f5f8fa) !important;
+    border-color: #d6e0e7 !important;
+    color: #294357 !important;
+    font-size: 10.5px !important;
+    margin-inline-start: 0 !important;
+    min-height: 30px !important;
+    padding: 6px 10px !important;
+}
+
+@media (max-width: 991.98px) {
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar {
+        gap: 7px !important;
+    }
+
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar-primary,
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary,
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .o_kanban_renderer {
+        gap: 7px !important;
+    }
+
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .hotel_qa_setup_btn {
+        margin-inline-start: 0 !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar-primary,
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary,
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary > .hotel-dashboard-toolbar-items,
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary > [name="quick_access_item_ids"],
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .o_kanban_renderer {
+        align-items: stretch !important;
+        flex-direction: column !important;
+        width: 100% !important;
+    }
+
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar .btn {
+        min-height: 36px !important;
+        width: 100% !important;
+    }
+
+    .o_hotel_dashboard_full_width .hotel-dashboard-toolbar-secondary .hotel_qa_setup_btn {
+        min-height: 32px !important;
+    }
+}

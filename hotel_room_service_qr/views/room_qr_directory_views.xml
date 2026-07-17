@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_room_service_qr_directory_list" model="ir.ui.view">
+        <field name="name">hotel.room.service.qr.directory.list</field>
+        <field name="model">hotel.room.service.room.token</field>
+        <field name="arch" type="xml">
+            <list string="Room Service QR Directory" create="false" delete="false">
+                <header>
+                    <button name="action_download_all_zip" string="Download All QR Codes (ZIP)" type="object" class="btn-primary" display="always"/>
+                    <button name="action_download_selected_zip" string="Download Selected ZIP" type="object"/>
+                </header>
+                <field name="room_number"/>
+                <field name="room_name"/>
+                <field name="zone_id"/>
+                <field name="floor_id"/>
+                <field name="qr_status" widget="badge" decoration-success="qr_status == 'active'" decoration-muted="qr_status == 'inactive'"/>
+                <field name="last_scanned_at"/>
+                <button name="action_download_png" string="PNG" type="object"/>
+                <button name="action_regenerate_token" string="Regenerate QR" type="object"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_room_service_qr_directory_kanban" model="ir.ui.view">
+        <field name="name">hotel.room.service.qr.directory.kanban</field>
+        <field name="model">hotel.room.service.room.token</field>
+        <field name="arch" type="xml">
+            <kanban create="false" delete="false" class="o_kanban_small_column">
+                <field name="room_id"/>
+                <field name="room_number"/>
+                <field name="room_name"/>
+                <field name="qr_image_url"/>
+                <field name="active"/>
+                <field name="qr_status"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <div class="text-muted small">Room Number</div>
+                                    <strong class="fs-5">
+                                        <field name="room_number"/>
+                                    </strong>
+                                    <div t-if="record.room_name.raw_value" class="text-muted small mt-1">
+                                        <field name="room_name"/>
+                                    </div>
+                                </div>
+                                <span t-if="record.active.raw_value" class="badge text-bg-success">Active</span>
+                                <span t-if="!record.active.raw_value" class="badge text-bg-secondary">Inactive</span>
+                            </div>
+                            <div class="text-center my-3">
+                                <img t-att-src="record.qr_image_url.value" alt="Room Service QR" style="width: 176px; height: 176px; object-fit: contain;"/>
+                            </div>
+                            <div class="d-flex gap-2 justify-content-center">
+                                <button name="action_download_png" type="object" class="btn btn-primary btn-sm">
+                                    Download PNG
+                                </button>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_room_service_qr_directory_search" model="ir.ui.view">
+        <field name="name">hotel.room.service.qr.directory.search</field>
+        <field name="model">hotel.room.service.room.token</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="room_number"/>
+                <field name="room_name"/>
+                <field name="token"/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <group>
+                    <filter string="Building / Zone" name="group_zone" context="{'group_by': 'zone_id'}"/>
+                    <filter string="Floor" name="group_floor" context="{'group_by': 'floor_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_room_service_qr_directory" model="ir.actions.act_window">
+        <field name="name">All Room Service QR Codes</field>
+        <field name="res_model">hotel.room.service.room.token</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_room_service_qr_directory_search"/>
+        <field name="context">{'search_default_active': 1, 'search_default_group_zone': 1}</field>
+    </record>
+
+    <record id="action_print_room_service_qr_cards" model="ir.actions.report">
+        <field name="name">Print Room Service QR Cards</field>
+        <field name="model">hotel.room.service.room.token</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_room_service_qr.report_room_service_qr_cards</field>
+        <field name="report_file">hotel_room_service_qr.report_room_service_qr_cards</field>
+        <field name="binding_model_id" eval="False"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_download_selected_room_service_qr_zip" model="ir.actions.server">
+        <field name="name">Download Selected QR Codes (ZIP)</field>
+        <field name="model_id" ref="model_hotel_room_service_room_token"/>
+        <field name="binding_model_id" ref="model_hotel_room_service_room_token"/>
+        <field name="binding_view_types">list,kanban</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_download_selected_zip()</field>
+    </record>
+
+    <record id="action_download_all_room_service_qr_zip" model="ir.actions.server">
+        <field name="name">Download All QR Codes (ZIP)</field>
+        <field name="model_id" ref="model_hotel_room_service_room_token"/>
+        <field name="binding_model_id" ref="model_hotel_room_service_room_token"/>
+        <field name="binding_view_types">list,kanban</field>
+        <field name="state">code</field>
+        <field name="code">action = env['hotel.room.service.room.token'].action_download_all_zip()</field>
+    </record>
+
+    <record id="action_print_all_room_service_qr_pdf" model="ir.actions.server">
+        <field name="name">Print All QR Codes</field>
+        <field name="model_id" ref="model_hotel_room_service_room_token"/>
+        <field name="binding_model_id" eval="False"/>
+        <field name="binding_view_types">list,kanban</field>
+        <field name="state">code</field>
+        <field name="code">action = env['hotel.room.service.room.token'].action_print_all_pdf()</field>
+    </record>
+</odoo>

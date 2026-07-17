@@ -172,7 +172,7 @@ class HotelRoom(models.Model):
         ('none', 'No Arrival Pressure'),
         ('arrival_today', 'Arrival Today'),
         ('rush_arrival', 'Rush Arrival'),
-    ], string="Arrival Priority", default='none', compute='_compute_live_status', store=True, tracking=True)
+    ], string="Arrival Priority", default='none', compute='_compute_arrival_priority_level', store=True, tracking=True)
     departure_clean_required = fields.Boolean(string="Departure Clean Required", tracking=True)
     do_not_disturb = fields.Boolean(string="Do Not Disturb", tracking=True)
     turndown_required = fields.Boolean(string="Turndown Required", tracking=True)
@@ -329,6 +329,26 @@ class HotelRoom(models.Model):
             or self.env.context.get('hotel_room_security_bypass')
             or self.env.user.has_group('hotel_management.group_hotel_front_office')
         )
+    
+    def _can_supervise_housekeeping_room(self):
+        user = self.env.user
+
+        if self.env.su:
+            return True
+
+        allowed_xmlids = [
+            'hotel_housekeeping_app.group_housekeeping_supervisor',
+            'hotel_housekeeping_app.group_housekeeping_manager',
+            'hotel_management.group_hotel_manager',
+            'base.group_system',
+        ]
+
+        for xmlid in allowed_xmlids:
+            group = self.env.ref(xmlid, raise_if_not_found=False)
+            if group and user.has_group(xmlid):
+                return True
+
+        return False
 
     @api.model
     def _check_room_write_access(self, vals):
@@ -347,10 +367,34 @@ class HotelRoom(models.Model):
             return
 
         field_names = set(vals)
+
+        housekeeping_inspection_fields = {
+            'inspected_at',
+            'inspected_by',
+            'inspected_by_id',
+            'release_ready',
+            'service_type',
+            'service_workflow',
+            'inspection_state',
+            'last_inspection_id',
+        }
+
         if self.env.user.has_group('hotel_management.group_hotel_front_office'):
             allowed_fields = self._front_office_room_write_fields()
+
+        elif self._can_supervise_housekeeping_room():
+            # Supervisor/Manager can update normal housekeeping fields
+            # plus inspection/release fields only.
+            allowed_fields = (
+                self._housekeeping_room_write_fields()
+                | housekeeping_inspection_fields
+            )
+
         elif self.env.user.has_group('hotel_management.group_hotel_housekeeper'):
+            # Normal housekeeper can clean/update room status,
+            # but cannot pass/fail/release inspection.
             allowed_fields = self._housekeeping_room_write_fields()
+
         else:
             raise AccessError(_("You are not allowed to modify hotel room operational data."))
 
@@ -634,6 +678,32 @@ class HotelRoom(models.Model):
             elif active_task:
                 active_task.write(dict(task_vals, state='done'))
 
+    @api.depends(
+        'reservation_ids.state',
+        'reservation_ids.checkin_date',
+        'reservation_ids.checkout_date',
+        'release_ready',
+        'housekeeping_status',
+        'availability_status',
+        'occupancy_status',
+        'housekeeping_release_policy',
+    )
+    def _compute_arrival_priority_level(self):
+        biz_date = self.env.company.hotel_business_date or fields.Date.context_today(self)
+        arrival_room_ids = set(self.env['hotel.reservation'].sudo().search([
+            ('room_id', 'in', self.ids),
+            ('checkin_date', '=', biz_date),
+            ('state', '=', 'confirm'),
+        ]).mapped('room_id').ids)
+
+        for room in self:
+            if room.id not in arrival_room_ids:
+                room.arrival_priority_level = 'none'
+            elif room.release_ready:
+                room.arrival_priority_level = 'arrival_today'
+            else:
+                room.arrival_priority_level = 'rush_arrival'            
+
     @api.depends('reservation_ids.state', 'reservation_ids.checkin_date', 'reservation_ids.checkout_date')
     def _compute_live_status(self):
         biz_date = self.env.company.hotel_business_date or fields.Date.context_today(self)
@@ -678,11 +748,7 @@ class HotelRoom(models.Model):
             rec.room_block_id = room_block.id
             rec.is_blocked_today = bool(block or room_block)
             
-            # --- NEW HOUSEKEEPING PRIORITY LOGIC ---
-            if arrival:
-                rec.arrival_priority_level = 'arrival_today'
-            else:
-                rec.arrival_priority_level = 'none'
+            
 
     @api.constrains('zone_id', 'floor_id')
     def _check_location_consistency(self):

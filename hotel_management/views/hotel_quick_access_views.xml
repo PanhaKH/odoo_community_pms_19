@@ -78,15 +78,7 @@
         <field name="view_mode">list,form</field>
         <field name="context">{}</field>
     </record>
-
-    <!-- Add setup menu under Hotel root for now -->
-    <menuitem id="menu_hotel_quick_access_item"
-          name="Quick Access Toolbar"
-          parent="menu_hotel_config"
-          action="action_hotel_quick_access_item"
-          sequence="2"
-          groups="hotel_management.group_hotel_manager,hotel_management.group_hotel_system_admin,base.group_system"/>
-
+    
     <!-- Add Quick Access Toolbar to Hotel Dashboard -->
     <record id="view_hotel_dashboard_form_quick_access" model="ir.ui.view">
         <field name="name">hotel.dashboard.form.quick.access</field>

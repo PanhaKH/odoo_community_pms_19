@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_room_service_qr_cards">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="token">
+                <div class="page">
+                    <div style="width: 360px; margin: 0 auto; text-align: center; border: 1px solid #d8dee4; border-radius: 6px; padding: 24px; font-family: Arial, sans-serif;">
+                        <h2 style="margin: 0 0 8px 0; font-size: 20px;">Room Service</h2>
+                        <h1 style="margin: 0 0 4px 0; font-size: 34px;">
+                            Room <span t-field="token.room_number"/>
+                        </h1>
+                        <p t-if="token.room_name" style="font-size: 14px; margin: 0 0 16px 0; color: #57606a;">
+                            <span t-field="token.room_name"/>
+                        </p>
+                        <img t-att-src="token.qr_image_url" style="width: 240px; height: 240px; object-fit: contain; margin-top: 10px;"/>
+                        <p style="font-size: 13px; margin: 16px 0 6px 0;">
+                            Scan to order food and beverages from your room.
+                        </p>
+                        <p style="font-size: 12px; margin: 0; color: #57606a;">
+                            Status: <span t-field="token.qr_status"/>
+                        </p>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

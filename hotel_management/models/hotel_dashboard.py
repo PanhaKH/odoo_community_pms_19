@@ -1,6 +1,6 @@
 ﻿from odoo import models, fields, api, _
-from datetime import timedelta
-
+from datetime import datetime,timedelta
+from odoo.exceptions import AccessError
 from lxml import etree
 
 class ResCompanyHotel(models.Model):
@@ -316,13 +316,23 @@ class HotelDashboard(models.Model):
 
     def _get_active_desk_folios(self):
         Reservation = self.env['hotel.reservation'].sudo()
-        # Desk folios are operational non-stay folios, so they stay active
-        # without entering the room-stay check-in / check-out lifecycle.
-        return Reservation.search([
+
+        normal_desk_folios = Reservation.search([
             ('is_desk_folio', '=', True),
+            ('group_id', '=', False),
             ('desk_folio_status', '!=', 'paid'),
             ('state', 'not in', ['cancel', 'blocked', 'noshow', 'checkout']),
         ])
+
+        group_paymasters = Reservation.search([
+            ('is_desk_folio', '=', True),
+            ('group_id', '!=', False),
+            ('group_id.state', '=', 'checkin'),
+            ('desk_folio_status', '!=', 'paid'),
+            ('state', 'not in', ['cancel', 'blocked', 'noshow', 'checkout']),
+        ])
+
+        return normal_desk_folios | group_paymasters
 
     def _get_city_ledger_invoice_domain(self):
         Reservation = self.env['hotel.reservation'].sudo()
@@ -333,13 +343,30 @@ class HotelDashboard(models.Model):
 
     def _get_deposit_ledger_reservations(self):
         Reservation = self.env['hotel.reservation'].sudo()
-        # Deposit Ledger = advance deposits for future/unarrived room reservations only.
-        # Desk folios and group-master folios are operational billing accounts, not deposits.
-        return Reservation.search([
+
+        # FIT / normal reservation deposits before check-in
+        future_room_reservations = Reservation.search([
             ('state', 'in', ['draft', 'confirm']),
             ('is_desk_folio', '=', False),
             ('folio_type', '=', 'guest'),
-        ])
+        ]).filtered(
+            lambda res: res._get_deposit_balance_amount() > 0
+        )
+
+        # Group paymaster deposits before group check-in.
+        # Group deposits are posted to the master folio / desk folio.
+        future_group_paymasters = Reservation.search([
+            ('is_desk_folio', '=', True),
+            ('group_id', '!=', False),
+        ]).filtered(
+            lambda res: (
+                res.group_id
+                and res.group_id.state not in ['checkin', 'done', 'cancel']
+                and res._get_deposit_balance_amount() > 0
+            )
+        )
+
+        return future_room_reservations | future_group_paymasters
 
     def _get_guest_ledger_bookings(self):
         Reservation = self.env['hotel.reservation'].sudo()
@@ -374,7 +401,7 @@ class HotelDashboard(models.Model):
         guest_collected = sum(position['payments_received'] for position in positions.values())
         guest_advance_deposit_credit = sum(
             positions[reservation.id]['deposit_credit']
-            for reservation in room_guest_bookings
+            for reservation in all_guest_ledger_bookings
             if reservation.id in positions
         )
         guest_room_balance = sum(
@@ -640,7 +667,10 @@ class HotelDashboard(models.Model):
 
             # Deposit Ledger = advance money collected from future/unarrived bookings
             future_bookings = rec._get_deposit_ledger_reservations()
-            rec.deposit_ledger = sum(future_bookings.mapped('deposit_balance'))
+            rec.deposit_ledger = sum(
+                res._get_deposit_balance_amount()
+                for res in future_bookings
+            )
 
             guest_breakdown = rec._get_guest_ledger_breakdown()
             room_guest_bookings = guest_breakdown['room_guest_bookings']
@@ -747,7 +777,13 @@ class HotelDashboard(models.Model):
     def action_view_occupied_rooms(self): return self._get_action('In-House Rooms', 'hotel.room', [('state', 'in', ['occupied_clean', 'occupied_dirty'])])
     def action_view_maintenance_rooms(self): return self._get_action('Blocked / Maintenance', 'hotel.room', [('state', '=', 'blocked')])
 
-    def action_view_deposit_ledger(self): return self._get_action('Deposit Ledger', 'hotel.reservation', [('state', 'in', ['draft', 'confirm']), ('is_desk_folio', '=', False), ('folio_type', '=', 'guest'), ('deposit_balance', '>', 0)])
+    def action_view_deposit_ledger(self):
+        reservations = self._get_deposit_ledger_reservations()
+        return self._get_action(
+            'Deposit Ledger',
+            'hotel.reservation',
+            [('id', 'in', reservations.ids or [0])]
+        )
     def action_view_guest_ledger(self):
         _, _, all_guest_ledger_bookings = self._get_guest_ledger_bookings()
         reservation_ids = all_guest_ledger_bookings.filtered(
@@ -788,6 +824,71 @@ class HotelDashboard(models.Model):
             'Advance Deposits / Guest Credit',
             'account.payment',
             self._get_guest_advance_deposit_credit_domain(),
+        )
+
+    def _can_open_housekeeping_dashboard_detail(self):
+        user = self.env.user
+        allowed_xmlids = [
+            'hotel_management.group_hotel_housekeeper',
+            'hotel_housekeeping_app.group_housekeeping_supervisor',
+            'hotel_housekeeping_app.group_housekeeping_manager',
+            'hotel_management.group_hotel_manager',
+            'base.group_system',
+        ]
+
+        for xmlid in allowed_xmlids:
+            group = self.env.ref(xmlid, raise_if_not_found=False)
+            if group and user.has_group(xmlid):
+                return True
+
+        return False
+
+    def _check_housekeeping_dashboard_detail_access(self):
+        if not self._can_open_housekeeping_dashboard_detail():
+            raise AccessError(_("Only Housekeeping or Hotel Manager users can open housekeeping room details."))
+
+    def _open_housekeeping_rooms(self, title, domain):
+        self.ensure_one()
+        self._check_housekeeping_dashboard_detail_access()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': title,
+            'res_model': 'hotel.room',
+            'view_mode': 'kanban,list,form',
+            'domain': domain,
+            'target': 'current',
+            'context': {
+                'create': False,
+            },
+        }
+
+    def action_open_ready_for_inspection(self):
+        return self._open_housekeeping_rooms(
+            _('Ready for Inspection'),
+            [('service_workflow', '=', 'inspection_pending')]
+        )
+
+    def action_open_failed_reclean(self):
+        return self._open_housekeeping_rooms(
+            _('Failed / Reclean'),
+            [('service_workflow', 'in', ['reclean', 'failed', 'inspection_failed', 'reclean_required'])]
+        )
+
+    def action_open_passed_today(self):
+        today = fields.Date.context_today(self)
+        start_dt = fields.Datetime.to_string(
+            datetime.combine(today, datetime.min.time())
+        )
+        end_dt = fields.Datetime.to_string(
+            datetime.combine(today + timedelta(days=1), datetime.min.time())
+        )
+
+        return self._open_housekeeping_rooms(
+            _('Passed Today'),
+            [
+                ('inspected_at', '>=', start_dt),
+                ('inspected_at', '<', end_dt),
+            ]
         )
 
     def action_view_guest_room_ledger(self):

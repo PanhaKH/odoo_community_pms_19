@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="kitchen_status_display_page" name="Kitchen Order Status Display">
+        <html>
+            <head>
+                <title>Kitchen Status Display</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <style>
+                    :root {
+                        --bg: #f4f7fb;
+                        --panel: #ffffff;
+                        --text: #0f172a;
+                        --muted: #64748b;
+                        --line: #e2e8f0;
+                        --orange: #f97316;
+                        --green: #16a34a;
+                        --blue: #2563eb;
+                        --shadow: 0 18px 45px rgba(15, 23, 42, 0.10);
+                    }
+                    * { box-sizing: border-box; letter-spacing: 0; }
+                    body {
+                        margin: 0;
+                        min-height: 100vh;
+                        background: var(--bg);
+                        color: var(--text);
+                        font-family: Inter, "Segoe UI", Arial, sans-serif;
+                    }
+                    .ksd_page {
+                        min-height: 100vh;
+                        display: grid;
+                        grid-template-rows: auto 1fr;
+                        padding: 28px;
+                        gap: 22px;
+                    }
+                    .ksd_header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 18px;
+                        padding: 20px 24px;
+                        border-radius: 18px;
+                        background: var(--panel);
+                        box-shadow: var(--shadow);
+                    }
+                    .ksd_brand {
+                        display: flex;
+                        align-items: center;
+                        gap: 16px;
+                    }
+                    .ksd_brand img {
+                        width: 64px;
+                        height: 64px;
+                        border-radius: 16px;
+                        object-fit: cover;
+                    }
+                    .ksd_brand h1 {
+                        margin: 0;
+                        font-size: clamp(30px, 4vw, 56px);
+                        line-height: 1;
+                    }
+                    .ksd_brand span {
+                        display: block;
+                        margin-top: 6px;
+                        color: var(--muted);
+                        font-size: 16px;
+                    }
+                    .ksd_tools {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                    }
+                    .ksd_select,
+                    .ksd_status {
+                        min-height: 46px;
+                        border: 1px solid var(--line);
+                        border-radius: 12px;
+                        background: #fff;
+                        color: var(--text);
+                        font-size: 16px;
+                    }
+                    .ksd_select { padding: 0 12px; }
+                    .ksd_status {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 0 14px;
+                        color: var(--muted);
+                    }
+                    .ksd_dot {
+                        width: 10px;
+                        height: 10px;
+                        border-radius: 50%;
+                        background: var(--green);
+                        box-shadow: 0 0 0 7px rgba(22, 163, 74, 0.12);
+                    }
+                    .ksd_board {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 22px;
+                        min-height: 0;
+                    }
+                    .ksd_column {
+                        display: grid;
+                        grid-template-rows: auto 1fr;
+                        min-height: 0;
+                        border-radius: 22px;
+                        overflow: hidden;
+                        background: var(--panel);
+                        box-shadow: var(--shadow);
+                    }
+                    .ksd_column_header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 14px;
+                        padding: 22px 24px;
+                        color: #fff;
+                    }
+                    .ksd_column_header.almost { background: var(--orange); }
+                    .ksd_column_header.ready { background: var(--green); }
+                    .ksd_column_header h2 {
+                        margin: 0;
+                        font-size: clamp(28px, 3vw, 44px);
+                        line-height: 1;
+                    }
+                    .ksd_count {
+                        min-width: 58px;
+                        height: 58px;
+                        display: grid;
+                        place-items: center;
+                        border-radius: 18px;
+                        background: rgba(255, 255, 255, 0.22);
+                        font-size: 30px;
+                        font-weight: 900;
+                    }
+                    .ksd_orders {
+                        display: grid;
+                        align-content: start;
+                        gap: 14px;
+                        padding: 18px;
+                        overflow: auto;
+                    }
+                    .ksd_order {
+                        display: grid;
+                        grid-template-columns: 1fr auto;
+                        gap: 10px;
+                        align-items: center;
+                        padding: 20px;
+                        border: 1px solid var(--line);
+                        border-radius: 18px;
+                        background: #fff;
+                    }
+                    .ksd_order strong {
+                        display: block;
+                        font-size: clamp(30px, 4vw, 60px);
+                        line-height: 1;
+                    }
+                    .ksd_order span {
+                        display: block;
+                        margin-top: 8px;
+                        color: var(--muted);
+                        font-size: clamp(15px, 1.6vw, 22px);
+                    }
+                    .ksd_eta {
+                        min-width: 118px;
+                        padding: 13px 16px;
+                        border-radius: 16px;
+                        background: #f8fafc;
+                        color: var(--muted);
+                        text-align: center;
+                    }
+                    .ksd_eta b {
+                        display: block;
+                        color: var(--text);
+                        font-size: 28px;
+                    }
+                    .ksd_ready_animation {
+                        animation: pickupPulse 1.8s ease-in-out infinite;
+                    }
+                    @keyframes pickupPulse {
+                        0%, 100% { transform: scale(1); }
+                        50% { transform: scale(1.025); }
+                    }
+                    .ksd_empty {
+                        display: grid;
+                        place-items: center;
+                        min-height: 300px;
+                        color: var(--muted);
+                        font-size: 28px;
+                        font-weight: 700;
+                    }
+                    @media (max-width: 900px) {
+                        .ksd_page { padding: 14px; }
+                        .ksd_header { align-items: stretch; flex-direction: column; }
+                        .ksd_tools { flex-direction: column; align-items: stretch; }
+                        .ksd_board { grid-template-columns: 1fr; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="ksd_page" t-att-data-pos-config-id="selected_pos_config_id">
+                    <header class="ksd_header">
+                        <div class="ksd_brand">
+                            <img src="/pos_kitchen_screen_odoo/static/description/icon.png" alt="Kitchen"/>
+                            <div>
+                                <h1>Order Status</h1>
+                                <span id="ksd-subtitle">Kitchen Display</span>
+                            </div>
+                        </div>
+                        <div class="ksd_tools">
+                            <select id="ksd-kitchen-select" class="ksd_select">
+                                <t t-foreach="kitchens" t-as="kitchen">
+                                    <option t-att-value="kitchen.pos_config_id.id"
+                                            t-att-selected="kitchen.pos_config_id.id == selected_pos_config_id">
+                                        <t t-esc="kitchen.sequence"/> - <t t-esc="kitchen.pos_config_id.name"/>
+                                    </option>
+                                </t>
+                            </select>
+                            <div class="ksd_status">
+                                <span class="ksd_dot"></span>
+                                <span id="ksd-updated">Live</span>
+                            </div>
+                        </div>
+                    </header>
+                    <main class="ksd_board">
+                        <section class="ksd_column">
+                            <div class="ksd_column_header almost">
+                                <h2>Almost Ready</h2>
+                                <div id="ksd-almost-count" class="ksd_count">0</div>
+                            </div>
+                            <div id="ksd-almost" class="ksd_orders">
+                                <div class="ksd_empty">Waiting for orders</div>
+                            </div>
+                        </section>
+                        <section class="ksd_column">
+                            <div class="ksd_column_header ready">
+                                <h2>Ready for Pickup</h2>
+                                <div id="ksd-ready-count" class="ksd_count">0</div>
+                            </div>
+                            <div id="ksd-ready" class="ksd_orders">
+                                <div class="ksd_empty">No ready orders</div>
+                            </div>
+                        </section>
+                    </main>
+                </div>
+                <script>
+                    (function () {
+                        const page = document.querySelector(".ksd_page");
+                        const select = document.getElementById("ksd-kitchen-select");
+                        const almost = document.getElementById("ksd-almost");
+                        const ready = document.getElementById("ksd-ready");
+                        const almostCount = document.getElementById("ksd-almost-count");
+                        const readyCount = document.getElementById("ksd-ready-count");
+                        const updated = document.getElementById("ksd-updated");
+                        const subtitle = document.getElementById("ksd-subtitle");
+
+                        function escapeHtml(value) {
+                            return String(value || "").replace(/[&lt;&gt;&amp;"']/g, function (char) {
+                                return {
+                                    "&lt;": "&amp;lt;",
+                                    "&gt;": "&amp;gt;",
+                                    "&amp;": "&amp;amp;",
+                                    '"': "&amp;quot;",
+                                    "'": "&#39;",
+                                }[char];
+                            });
+                        }
+
+                        function orderCard(order, readyState) {
+                            const meta = [order.table, order.customer, "ETA " + order.eta].filter(Boolean).join(" / ");
+                            return `
+                                &lt;article class="ksd_order ${readyState ? "ksd_ready_animation" : ""}"&gt;
+                                    &lt;div&gt;
+                                        &lt;strong&gt;${escapeHtml(order.name)}&lt;/strong&gt;
+                                        &lt;span&gt;${escapeHtml(meta || "Order in progress")}&lt;/span&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class="ksd_eta"&gt;
+                                        &lt;b&gt;${escapeHtml(order.time)}&lt;/b&gt;
+                                        &lt;small&gt;${escapeHtml(order.wait_minutes)} min&lt;/small&gt;
+                                    &lt;/div&gt;
+                                &lt;/article&gt;`;
+                        }
+
+                        function renderList(target, orders, emptyText, readyState) {
+                            if (!orders.length) {
+                                target.innerHTML = `&lt;div class="ksd_empty"&gt;${emptyText}&lt;/div&gt;`;
+                                return;
+                            }
+                            target.innerHTML = orders.map((order) => orderCard(order, readyState)).join("");
+                        }
+
+                        async function loadStatus() {
+                            const configId = select.value || page.dataset.posConfigId || "";
+                            const response = await fetch(`/pos/kitchen/status/data?pos_config_id=${encodeURIComponent(configId)}`, {
+                                credentials: "same-origin",
+                            });
+                            const data = await response.json();
+                            subtitle.textContent = data.kitchen?.pos_name || "Kitchen Display";
+                            almostCount.textContent = data.counts?.almost_ready || 0;
+                            readyCount.textContent = data.counts?.ready || 0;
+                            renderList(almost, data.almost_ready || [], "Waiting for orders", false);
+                            renderList(ready, data.ready || [], "No ready orders", true);
+                            updated.textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                        }
+
+                        select.addEventListener("change", loadStatus);
+                        loadStatus();
+                        setInterval(loadStatus, 5000);
+                    })();
+                </script>
+            </body>
+        </html>
+    </template>
+</odoo>

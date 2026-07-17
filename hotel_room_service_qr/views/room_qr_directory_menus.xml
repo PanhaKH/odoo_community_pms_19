@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_room_service_qr_directory"
+              name="All Room Service QR Codes"
+              parent="menu_room_service_config_parent"
+              action="action_room_service_qr_directory"
+              sequence="30"
+              groups="hotel_management.group_hotel_manager,base.group_system"/>
+</odoo>

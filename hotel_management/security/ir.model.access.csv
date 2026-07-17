@@ -129,3 +129,6 @@ access_hotel_quick_access_manager,hotel.quick.access manager,model_hotel_quick_a
 access_hotel_quick_access_system_admin,hotel.quick.access system admin,model_hotel_quick_access_item,hotel_management.group_hotel_system_admin,1,1,1,1
 access_hotel_quick_access_system,hotel.quick.access system,model_hotel_quick_access_item,base.group_system,1,1,1,1
 access_hotel_dashboard_performance_date_wizard,hotel.dashboard.performance.date.wizard,model_hotel_dashboard_performance_date_wizard,base.group_user,1,1,1,0
+access_hotel_report_center_user,hotel.report.center user,model_hotel_report_center,base.group_user,1,1,1,1
+access_hotel_report_center_line_user,hotel.report.center.line user,model_hotel_report_center_line,base.group_user,1,1,1,1
+access_hotel_group_room_line_manager,hotel.group.room.line manager,model_hotel_group_room_line,hotel_management.group_hotel_manager,1,1,1,1

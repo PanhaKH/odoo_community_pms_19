@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <function model="hotel.room.service.outlet" name="_ensure_default_room_service_setup"/>
+</odoo>

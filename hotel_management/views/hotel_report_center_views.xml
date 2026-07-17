@@ -1,0 +1,563 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_hotel_report_center_form" model="ir.ui.view">
+        <field name="name">hotel.report.center.form</field>
+        <field name="model">hotel.report.center</field>
+        <field name="arch" type="xml">
+            <form string="Hotel Report Center" create="false" edit="true">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Hotel Report Center</h1>
+                    </div>
+
+                    <div class="row mb-3">
+
+                        <!-- Left side: Report filter + report option -->
+                        <div class="col-lg-6 col-md-12">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <group string="REPORT FILTER">
+                                        <field name="report_code"/>
+                                        <field name="print_style"/>
+                                        <field name="company_id"/>
+                                        <field name="date_from"/>
+                                        <field name="date_to"/>
+                                    </group>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <group string="REPORT OPTIONS">
+                                        <field name="report_output"/>
+                                        <field name="sort_by"/>
+                                        <field name="sort_order"/>
+                                        <field name="currency_id" readonly="1"/>
+                                    </group>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right side: Output -->
+                        <div class="col-lg-6 col-md-12">
+                            <group string="OUTPUT">
+                                <field name="report_title" readonly="1"/>
+                                <field name="total_amount" readonly="1"/>
+                                <div class="alert alert-info" role="alert">
+                                    Use Preview first<br/>
+                                    to check data.<br/>
+                                    Then Print PDF or<br/>
+                                    Export Excel.
+                                </div>
+                            </group>
+                        </div>
+
+                    </div>
+
+                    <div class="mb-3">
+                        <button name="action_preview"
+                                type="object"
+                                string="Preview"
+                                class="btn btn-primary me-2"/>
+
+                        <button name="action_print_pdf"
+                                type="object"
+                                string="Print PDF"
+                                class="btn btn-secondary me-2"/>
+
+                        <button name="action_export_excel"
+                                type="object"
+                                string="Export Excel"
+                                class="btn btn-success"/>
+                    </div>
+
+                    <separator string="Preview Result"/>
+
+                    <field name="line_ids" nolabel="1" readonly="1">
+                        <list create="false" edit="false" delete="false">
+                            <field name="line_no" string="#"/>
+                            <field name="ref" string="Reference"/>
+                            <field name="guest_name" string="Guest / Customer"/>
+                            <field name="room_name" string="Room / Reservation"/>
+
+                            <field name="checkin" string="Check-In"/>
+                            <field name="checkout" string="Check-Out"/>
+                            <field name="nights" string="Nights"/>
+
+                            <field name="currency_id" column_invisible="1"/>
+                            <field name="rate"
+                                string="Rate"
+                                widget="monetary"
+                                options="{'currency_field': 'currency_id'}"/>
+
+                            <field name="status" string="Status"/>
+
+                            <field name="amount"
+                                string="Amount"
+                                widget="monetary"
+                                options="{'currency_field': 'currency_id'}"
+                                sum="Total"/>
+
+                            <field name="company_name" optional="hide"/>
+                            <field name="booking_source" optional="hide"/>
+                            <field name="market_segment" optional="hide"/>
+                            <field name="guest_class" optional="hide"/>
+                            <field name="nationality" optional="hide"/>
+                            <field name="note" optional="hide"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hotel_report_center" model="ir.actions.act_window">
+        <field name="name">Report Center</field>
+        <field name="res_model">hotel.report.center</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+
+    
+    <record id="paperformat_hotel_report_center_a4_portrait" model="report.paperformat">
+        <field name="name">Hotel Report Center A4 Portrait</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">10</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">6</field>
+        <field name="margin_right">6</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">5</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <!-- PDF Report Action -->
+    <record id="action_report_hotel_report_center_pdf" model="ir.actions.report">        
+        <field name="name">Hotel Report Center PDF</field>
+        <field name="model">hotel.report.center</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management.report_hotel_report_center_pdf</field>
+        <field name="report_file">hotel_management.report_hotel_report_center_pdf</field>
+        <field name="paperformat_id" ref="hotel_management.paperformat_hotel_report_center_a4_portrait"/>
+        <field name="print_report_name">'%s' % (object.report_title or 'Hotel Report')</field>
+    </record>
+
+    <!-- PDF Template -->
+    <template id="report_hotel_report_center_pdf">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.basic_layout">
+                    <div class="page hotel_report_page">
+
+                        <style>
+                            .hotel_report_page {
+                                font-family: Arial, sans-serif;
+                                color: #222;
+                                font-size: 10.5px;
+                            }
+
+                            .hotel_report_header {
+                                width: 100%;
+                                margin-bottom: 14px;
+                                border-bottom: 1px solid #999;
+                                padding-bottom: 8px;
+                            }
+
+                            .hotel_name {
+                                font-size: 16px;
+                                font-weight: bold;
+                                color: #333;
+                            }
+
+                            .hotel_meta {
+                                font-size: 9px;
+                                color: #666;
+                                margin-top: 2px;
+                            }
+
+                            .report_title {
+                                text-align: center;
+                                font-size: 22px;
+                                font-weight: bold;
+                                color: #9b7a32;
+                                margin: 18px 0 16px 0;
+                            }
+
+                            .report_filter {
+                                width: 100%;
+                                font-size: 10px;
+                                margin-bottom: 10px;
+                            }
+
+                            .text-right {
+                                text-align: right;
+                            }
+
+                            .text-center {
+                                text-align: center;
+                            }
+
+                            .amount {
+                                text-align: right;
+                            }
+
+                            .hotel_report_list {
+                                width: 100%;
+                                border-collapse: collapse;
+                                table-layout: fixed;
+                                font-size: 10px;
+                            }
+
+                            .hotel_report_list thead tr {
+                                border-top: 1px solid #555;
+                                border-bottom: 1px solid #555;
+                                background-color: #f2ead7;
+                            }
+
+                            .hotel_report_list th {
+                                padding: 6px 6px;
+                                font-weight: bold;
+                                color: #000;
+                                text-align: left;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                            }
+
+                            .hotel_report_list td {
+                                padding: 6px 6px;
+                                border-bottom: 1px solid #ddd;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                                line-height: 16px;
+                                vertical-align: middle;
+                            }
+
+                            .hotel_report_list tfoot td {
+                                border-top: 1px solid #555;
+                                border-bottom: none;
+                                font-weight: bold;
+                                padding-top: 7px;
+                            }
+
+                            .footer_text {
+                                margin-top: 12px;
+                                font-size: 9px;
+                                color: #666;
+                            }
+                            .hotel_report_detail_note td {
+                                font-size: 9px;
+                                color: #555;
+                                padding-top: 2px;
+                                padding-bottom: 7px;
+                                border-bottom: 1px solid #ccc;
+                            }
+                            .hotel_report_list th.amount {
+                                text-align: right;
+                            }
+
+                            .hotel_report_list td.amount {
+                                text-align: right;
+                            }
+                            .hotel_report_detail_note td {
+                                font-size: 9px;
+                                color: #555;
+                                padding-top: 2px;
+                                padding-bottom: 7px;
+                                border-bottom: 1px solid #ccc;
+                            }
+                        </style>
+
+                        <!-- Clean custom header, no Odoo external logo/address overlap -->
+                        <table class="hotel_report_header">
+                            <tr>
+                                <td>
+                                    <div class="hotel_name">
+                                        <span t-esc="o.company_id.display_name"/>
+                                    </div>
+                                    <div class="hotel_meta">
+                                        Hotel Management Report
+                                    </div>
+                                </td>
+                                <td class="text-right">
+                                    <div class="hotel_meta">
+                                        Printed by: <span t-esc="o.env.user.display_name"/>
+                                    </div>
+                                    <div class="hotel_meta">
+                                        Printed date: <span t-esc="datetime.datetime.now().strftime('%Y-%m-%d %H:%M')"/>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div class="report_title">
+                            <span t-esc="o.report_title"/>
+                        </div>
+
+                        <table class="report_filter">
+                            <tr>
+                                <td>
+                                    <strong>Company:</strong>
+                                    <span t-esc="o.company_id.display_name"/>
+                                </td>
+                                <td class="text-right">
+                                    <strong>Period:</strong>
+                                    <span t-esc="o.date_from"/>
+                                    -
+                                    <span t-esc="o.date_to"/>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Front Office Reports: Arrival / Departure / In-House / Reservation -->
+                        <t t-if="o.report_code in ['arrival', 'departure', 'inhouse', 'reservation']">
+
+                            <!-- Summary Format -->
+                            <t t-if="o.print_style == 'summary'">
+                                <table class="hotel_report_list">
+                                    <colgroup>
+                                        <col style="width:4%;"/>
+                                        <col style="width:14%;"/>
+                                        <col style="width:20%;"/>
+                                        <col style="width:7%;"/>
+                                        <col style="width:10%;"/>
+                                        <col style="width:10%;"/>
+                                        <col style="width:5%;"/>
+                                        <col style="width:9%;"/>
+                                        <col style="width:9%;"/>
+                                        <col t-if="o.report_output in ['with_company', 'with_booking_source', 'with_market_segment', 'with_guest_class', 'with_nationality']"
+                                            style="width:12%;"/>
+                                    </colgroup>
+
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center">#</th>
+                                            <th>Reference</th>
+                                            <th>Guest Name</th>
+                                            <th>Room</th>
+                                            <th>Check-In</th>
+                                            <th>Check-Out</th>
+                                            <th class="text-center">Ngt</th>
+                                            <th class="amount">Rate</th>
+                                            <th>Status</th>
+
+                                            <th t-if="o.report_output == 'with_company'">Company</th>
+                                            <th t-if="o.report_output == 'with_booking_source'">Booking Source</th>
+                                            <th t-if="o.report_output == 'with_market_segment'">Market Segment</th>
+                                            <th t-if="o.report_output == 'with_guest_class'">Guest Class</th>
+                                            <th t-if="o.report_output == 'with_nationality'">Nationality</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr t-foreach="o.line_ids" t-as="line">
+                                            <td class="text-center">
+                                                <span t-esc="line.line_no"/>
+                                            </td>
+                                            <td>
+                                                <span t-esc="line.ref or ''"/>
+                                            </td>
+                                            <td>
+                                                <span t-esc="line.guest_name or ''"/>
+                                            </td>
+                                            <td>
+                                                <span t-esc="line.room_name or ''"/>
+                                            </td>
+                                            <td>
+                                                <span t-esc="line.checkin or ''"/>
+                                            </td>
+                                            <td>
+                                                <span t-esc="line.checkout or ''"/>
+                                            </td>
+                                            <td class="text-center">
+                                                <span t-esc="line.nights or 0"/>
+                                            </td>
+                                            <td class="amount">
+                                                <span t-out="line.rate"
+                                                    t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                            </td>
+                                            <td>
+                                                <span t-esc="line.status or ''"/>
+                                            </td>
+
+                                            <td t-if="o.report_output == 'with_company'">
+                                                <span t-esc="line.company_name or ''"/>
+                                            </td>
+                                            <td t-if="o.report_output == 'with_booking_source'">
+                                                <span t-esc="line.booking_source or ''"/>
+                                            </td>
+                                            <td t-if="o.report_output == 'with_market_segment'">
+                                                <span t-esc="line.market_segment or ''"/>
+                                            </td>
+                                            <td t-if="o.report_output == 'with_guest_class'">
+                                                <span t-esc="line.guest_class or ''"/>
+                                            </td>
+                                            <td t-if="o.report_output == 'with_nationality'">
+                                                <span t-esc="line.nationality or ''"/>
+                                            </td>
+                                        </tr>
+
+                                        <tr t-if="not o.line_ids">
+                                            <td colspan="10" class="text-center">No data found.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </t>
+
+                            <!-- Detail Format -->
+                            <t t-else="">
+                                <table class="hotel_report_list">
+                                    <colgroup>
+                                        <col style="width:4%;"/>
+                                        <col style="width:14%;"/>
+                                        <col style="width:20%;"/>
+                                        <col style="width:12%;"/>
+                                        <col style="width:7%;"/>
+                                        <col style="width:10%;"/>
+                                        <col style="width:10%;"/>
+                                        <col style="width:5%;"/>
+                                        <col style="width:9%;"/>
+                                        <col style="width:9%;"/>
+                                    </colgroup>
+
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center">#</th>
+                                            <th>Reference</th>
+                                            <th>Guest Name</th>
+                                            <th>Room Type</th>
+                                            <th>Room</th>
+                                            <th>Check-In</th>
+                                            <th>Check-Out</th>
+                                            <th class="text-center">Ngt</th>
+                                            <th class="amount">Rate</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <t t-foreach="o.line_ids" t-as="line">
+                                            <tr>
+                                                <td class="text-center">
+                                                    <span t-esc="line.line_no"/>
+                                                </td>
+                                                <td>
+                                                    <span t-esc="line.ref or ''"/>
+                                                </td>
+                                                <td>
+                                                    <span t-esc="line.guest_name or ''"/>
+                                                </td>
+                                                <td>
+                                                    <span t-esc="line.room_type_name or ''"/>
+                                                </td>
+                                                <td>
+                                                    <span t-esc="line.room_name or ''"/>
+                                                </td>
+                                                <td>
+                                                    <span t-esc="line.checkin or ''"/>
+                                                </td>
+                                                <td>
+                                                    <span t-esc="line.checkout or ''"/>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span t-esc="line.nights or 0"/>
+                                                </td>
+                                                <td class="amount">
+                                                    <span t-out="line.rate"
+                                                        t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                                </td>
+                                                <td>
+                                                    <span t-esc="line.status or ''"/>
+                                                </td>
+                                            </tr>
+
+                                            <tr class="hotel_report_detail_note">
+                                                <td></td>
+                                                <td colspan="9">
+                                                    <strong>Company:</strong>
+                                                    <span t-esc="line.company_name or '-'"/>
+
+                                                    <span> | </span>
+                                                    <strong>Source:</strong>
+                                                    <span t-esc="line.booking_source or '-'"/>
+
+                                                    <span> | </span>
+                                                    <strong>Market:</strong>
+                                                    <span t-esc="line.market_segment or '-'"/>
+
+                                                    <span> | </span>
+                                                    <strong>Guest Class:</strong>
+                                                    <span t-esc="line.guest_class or '-'"/>
+
+                                                    <span> | </span>
+                                                    <strong>Nationality:</strong>
+                                                    <span t-esc="line.nationality or '-'"/>
+
+                                                    <t t-if="line.note">
+                                                        <br/>
+                                                        <strong>Note:</strong>
+                                                        <span t-esc="line.note"/>
+                                                    </t>
+                                                </td>
+                                            </tr>
+                                        </t>
+
+                                        <tr t-if="not o.line_ids">
+                                            <td colspan="10" class="text-center">No data found.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </t>
+
+                        </t>
+
+                        <!-- Finance reports -->
+                        <t t-else="">
+                            <table class="hotel_report_list">
+                                <thead>
+                                    <tr>
+                                        <th style="width:5%;" class="text-center">#</th>
+                                        <th style="width:12%;">Date</th>
+                                        <th style="width:18%;">Reference</th>
+                                        <th style="width:22%;">Guest / Customer</th>
+                                        <th style="width:17%;">Partner / Journal</th>
+                                        <th style="width:12%;">Payment</th>
+                                        <th style="width:14%;" class="amount">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.line_ids" t-as="line">
+                                        <td class="text-center"><span t-esc="line.line_no"/></td>
+                                        <td><span t-esc="line.date or ''"/></td>
+                                        <td><span t-esc="line.ref or ''"/></td>
+                                        <td><span t-esc="line.guest_name or ''"/></td>
+                                        <td><span t-esc="line.partner_name or ''"/></td>
+                                        <td><span t-esc="line.payment_method or ''"/></td>
+                                        <td class="amount"><span t-esc="'{:,.2f}'.format(line.amount or 0.0)"/></td>
+                                    </tr>
+                                    <tr t-if="not o.line_ids">
+                                        <td colspan="7" class="text-center">No data found.</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="6" class="text-right">Total</td>
+                                        <td class="amount"><span t-esc="'{:,.2f}'.format(o.total_amount or 0.0)"/></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </t>
+
+                        <div class="footer_text">
+                            End of Report
+                        </div>
+
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

@@ -26,3 +26,5 @@ from . import hotel_guest_duplicate_review
 from . import hotel_document_template
 from . import res_users
 from . import hotel_quick_access
+from . import hotel_report_center
+from . import res_users_safe_has_group

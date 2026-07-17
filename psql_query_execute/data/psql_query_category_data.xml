@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="report_category_hotel_pms" model="psql.query.category">
+            <field name="name">Hotel PMS</field>
+            <field name="sequence">10</field>
+            <field name="icon">fa-hotel</field>
+        </record>
+        <record id="report_category_hotel_reservations" model="psql.query.category">
+            <field name="name">Reservations</field>
+            <field name="parent_id" ref="report_category_hotel_pms"/>
+            <field name="sequence">10</field>
+        </record>
+        <record id="report_category_hotel_front_desk" model="psql.query.category">
+            <field name="name">Front Desk</field>
+            <field name="parent_id" ref="report_category_hotel_pms"/>
+            <field name="sequence">20</field>
+        </record>
+        <record id="report_category_hotel_housekeeping" model="psql.query.category">
+            <field name="name">Housekeeping</field>
+            <field name="parent_id" ref="report_category_hotel_pms"/>
+            <field name="sequence">30</field>
+        </record>
+        <record id="report_category_hotel_room_service" model="psql.query.category">
+            <field name="name">Room Service</field>
+            <field name="parent_id" ref="report_category_hotel_pms"/>
+            <field name="sequence">40</field>
+        </record>
+        <record id="report_category_hotel_pos" model="psql.query.category">
+            <field name="name">POS</field>
+            <field name="parent_id" ref="report_category_hotel_pms"/>
+            <field name="sequence">50</field>
+        </record>
+        <record id="report_category_hotel_kitchen_display" model="psql.query.category">
+            <field name="name">Kitchen Display</field>
+            <field name="parent_id" ref="report_category_hotel_pms"/>
+            <field name="sequence">60</field>
+        </record>
+        <record id="report_category_hotel_accounting" model="psql.query.category">
+            <field name="name">Accounting</field>
+            <field name="parent_id" ref="report_category_hotel_pms"/>
+            <field name="sequence">70</field>
+        </record>
+        <record id="report_category_hotel_inventory" model="psql.query.category">
+            <field name="name">Inventory</field>
+            <field name="parent_id" ref="report_category_hotel_pms"/>
+            <field name="sequence">80</field>
+        </record>
+        <record id="report_category_hotel_maintenance" model="psql.query.category">
+            <field name="name">Maintenance</field>
+            <field name="parent_id" ref="report_category_hotel_pms"/>
+            <field name="sequence">90</field>
+        </record>
+        <record id="report_category_hotel_spa" model="psql.query.category">
+            <field name="name">Spa</field>
+            <field name="parent_id" ref="report_category_hotel_pms"/>
+            <field name="sequence">100</field>
+        </record>
+        <record id="report_category_hotel_dashboard" model="psql.query.category">
+            <field name="name">Dashboard</field>
+            <field name="parent_id" ref="report_category_hotel_pms"/>
+            <field name="sequence">110</field>
+        </record>
+
+        <record id="report_category_sales" model="psql.query.category">
+            <field name="name">Sales</field>
+            <field name="sequence">20</field>
+            <field name="icon">fa-line-chart</field>
+        </record>
+        <record id="report_category_sales_quotations" model="psql.query.category">
+            <field name="name">Quotations</field>
+            <field name="parent_id" ref="report_category_sales"/>
+            <field name="sequence">10</field>
+        </record>
+        <record id="report_category_sales_orders" model="psql.query.category">
+            <field name="name">Orders</field>
+            <field name="parent_id" ref="report_category_sales"/>
+            <field name="sequence">20</field>
+        </record>
+        <record id="report_category_sales_customers" model="psql.query.category">
+            <field name="name">Customers</field>
+            <field name="parent_id" ref="report_category_sales"/>
+            <field name="sequence">30</field>
+        </record>
+        <record id="report_category_sales_revenue" model="psql.query.category">
+            <field name="name">Revenue</field>
+            <field name="parent_id" ref="report_category_sales"/>
+            <field name="sequence">40</field>
+        </record>
+
+        <record id="report_category_purchase" model="psql.query.category"><field name="name">Purchase</field><field name="sequence">30</field><field name="icon">fa-shopping-cart</field></record>
+        <record id="report_category_inventory" model="psql.query.category"><field name="name">Inventory</field><field name="sequence">40</field><field name="icon">fa-cubes</field></record>
+        <record id="report_category_crm" model="psql.query.category"><field name="name">CRM</field><field name="sequence">50</field><field name="icon">fa-handshake-o</field></record>
+        <record id="report_category_accounting" model="psql.query.category"><field name="name">Accounting</field><field name="sequence">60</field><field name="icon">fa-calculator</field></record>
+        <record id="report_category_human_resources" model="psql.query.category"><field name="name">Human Resources</field><field name="sequence">70</field><field name="icon">fa-users</field></record>
+        <record id="report_category_manufacturing" model="psql.query.category"><field name="name">Manufacturing</field><field name="sequence">80</field><field name="icon">fa-industry</field></record>
+        <record id="report_category_marketing" model="psql.query.category"><field name="name">Marketing</field><field name="sequence">90</field><field name="icon">fa-bullhorn</field></record>
+        <record id="report_category_website" model="psql.query.category"><field name="name">Website</field><field name="sequence">100</field><field name="icon">fa-globe</field></record>
+        <record id="report_category_point_of_sale" model="psql.query.category"><field name="name">Point of Sale</field><field name="sequence">110</field><field name="icon">fa-credit-card</field></record>
+        <record id="report_category_custom_reports" model="psql.query.category"><field name="name">Custom Reports</field><field name="sequence">120</field><field name="icon">fa-folder-open-o</field></record>
+        <record id="report_category_my_reports" model="psql.query.category"><field name="name">My Reports</field><field name="sequence">130</field><field name="icon">fa-user</field></record>
+    </data>
+
+    <function model="psql.query" name="_assign_uncategorized_reports"/>
+</odoo>

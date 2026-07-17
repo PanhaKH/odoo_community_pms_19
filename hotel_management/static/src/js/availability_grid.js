@@ -127,7 +127,7 @@ export class HotelAvailabilityGrid extends Component {
             type: 'ir.actions.act_window',
             res_model: 'hotel.reservation',
             views: [[false, 'form']],
-            target: 'new', 
+            target: "current", 
             context: {
                 default_room_type_id: roomTypeId,
                 default_checkin_date: dateStr,

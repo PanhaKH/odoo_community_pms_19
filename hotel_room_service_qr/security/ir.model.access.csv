@@ -1,0 +1,17 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_room_service_outlet_user,room.service.outlet user,model_hotel_room_service_outlet,base.group_user,1,0,0,0
+access_room_service_outlet_manager,room.service.outlet manager,model_hotel_room_service_outlet,hotel_management.group_hotel_manager,1,1,1,1
+access_room_service_token_user,room.service.token user,model_hotel_room_service_room_token,base.group_user,1,0,0,0
+access_room_service_token_manager,room.service.token manager,model_hotel_room_service_room_token,hotel_management.group_hotel_manager,1,1,1,1
+access_room_service_category_user,room.service.category user,model_hotel_room_service_menu_category,base.group_user,1,0,0,0
+access_room_service_category_manager,room.service.category manager,model_hotel_room_service_menu_category,hotel_management.group_hotel_manager,1,1,1,1
+access_room_service_item_user,room.service.item user,model_hotel_room_service_menu_item,base.group_user,1,0,0,0
+access_room_service_item_manager,room.service.item manager,model_hotel_room_service_menu_item,hotel_management.group_hotel_manager,1,1,1,1
+access_room_service_order_user,room.service.order user,model_hotel_room_service_order,base.group_user,1,1,0,0
+access_room_service_order_manager,room.service.order manager,model_hotel_room_service_order,hotel_management.group_hotel_manager,1,1,1,1
+access_room_service_line_user,room.service.line user,model_hotel_room_service_order_line,base.group_user,1,0,0,0
+access_room_service_line_manager,room.service.line manager,model_hotel_room_service_order_line,hotel_management.group_hotel_manager,1,1,1,1
+access_room_service_log_user,room.service.log user,model_hotel_room_service_integration_log,base.group_user,1,0,0,0
+access_room_service_log_manager,room.service.log manager,model_hotel_room_service_integration_log,hotel_management.group_hotel_manager,1,1,1,1
+access_room_service_report_wizard_manager,room.service.report.wizard manager,model_hotel_room_service_report_wizard,hotel_management.group_hotel_manager,1,1,1,1
+

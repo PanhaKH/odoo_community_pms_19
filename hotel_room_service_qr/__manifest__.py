@@ -1,0 +1,43 @@
+{
+    "name": "Hotel Room Service QR",
+    "version": "19.0.1.0.5",
+    "category": "Hotel/POS",
+    "summary": "QR-based room service ordering with POS and PMS adapters.",
+    "author": "Hotel PMS",
+    "images": ["static/description/icon.png"],
+    "depends": [
+        "hotel_management",
+        "pos_kitchen_screen_odoo",
+        "pos_restaurant",
+        "pos_self_order",
+        "website",
+    ],
+    "data": [
+        "security/ir.model.access.csv",
+        "data/room_service_sequence.xml",
+        "data/room_service_demo.xml",
+        "views/room_service_views.xml",
+        "views/room_qr_directory_views.xml",
+        "views/room_service_menus.xml",
+        "views/room_service_templates.xml",
+        "views/room_qr_directory_menus.xml",
+        "views/room_qr_directory_templates.xml",
+    ],
+    "assets": {
+        "point_of_sale._assets_pos": [
+            "hotel_room_service_qr/static/src/js/pos_hotel_validation.js",
+            "hotel_room_service_qr/static/src/js/pos_debug_widget_guard.js",
+        ],
+        "pos_self_order.assets": [
+            "hotel_room_service_qr/static/src/self_order/asset_version.js",
+            "hotel_room_service_qr/static/src/self_order/order_status_tracker.js",
+            "hotel_room_service_qr/static/src/self_order/order_status_tracker.xml",
+            "hotel_room_service_qr/static/src/self_order/order_status_tracker.scss",
+        ],
+    },
+    "installable": True,
+    "application": True,
+    "post_init_hook": "post_init_hook",
+    "uninstall_hook": "uninstall_hook",
+    "license": "LGPL-3",
+}

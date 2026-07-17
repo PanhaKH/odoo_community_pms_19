@@ -10,12 +10,23 @@
         <field name="arch" type="xml">
             
             <kanban default_group_by="reservation_id" class="o_hotel_rooming_board" records_draggable="1" group_create="0" group_edit="0" group_delete="0" create="0" quick_create="0">
+                <field name="group_folio_role"/>
+                <field name="rooming_board_label"/>
+                <field name="is_desk_folio"/>
+                <field name="group_id"/>
                 <field name="partner_id"/>
                 <field name="reservation_id"/>
                 <field name="state_color_class"/>
                 <templates>
                     <t t-name="card">
-                        <div class="oe_kanban_global_click" style="border-radius: 4px; padding: 10px; margin-bottom: 8px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #17a2b8;">
+                        <div t-attf-class="oe_kanban_global_click #{record.group_folio_role.raw_value == 'paymaster' ? 'o_group_paymaster_card' : 'o_group_room_card'}">
+                            <t t-if="record.group_folio_role.raw_value == 'paymaster'">
+                                <span class="o_group_paymaster_badge">PAYMASTER</span>
+                            </t>
+                            <t t-elif="record.group_folio_role.raw_value == 'room'">
+                                <span class="o_group_room_badge">ROOM</span>
+                            </t>
+
                             <div class="o_kanban_record_top">
                                 <div class="o_kanban_record_headings">
                                     <strong style="font-size: 13px;"><i class="fa fa-user me-2 text-muted"/> <field name="partner_id"/></strong>
@@ -33,7 +44,7 @@
         <field name="name">Drag &amp; Drop Rooming Board</field>
         <field name="res_model">hotel.group.rooming.list</field>
         <field name="view_mode">kanban</field>
-        <field name="domain">[('group_id', '=', active_id)]</field>
+        <field name="domain">[('group_id', '=', active_id), ('reservation_id.is_desk_folio', '=', False)]</field>
         <field name="context">{'default_group_id': active_id, 'search_default_group_by': 'reservation_id'}</field>
     </record>
 
@@ -932,7 +943,9 @@
                             
                         </group>
                         <group string="Stay Details" name="stay_details" invisible="is_desk_folio">
-                            <field name="room_type_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="room_type_id"
+                                    domain="[('name', '!=', 'Desk Folio')]"
+                                    options="{'no_create': True, 'no_open': True}"/>
 
                             <field name="available_room_ids" invisible="1"/>
                             <field name="room_id" domain="[('id', 'in', available_room_ids)]" options="{'no_create': True}"/>
@@ -2208,21 +2221,68 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
         <field name="context">{'default_is_company': True, 'default_customer_rank': 1}</field>
     </record>
 
-<record id="view_hotel_group_master_tree" model="ir.ui.view">
+    <record id="view_hotel_group_master_tree" model="ir.ui.view">
         <field name="name">hotel.group.master.tree</field>
         <field name="model">hotel.group.master</field>
         <field name="arch" type="xml">
-            <list decoration-info="state == 'draft'" decoration-success="state == 'confirm'" decoration-muted="state == 'cancel'">
-                <field name="name"/>
+            <list string="Group Blocks"
+                decoration-info="state == 'draft'"
+                decoration-primary="state == 'generated'"
+                decoration-warning="state in ['confirm', 'assigned']"
+                decoration-success="state in ['checkin', 'done']"
+                decoration-muted="state == 'cancel'">
+
+                <field name="name" string="Group Code / Name"/>
                 <field name="partner_id" string="Company / Agent"/>
-                <field name="arrival_date"/>
-                <field name="departure_date"/>
-                <field name="rate_plan_id" optional="show"/>
-                <field name="state" widget="badge" optional="show"/>
+                <field name="arrival_date" string="Arrival"/>
+                <field name="departure_date" string="Departure"/>
+                <field name="rate_plan_id" string="Master Rate Plan" optional="show"/>
+
+                <field name="group_total_charges"
+                    string="Total Charges"
+                    optional="show"/>
+
+                <field name="group_deposit_received"
+                    string="Deposit"
+                    optional="show"/>
+
+                <field name="group_balance_due"
+                    string="Balance Due"
+                    optional="show"/>
+
+                <field name="state"
+                    string="Status"
+                    widget="badge"
+                    optional="show"/>
+
+                <field name="billing_routing"
+                    string="Billing Routing"
+                    optional="hide"/>
+
+                <field name="city_ledger_id"
+                    string="City Ledger"
+                    optional="hide"/>
+
+                <field name="folio_id"
+                    string="Master Folio"
+                    optional="hide"/>
+
+                <field name="paymaster_id"
+                    string="Group Paymaster"
+                    optional="hide"/>
+
+                <field name="group_deposit_remaining"
+                    string="Deposit Remaining"
+                    optional="hide"/>
+
+                <field name="group_credit_balance"
+                    string="Credit Balance"
+                    optional="hide"/>
             </list>
         </field>
     </record>
 
+    
     <record id="view_hotel_group_master_form" model="ir.ui.view">
         <field name="name">hotel.group.master.form</field>
         <field name="model">hotel.group.master</field>
@@ -2236,7 +2296,30 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
                     <button name="action_auto_assign_rooms" string="Auto-Assign Rooms" type="object" class="oe_highlight" invisible="state != 'confirm'"/>
                     
                     <button name="action_mass_group_checkin" string="Group Check-In" type="object" class="oe_highlight" confirm="Are you sure you want to check in all pending rooms?" invisible="state != 'assigned'"/>
+
+                    <button name="action_create_group_deposit"
+                            string="Register Group Deposit"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state in ['draft', 'done', 'cancel']"/>
                     
+                    <button name="action_open_group_paymaster"
+                            string="Open Group Paymaster"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="not paymaster_id"/>
+
+                    <button name="action_create_group_invoice"
+                            string="Create Group Invoice"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'checkin'"/>
+                    <button name="action_sync_group_invoice_financials"
+                            string="Sync Group Invoice"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state != 'checkin'"/>        
+
                     <button name="action_mass_group_checkout" string="Mass Checkout" type="object" class="oe_highlight" confirm="This will verify all balances are $0.00 and check out the entire group. Proceed?" invisible="state != 'checkin'"/>
 
                     <button name="action_checkout_next_room" string="Checkout Next Room" type="object" class="btn-info" invisible="state != 'checkin'" help="Process one room at a time and record visible progress in the chatter."/>
@@ -2251,7 +2334,7 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
                     </div>
                     
                     <div class="alert alert-info" role="alert" invisible="state != 'draft'">
-                        <i class="fa fa-info-circle"/> <b>Draft Mode:</b> Select dates and a Rate Plan to auto-load the QTels availability grid!
+                        <i class="fa fa-info-circle"/> <b>Draft Mode:</b> Select dates and a Rate Plan, then load the group room availability.
                     </div>
                     <div class="alert alert-info" role="alert" invisible="state not in ['checkin', 'done']">
                         <i class="fa fa-tasks"/> <b>Checkout Progress:</b>
@@ -2266,6 +2349,19 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
                     <group>
                         <field name="billing_routing" widget="radio"/>
                     </group>
+
+                    <group string="Group Financial Summary">
+                        <group>
+                            <field name="group_total_charges" readonly="1"/>
+                            <field name="group_deposit_received" readonly="1"/>
+                            <field name="group_deposit_remaining" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="group_balance_due" readonly="1"/>
+                            <field name="group_credit_balance" readonly="1"/>
+                        </group>
+                    </group>
+
                     <group>
                         <group string="Group Details">
                             <field name="partner_id" readonly="state != 'draft'" placeholder="Select the Company or Agent..."/>
@@ -2282,9 +2378,9 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
                     </group>
 
                     <notebook>
-                        <page string="1. Room Block Setup (QTels Grid)" name="room_blocks">
+                        <page string="1. Room Block Setup" name="room_blocks">
                             <div class="mb-3 mt-2">
-                                <button name="action_load_availability_grid" string=" Load / Refresh Grid" type="object" class="btn-info text-white fw-bold" icon="fa-refresh" invisible="state != 'draft'"/>
+                                <button name="action_load_availability_grid" string=" Load / Refresh Availability" type="object" class="btn-info text-white fw-bold" icon="fa-refresh" invisible="state != 'draft'"/>
                                 <span class="text-muted ms-3"><i class="fa fa-arrow-left"/> Click this to fetch live availability!</span>
                             </div>
                             <field name="room_line_ids" readonly="state != 'draft'">
@@ -2300,13 +2396,30 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
                             <p class="text-muted mt-2 mb-2">
                                 <i class="fa fa-hand-pointer-o"/> <b>Room Assignment:</b> Click the 'Unassigned' column below to quickly assign physical rooms to these shell reservations.
                             </p>
-                            <field name="reservation_ids" domain="[('is_desk_folio', '=', False)]">
-                                <list editable="bottom" decoration-info="state == 'draft'" create="0" delete="0">
+                            <field name="reservation_ids" domain="[('group_id', '=', id)]">
+                                <list editable="bottom"
+                                    decoration-warning="group_folio_role == 'paymaster'"
+                                    decoration-muted="group_folio_role == 'paymaster'"
+                                    create="0"
+                                    delete="0">
+
+                                    <field name="is_desk_folio" column_invisible="1"/>
+                                    <field name="group_id" column_invisible="1"/>
+
                                     <field name="name" string="Res #" readonly="1"/>
+                                    <field name="group_folio_role"
+                                        string="Role"
+                                        widget="badge"
+                                        readonly="1"
+                                        decoration-warning="group_folio_role == 'paymaster'"
+                                        decoration-info="group_folio_role == 'room'"/>
+
                                     <field name="room_type_id" readonly="1"/>
                                     <field name="room_id" placeholder="Click to assign..."/>
                                     <field name="partner_id" string="Primary Guest" readonly="1"/>
                                     <field name="checkin_date" readonly="1"/>
+                                    <field name="is_manual_rate" string="Manual Rate"/>
+                                    <field name="manual_rate" string="Nightly Rate"/>
                                     <field name="state" widget="badge" readonly="1"/>
                                 </list>
                             </field>
@@ -2337,6 +2450,7 @@ action = env.ref('hotel_management.action_open_night_audit_wizard').read()[0]
         <field name="name">Group Blocks (Allotments)</field>
         <field name="res_model">hotel.group.master</field>
         <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_hotel_group_master_tree"/>
     </record>
     <record id="view_hotel_desk_folio_tree" model="ir.ui.view">
         <field name="name">hotel.desk.folio.tree</field>
