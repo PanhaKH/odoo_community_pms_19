@@ -1,6 +1,14 @@
 def post_init_hook(env):
-    env["hotel.room.service.outlet"].sudo()._ensure_default_room_service_setup()
-    env["hotel.room.service.room.token"].sudo().action_generate_missing_room_tokens()
+    outlet_model = env["hotel.room.service.outlet"].sudo().with_context(
+        room_service_installing=True,
+        room_service_skip_session_open=True,
+    )
+    outlet = outlet_model._ensure_default_room_service_setup()
+    outlet.sudo().with_context(
+        room_service_installing=True,
+        room_service_skip_session_open=True,
+    )._ensure_pos_self_order_config()
+    outlet.sudo()._ensure_eh_kds_setup()
 
 
 def uninstall_hook(env):

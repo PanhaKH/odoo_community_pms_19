@@ -101,7 +101,7 @@ patch(OrdersHistoryPage.prototype, {
         onMounted(() => {
             this.roomServiceTrackerMounted = true;
             this.loadRoomServiceTrackers();
-            this.roomServiceTrackerTimer = setInterval(() => this.loadRoomServiceTrackers(), 5000);
+            this.roomServiceTrackerTimer = setInterval(() => this.loadRoomServiceTrackers(), 1000);
         });
         onWillUnmount(() => {
             this.roomServiceTrackerMounted = false;
@@ -203,7 +203,7 @@ patch(CartPage.prototype, {
             this.loadRoomServiceCartTracker();
             this.roomServiceCartTrackerTimer = setInterval(
                 () => this.loadRoomServiceCartTracker(),
-                5000
+                1000
             );
         });
         onWillUnmount(() => {

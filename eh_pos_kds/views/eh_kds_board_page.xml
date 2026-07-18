@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="board_index" name="ERP Heritage Kitchen Board">
+        &lt;!DOCTYPE html&gt;
+        <html>
+            <head>
+                <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+                <meta http-equiv="content-type" content="text/html, charset=utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+                <meta name="apple-mobile-web-app-capable" content="yes"/>
+                <meta name="mobile-web-app-capable" content="yes"/>
+                <title>Kitchen</title>
+                <script type="text/javascript">
+                    var odoo = <t t-out="json.dumps({
+                        'csrf_token': request.csrf_token(None),
+                        '__session_info__': session_info,
+                    })"/>;
+                </script>
+                <t t-call-assets="eh_pos_kds.board_assets"/>
+            </head>
+            <body class="o_eh_kds_page">
+                <div t-attf-class="o_eh_kds_brand o_eh_kds_brand--{{ brand_pos }}" data-brand-owner="kitchen-display" t-att-data-eh-boot="boot">
+                    <span class="o_eh_kds_brand_icon" aria-hidden="true">
+                        <svg viewBox="0 0 64 64" role="img" focusable="false">
+                            <defs>
+                                <linearGradient id="kdsBrandGradient" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0" stop-color="#5AF06F"/>
+                                    <stop offset="0.48" stop-color="#28D9D2"/>
+                                    <stop offset="1" stop-color="#2386FF"/>
+                                </linearGradient>
+                            </defs>
+                            <rect x="6" y="6" width="52" height="52" rx="15" fill="#06101A" stroke="url(#kdsBrandGradient)" stroke-width="3"/>
+                            <path d="M21 31c-4 0-7-3-7-7s3-7 7-7c1.5 0 3 .5 4.2 1.4C27 14.7 30.8 12 35 12c5.6 0 10.2 4 11.2 9.3.8-.2 1.6-.3 2.4-.3 4.1 0 7.4 3.3 7.4 7.4S52.7 36 48.6 36H47l-1.3 14H22.3L21 36z" fill="none" stroke="url(#kdsBrandGradient)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M29 31v8M35 30v9M41 31v8" stroke="url(#kdsBrandGradient)" stroke-width="3.4" stroke-linecap="round"/>
+                            <path d="M20 45h28" stroke="#F8FAFC" stroke-width="3.4" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    <span class="o_eh_kds_brand_name">Kitchen</span>
+                </div>
+                <div class="o_eh_kds_root"/>
+            </body>
+        </html>
+    </template>
+</odoo>

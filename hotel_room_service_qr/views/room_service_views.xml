@@ -68,13 +68,13 @@
                     </group>
                     <notebook>
                         <page string="Items">
-                            <field name="line_ids">
+                            <field name="line_ids" readonly="state != 'draft'">
                                 <list editable="bottom">
                                     <field name="product_id"/>
                                     <field name="name"/>
                                     <field name="quantity"/>
                                     <field name="price_unit"/>
-                                    <field name="subtotal"/>
+                                    <field name="subtotal" readonly="1"/>
                                     <field name="note"/>
                                 </list>
                             </field>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-inherit="web.ControlPanel" t-inherit-mode="extension" owl="1">
+        <xpath expr="//div[contains(@class, 'o_hotel_quick_toolbar')]/button[@title='Express QR Check-In']" position="attributes">
+            <attribute name="t-if">!isHousekeepingApp and !isRoomServiceApp and hotelToolbarState.canManageReservations</attribute>
+        </xpath>
+        <xpath expr="//div[contains(@class, 'o_hotel_quick_toolbar')]/button[@title='New Reservation']" position="attributes">
+            <attribute name="t-if">!isHousekeepingApp and !isRoomServiceApp and hotelToolbarState.canManageReservations</attribute>
+        </xpath>
+    </t>
+</templates>

@@ -35,12 +35,16 @@ class HotelRoomServiceOutlet(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         records = super().create(vals_list)
-        records._ensure_pos_self_order_config()
+        if not self.env.context.get("room_service_installing"):
+            records._ensure_pos_self_order_config()
         return records
 
     def write(self, vals):
         res = super().write(vals)
-        if any(f in vals for f in ['name', 'active', 'pos_config_id', 'hide_in_pos']):
+        if (
+            not self.env.context.get("room_service_installing")
+            and any(f in vals for f in ['name', 'active', 'pos_config_id', 'hide_in_pos'])
+        ):
             self._ensure_pos_self_order_config()
         return res
 
@@ -58,6 +62,92 @@ class HotelRoomServiceOutlet(models.Model):
                 "auto_create_pos_order": False,
             })
         return outlet
+
+    def _ensure_eh_kds_setup(self):
+        """Make Kitchen Display usable without manual KDS configuration.
+
+        Room Service depends on the KDS modules, but a fresh or partially
+        configured database can still have no active board, no lanes, no POS
+        coverage, or restrictive routing. This setup stays in Room Service and
+        only creates/repairs configuration records exposed by the KDS modules.
+        """
+        if "eh.kds.board" not in self.env.registry.models:
+            return False
+
+        Board = self.env["eh.kds.board"].sudo()
+        Lane = self.env["eh.kds.lane"].sudo()
+        Rule = self.env["eh.kds.route.rule"].sudo()
+        PosConfig = self.env["pos.config"].sudo()
+
+        board = Board.search([("name", "=", "Kitchen"), ("active", "=", True)], limit=1)
+        if not board:
+            board = Board.search([("active", "=", True)], limit=1)
+        if not board:
+            board = Board.create({
+                "name": "Kitchen",
+                "layout_mode": "dual",
+                "active": True,
+            })
+
+        if not board.access_token:
+            board.write({"access_token": uuid.uuid4().hex})
+
+        lane_specs = [
+            ("In Queue", "#0B88D9", 0),
+            ("Cooking", "#FF8A00", 6),
+            ("Ready", "#20B85A", 0),
+            ("Completed", "#7D8794", 0),
+        ]
+        if not board.lane_ids:
+            Lane.create([
+                {
+                    "board_id": board.id,
+                    "name": name,
+                    "color": color,
+                    "sla_minutes": sla,
+                    "sequence": sequence * 10,
+                }
+                for sequence, (name, color, sla) in enumerate(lane_specs)
+            ])
+        elif len(board.lane_ids) < 4:
+            existing_names = {name.lower() for name in board.lane_ids.mapped("name")}
+            for sequence, (name, color, sla) in enumerate(lane_specs):
+                if name.lower() not in existing_names:
+                    Lane.create({
+                        "board_id": board.id,
+                        "name": name,
+                        "color": color,
+                        "sla_minutes": sla,
+                        "sequence": sequence * 10,
+                    })
+
+        all_pos_configs = PosConfig.search([("active", "=", True)])
+        room_pos_configs = self.sudo().filtered("active").mapped("pos_config_id")
+        if self:
+            room_pos_configs |= self.sudo().mapped("pos_config_id")
+        target_configs = all_pos_configs | room_pos_configs
+        if target_configs:
+            missing_configs = target_configs - board.pos_config_ids
+            if missing_configs:
+                board.write({"pos_config_ids": [Command.link(config.id) for config in missing_configs]})
+
+        first_lane = board.lane_ids.sorted("sequence")[:1]
+        if first_lane and not Rule.search([
+            ("board_id", "=", board.id),
+            ("pos_config_id", "=", False),
+            ("category_id", "=", False),
+            ("attribute_value_id", "=", False),
+            ("target_lane_id", "=", first_lane.id),
+            ("active", "=", True),
+        ], limit=1):
+            Rule.create({
+                "board_id": board.id,
+                "sequence": 9999,
+                "target_lane_id": first_lane.id,
+                "active": True,
+            })
+
+        return board
 
     def action_configure_pos_outlet(self):
         for outlet in self.filtered(lambda record: record.active):
@@ -82,8 +172,8 @@ class HotelRoomServiceOutlet(models.Model):
             if pos_config.hide_in_pos != outlet.hide_in_pos:
                 pos_config.sudo().write({"hide_in_pos": outlet.hide_in_pos})
             if outlet.pos_config_id != pos_config:
-                outlet.write({"pos_config_id": pos_config.id})
-            if self.env.registry.ready:
+                outlet.with_context(room_service_installing=True).write({"pos_config_id": pos_config.id})
+            if self.env.registry.ready and not self.env.context.get("room_service_skip_session_open"):
                 outlet._ensure_room_service_pos_session(pos_config)
         return True
 
@@ -267,7 +357,8 @@ class HotelRoomServiceOutlet(models.Model):
                 return res
             Outlet = self.env["hotel.room.service.outlet"].sudo()
             outlets = Outlet.search([("active", "=", True)])
-            outlets._ensure_pos_self_order_config()
+            outlets.with_context(room_service_skip_session_open=True)._ensure_pos_self_order_config()
+            outlets._ensure_eh_kds_setup()
         except Exception:
             pass
         return res
@@ -745,9 +836,10 @@ class HotelRoomServiceOrder(models.Model):
 
     def action_guest_confirm_completed(self):
         for order in self:
-            if order.state != "delivered":
+            if order.state not in ["kitchen_ready", "delivered", "guest_confirmed"]:
                 raise UserError(_("This order cannot be confirmed completed from its current status."))
-            order.write({"state": "guest_confirmed"})
+            if order.state in ["kitchen_ready", "delivered"]:
+                order.write({"state": "guest_confirmed"})
             if order.payment_method == "bill_to_room":
                 order._post_to_pms_folio()
             else:
@@ -854,6 +946,48 @@ class HotelRoomServiceOrderLine(models.Model):
     price_unit = fields.Float(required=True)
     subtotal = fields.Float(compute="_compute_subtotal", store=True)
     note = fields.Char()
+
+    def _check_can_edit_order_lines(self):
+        locked_orders = self.mapped("order_id").filtered(
+            lambda order: order.state != "draft" or order._is_posted_to_room()
+        )
+        if locked_orders:
+            raise UserError(
+                _("Ordered items can only be changed before the order is accepted.")
+            )
+
+    def _sync_changed_orders(self, orders):
+        orders = orders.exists()
+        if not orders:
+            return
+        for order in orders:
+            order.write({
+                "adapter_payload": json.dumps(order._prepare_pos_payload(), indent=2, default=str),
+            })
+        sync_method = getattr(orders, "_sync_pos_kitchen_status_from_room_service", None)
+        if sync_method:
+            sync_method()
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        lines = super().create(vals_list)
+        lines._check_can_edit_order_lines()
+        lines._sync_changed_orders(lines.mapped("order_id"))
+        return lines
+
+    def write(self, vals):
+        self._check_can_edit_order_lines()
+        orders = self.mapped("order_id")
+        res = super().write(vals)
+        self._sync_changed_orders(orders)
+        return res
+
+    def unlink(self):
+        self._check_can_edit_order_lines()
+        orders = self.mapped("order_id")
+        res = super().unlink()
+        self._sync_changed_orders(orders)
+        return res
 
     @api.onchange("product_id")
     def _onchange_product_id(self):

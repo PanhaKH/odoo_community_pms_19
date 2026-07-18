@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+    <t t-name="eh_pos_kds.KdsBoard">
+        <div t-if="state.configMissing" class="o_eh_kds_config_missing">
+            <p>Display configuration missing.</p>
+            <p class="o_eh_kds_config_hint">The Kitchen brand element carries this board's configuration. Restore it to load the board.</p>
+        </div>
+        <div t-else="" class="o_eh_kds_board"
+             t-att-class="{ 'is-status-expanded': state.expandedStatus }"
+             t-att-data-layout="state.board.layout_mode">
+            <header class="o_eh_kds_topbar">
+                <div class="o_eh_kds_heading">
+                    <span class="o_eh_kds_title">Kitchen</span>
+                </div>
+                <div class="o_eh_kds_actions">
+                    <label class="o_eh_kds_outlet_picker">
+                        <span class="o_eh_kds_outlet_label">Outlet</span>
+                        <select class="o_eh_kds_outlet_select" t-on-change="setOutlet">
+                            <option t-foreach="outletOptions"
+                                    t-as="outlet"
+                                    t-key="outlet.id"
+                                    t-att-value="outlet.id"
+                                    t-att-selected="outlet.id === state.selectedOutletId"
+                                    t-esc="outlet.name"/>
+                        </select>
+                    </label>
+                    <button class="o_eh_kds_btn"
+                            t-att-class="{ 'is-active': state.view === 'allday' }"
+                            t-on-click="() => this.state.view = (state.view === 'allday' ? 'lanes' : 'allday')">
+                        All day
+                    </button>
+                    <button class="o_eh_kds_btn"
+                            t-att-class="{ 'is-active': state.expandedStatus }"
+                            t-on-click="() => this.toggleMetrics()">
+                        Metrics
+                    </button>
+                    <span class="o_eh_kds_live"
+                          t-att-class="{ 'is-live': state.connected and !state.offline, 'is-offline': state.offline }">
+                        <t t-if="state.offline">OFFLINE</t>
+                        <t t-else="">LIVE</t>
+                    </span>
+                </div>
+            </header>
+
+            <div t-if="state.offline" class="o_eh_kds_offline_bar">
+                Working offline. Showing last sync <t t-esc="lastSyncLabel()"/>.
+                <t t-if="state.queued"> <t t-esc="state.queued"/> change(s) queued.</t>
+            </div>
+
+            <div t-if="state.paperOut.length" class="o_eh_kds_paper_bar">
+                Out of paper: <t t-esc="state.paperOut.join(', ')"/>.
+            </div>
+
+            <div t-if="state.showMetrics" class="o_eh_kds_metrics">
+                <div t-foreach="dashboardKpis" t-as="kpi" t-key="kpi.key" t-attf-class="o_eh_kds_kpi o_eh_kds_kpi--{{ kpi.key }}">
+                    <span class="o_eh_kds_kpi_icon" t-esc="kpiIconGlyph(kpi.icon)"/>
+                    <span class="o_eh_kds_kpi_body">
+                        <span class="o_eh_kds_kpi_lbl" t-esc="kpi.label"/>
+                        <span class="o_eh_kds_kpi_val" t-esc="kpi.value"/>
+                        <span class="o_eh_kds_kpi_sub" t-esc="kpi.sub"/>
+                    </span>
+                </div>
+            </div>
+
+            <t t-if="state.view === 'allday'">
+                <div class="o_eh_kds_heatmap" t-if="heatmap.length">
+                    <span class="o_eh_kds_heatmap_lbl">Load (last 12 min)</span>
+                    <div class="o_eh_kds_heatmap_bars">
+                        <t t-foreach="heatmap" t-as="b" t-key="b_index">
+                            <span class="o_eh_kds_heatmap_bar" t-attf-style="height: {{ b.h }}%" t-att-title="b.count"/>
+                        </t>
+                    </div>
+                </div>
+                <div class="o_eh_kds_allday">
+                    <t t-if="!allDay.length">
+                        <p class="o_eh_kds_empty_msg">No open items.</p>
+                    </t>
+                    <t t-foreach="allDay" t-as="row" t-key="row.product">
+                        <div class="o_eh_kds_allday_row">
+                            <span class="o_eh_kds_allday_qty" t-esc="row.qty"/>
+                            <span class="o_eh_kds_allday_name" t-esc="row.product"/>
+                        </div>
+                    </t>
+                </div>
+            </t>
+
+            <t t-else="">
+                <div class="o_eh_kds_lanes">
+                    <t t-foreach="state.board.lanes" t-as="lane" t-key="lane.id">
+                        <section t-attf-class="o_eh_kds_lane o_eh_kds_lane--{{ laneTone(lane, lane_index) }}">
+                            <h2 class="o_eh_kds_lane_head">
+                                <span t-esc="laneTitle(lane, lane_index)"/>
+                                <span class="o_eh_kds_lane_count"><t t-esc="groupsInLane(lane).length"/> Orders</span>
+                            </h2>
+                            <div class="o_eh_kds_lane_body">
+                                <t t-foreach="groupsInLane(lane)" t-as="group" t-key="group.id">
+                                    <div class="o_eh_kds_card"
+                                         t-att-class="{
+                                            ['o_eh_kds_card--' + laneTone(lane, lane_index)]: true,
+                                            'is-selected': groupSelected(group),
+                                            'is-rush': group.priority === 'rush',
+                                            'is-vip': group.priority === 'vip',
+                                         }"
+                                         t-on-click="() => this.select(group.cards[0].id)">
+                                        <div class="o_eh_kds_card_top">
+                                            <span class="o_eh_kds_card_ref" t-esc="displayRef(group.ref)"/>
+                                            <span class="o_eh_kds_card_age" t-esc="groupAgeLabel(group)"/>
+                                        </div>
+                                        <div class="o_eh_kds_card_items">
+                                            <t t-foreach="group.cards" t-as="card" t-key="card.id">
+                                                <div class="o_eh_kds_card_line">
+                                                    <span class="o_eh_kds_card_qty" t-esc="card.qty"/>
+                                                    <span class="o_eh_kds_card_name" t-esc="card.product"/>
+                                                    <span t-if="card.allergen" class="o_eh_kds_allergen" title="Allergen">!</span>
+                                                </div>
+                                                <div t-if="card.note" class="o_eh_kds_card_note" t-esc="card.note"/>
+                                            </t>
+                                        </div>
+                                        <div class="o_eh_kds_card_meta">
+                                            <span class="o_eh_kds_guest">Dine In</span>
+                                            <span class="o_eh_kds_status_dot" t-esc="laneTitle(lane, lane_index)"/>
+                                            <span class="o_eh_kds_item_total"><t t-esc="itemCount(group)"/> Items</span>
+                                        </div>
+                                        <div class="o_eh_kds_card_ops">
+                                            <button class="o_eh_kds_op" t-on-click.stop="() => this.recallGroup(group)">‹</button>
+                                            <button class="o_eh_kds_op o_eh_kds_op--bump" t-on-click.stop="() => this.bumpGroup(group)">Bump</button>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </section>
+                    </t>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>

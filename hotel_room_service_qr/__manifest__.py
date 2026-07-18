@@ -7,7 +7,8 @@
     "images": ["static/description/icon.png"],
     "depends": [
         "hotel_management",
-        "pos_kitchen_screen_odoo",
+        "eh_pos_kds",
+        "eh_pos_kds_core",
         "pos_restaurant",
         "pos_self_order",
         "website",
@@ -24,6 +25,10 @@
         "views/room_qr_directory_templates.xml",
     ],
     "assets": {
+        "web.assets_backend": [
+            "hotel_room_service_qr/static/src/js/room_service_hotel_toolbar_scope.js",
+            "hotel_room_service_qr/static/src/xml/room_service_hotel_toolbar_scope.xml",
+        ],
         "point_of_sale._assets_pos": [
             "hotel_room_service_qr/static/src/js/pos_hotel_validation.js",
             "hotel_room_service_qr/static/src/js/pos_debug_widget_guard.js",

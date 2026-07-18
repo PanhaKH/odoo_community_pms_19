@@ -255,16 +255,18 @@
                     .rs-items-list {
                         border: 1px solid var(--rs-border);
                         border-radius: 8px;
+                        background: #ffffff;
                         overflow: hidden;
                     }
                     .rs-item-row {
-                        align-items: flex-start;
+                        align-items: center;
                         background: #fff;
                         border-bottom: 1px solid var(--rs-border);
                         display: grid;
                         grid-template-columns: 54px 1fr;
-                        gap: 10px;
-                        padding: 12px;
+                        gap: 12px;
+                        min-height: 64px;
+                        padding: 10px 12px;
                     }
                     .rs-item-row:last-child {
                         border-bottom: 0;
@@ -272,18 +274,251 @@
                     .rs-item-qty {
                         align-items: center;
                         background: #e6f0f6;
+                        border: 1px solid #d5e5ef;
                         border-radius: 8px;
                         color: #0f3b57;
                         display: flex;
                         font-size: 18px;
                         font-weight: 900;
                         height: 42px;
-                        align-items: center;
                         justify-content: center;
+                        width: 54px;
                     }
                     .rs-item-name {
                         font-size: 16px;
                         font-weight: 850;
+                        line-height: 1.25;
+                    }
+                    .rs-item-row.is-editable {
+                        grid-template-columns: 54px minmax(0, 1fr) auto;
+                        align-items: center;
+                    }
+                    .rs-item-edit {
+                        align-items: center;
+                        display: grid;
+                        gap: 6px;
+                        grid-template-columns: 36px auto;
+                        justify-content: end;
+                    }
+                    .rs-line-btn {
+                        align-items: center;
+                        background: #f8fafc;
+                        border: 1px solid var(--rs-border);
+                        border-radius: 8px;
+                        color: #0f3b57;
+                        cursor: pointer;
+                        display: inline-flex;
+                        font-size: 15px;
+                        font-weight: 900;
+                        height: 36px;
+                        justify-content: center;
+                        min-width: 36px;
+                        padding: 0 10px;
+                    }
+                    .rs-line-btn:hover {
+                        background: #e6f0f6;
+                    }
+                    .rs-line-btn.is-danger {
+                        color: #b91c1c;
+                    }
+                    .rs-line-btn.is-change {
+                        background: #0f3b57;
+                        border-color: #0f3b57;
+                        color: #fff;
+                        font-size: 18px;
+                        min-width: 42px;
+                        padding: 0;
+                        width: 42px;
+                    }
+                    .rs-line-btn.is-change:hover {
+                        background: #14506f;
+                    }
+                    .rs-add-item-row {
+                        align-items: center;
+                        background: #f8fafc;
+                        border-top: 1px solid var(--rs-border);
+                        display: grid;
+                        gap: 10px;
+                        grid-template-columns: minmax(0, 1fr) 88px 64px;
+                        padding: 10px 12px;
+                    }
+                    .rs-add-item-row select,
+                    .rs-add-item-row input {
+                        border: 1px solid var(--rs-border);
+                        border-radius: 8px;
+                        color: #172033;
+                        font-weight: 700;
+                        height: 38px;
+                        min-height: 38px;
+                        padding: 7px 10px;
+                        width: 100%;
+                    }
+                    .rs-change-backdrop {
+                        align-items: center;
+                        background: rgba(15, 23, 42, .58);
+                        display: flex;
+                        inset: 0;
+                        justify-content: center;
+                        padding: 24px;
+                        position: fixed;
+                        z-index: 1200;
+                    }
+                    .rs-change-modal {
+                        background: #fff;
+                        border: 1px solid rgba(148, 163, 184, .35);
+                        border-radius: 16px;
+                        box-shadow: 0 24px 80px rgba(15, 23, 42, .32);
+                        display: flex;
+                        flex-direction: column;
+                        max-height: min(760px, 88vh);
+                        overflow: hidden;
+                        width: min(920px, 96vw);
+                    }
+                    .rs-change-head,
+                    .rs-change-footer {
+                        align-items: center;
+                        display: flex;
+                        gap: 12px;
+                        justify-content: space-between;
+                        padding: 16px 18px;
+                    }
+                    .rs-change-head {
+                        border-bottom: 1px solid var(--rs-border);
+                    }
+                    .rs-change-title {
+                        color: #0f3b57;
+                        font-size: 22px;
+                        font-weight: 950;
+                    }
+                    .rs-change-subtitle {
+                        color: var(--rs-muted);
+                        font-size: 13px;
+                        font-weight: 800;
+                        margin-top: 3px;
+                    }
+                    .rs-change-close {
+                        background: #f1f5f9;
+                        border: 1px solid var(--rs-border);
+                        border-radius: 10px;
+                        color: #172033;
+                        cursor: pointer;
+                        font-size: 24px;
+                        font-weight: 900;
+                        height: 40px;
+                        line-height: 1;
+                        width: 40px;
+                    }
+                    .rs-change-body {
+                        display: grid;
+                        grid-template-columns: 220px minmax(0, 1fr);
+                        min-height: 360px;
+                        overflow: hidden;
+                    }
+                    .rs-change-cats {
+                        background: #f8fafc;
+                        border-right: 1px solid var(--rs-border);
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                        overflow-y: auto;
+                        padding: 14px;
+                    }
+                    .rs-change-cat {
+                        background: transparent;
+                        border: 1px solid transparent;
+                        border-radius: 10px;
+                        color: #172033;
+                        cursor: pointer;
+                        font-weight: 900;
+                        padding: 12px;
+                        text-align: left;
+                    }
+                    .rs-change-cat.active,
+                    .rs-change-cat:hover {
+                        background: #e6f0f6;
+                        border-color: #c8dbe7;
+                        color: #0f3b57;
+                    }
+                    .rs-change-products {
+                        align-content: start;
+                        display: grid;
+                        gap: 8px;
+                        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                        overflow-y: auto;
+                        padding: 10px;
+                    }
+                    .rs-change-product {
+                        background: #fff;
+                        border: 1px solid var(--rs-border);
+                        border-radius: 8px;
+                        box-shadow: 0 8px 22px rgba(15, 23, 42, .06);
+                        color: #172033;
+                        cursor: pointer;
+                        min-height: 58px;
+                        padding: 8px 10px;
+                        text-align: left;
+                        transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+                    }
+                    .rs-change-product:hover,
+                    .rs-change-product.active {
+                        border-color: #0f3b57;
+                        box-shadow: 0 14px 28px rgba(15, 59, 87, .16);
+                        transform: translateY(-2px);
+                    }
+                    .rs-change-product-name {
+                        font-size: 12px;
+                        font-weight: 950;
+                        line-height: 1.2;
+                        margin-bottom: 4px;
+                        overflow-wrap: normal;
+                        word-break: normal;
+                    }
+                    .rs-change-product-price {
+                        color: #0f3b57;
+                        font-size: 11px;
+                        font-weight: 950;
+                        line-height: 1.15;
+                    }
+                    .rs-change-product-desc {
+                        color: var(--rs-muted);
+                        font-size: 10px;
+                        font-weight: 750;
+                        line-height: 1.2;
+                        margin-top: 4px;
+                    }
+                    .rs-change-footer {
+                        background: #f8fafc;
+                        border-top: 1px solid var(--rs-border);
+                    }
+                    .rs-change-qty {
+                        align-items: center;
+                        display: flex;
+                        gap: 10px;
+                        font-weight: 900;
+                    }
+                    .rs-change-qty input {
+                        border: 1px solid var(--rs-border);
+                        border-radius: 10px;
+                        font-size: 16px;
+                        font-weight: 900;
+                        min-height: 42px;
+                        padding: 8px 10px;
+                        width: 92px;
+                    }
+                    .rs-change-confirm {
+                        background: #0f3b57;
+                        border: 0;
+                        border-radius: 10px;
+                        color: #fff;
+                        cursor: pointer;
+                        font-size: 16px;
+                        font-weight: 950;
+                        min-height: 44px;
+                        padding: 0 18px;
+                    }
+                    .rs-change-confirm:disabled {
+                        cursor: not-allowed;
+                        opacity: .45;
                     }
                     .rs-item-note {
                         color: var(--rs-muted);
@@ -538,6 +773,53 @@
                         .rs-card {
                             max-width: none;
                         }
+                        .rs-item-row.is-editable {
+                            grid-template-columns: 48px minmax(0, 1fr);
+                        }
+                        .rs-item-qty {
+                            height: 38px;
+                            width: 48px;
+                        }
+                        .rs-item-edit {
+                            grid-column: 1 / -1;
+                            grid-template-columns: 38px 42px;
+                            justify-content: end;
+                        }
+                        .rs-add-item-row {
+                            grid-template-columns: 1fr;
+                        }
+                        .rs-change-backdrop {
+                            align-items: stretch;
+                            padding: 12px;
+                        }
+                        .rs-change-modal {
+                            max-height: 94vh;
+                            width: 100%;
+                        }
+                        .rs-change-body {
+                            grid-template-columns: 1fr;
+                        }
+                        .rs-change-cats {
+                            border-bottom: 1px solid var(--rs-border);
+                            border-right: 0;
+                            flex-direction: row;
+                            overflow-x: auto;
+                            overflow-y: hidden;
+                        }
+                        .rs-change-cat {
+                            flex: 0 0 auto;
+                            white-space: nowrap;
+                        }
+                        .rs-change-products {
+                            grid-template-columns: 1fr;
+                        }
+                        .rs-change-footer {
+                            align-items: stretch;
+                            flex-direction: column;
+                        }
+                        .rs-change-confirm {
+                            width: 100%;
+                        }
                     }
                     .rs-print-btn {
                         background: var(--rs-surface);
@@ -573,7 +855,7 @@
                             <div class="rs-summary-value" id="summary-awaiting_confirmation">0</div>
                         </div>
                         <div class="rs-summary-card waiting" id="card-waiting" data-status="waiting" style="cursor: pointer;">
-                            <div class="rs-summary-label">Sent to POS</div>
+                            <div class="rs-summary-label">Sent to Kitchen</div>
                             <div class="rs-summary-value" id="summary-waiting">0</div>
                         </div>
                         <div class="rs-summary-card preparing" id="card-preparing" data-status="preparing" style="cursor: pointer;">
@@ -596,7 +878,7 @@
                             <button class="rs-filter active" type="button" data-status="active">Active</button>
                             <button class="rs-filter" type="button" data-status="all">All</button>
                             <button class="rs-filter" type="button" data-status="awaiting_confirmation">New Orders</button>
-                            <button class="rs-filter" type="button" data-status="waiting">Sent to POS</button>
+                            <button class="rs-filter" type="button" data-status="waiting">Sent to Kitchen</button>
                             <button class="rs-filter" type="button" data-status="preparing">Cooking</button>
                             <button class="rs-filter" type="button" data-status="ready">Ready to Deliver</button>
                             <button class="rs-filter" type="button" data-status="completed">Completed</button>
@@ -626,6 +908,7 @@
                     let monitorActive = true;
                     let pollingTimer = null;
                     let activeFetchController = null;
+                    let changeDialogState = null;
 
                     function byId(id) {
                         return document.getElementById(id);
@@ -653,7 +936,22 @@
                     function processRawOrders(rawOrders) {
                         return (rawOrders || []).map(order => {
                             const lines = order.lines || [];
-                            const dateValue = order.date_str ? new Date(order.date_str.replace(' ', 'T')) : null;
+                            const dateValue = order.date_utc
+                                ? new Date(order.date_utc)
+                                : (order.date_str ? new Date(order.date_str.replace(' ', 'T')) : null);
+                            const localDateStr = dateValue
+                                ? dateValue.toLocaleString([], {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false,
+                                }).replace(',', '')
+                                : (order.date_str || '');
+                            const localTimeStr = dateValue
+                                ? dateValue.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                : (order.time_str || '');
                             const waitMinutes = Number.isFinite(order.wait_minutes)
                                 ? order.wait_minutes
                                 : (dateValue ? Math.max(0, Math.floor((Date.now() - dateValue.getTime()) / 60000)) : 0);
@@ -670,9 +968,12 @@
                                 guest: order.guest || '',
                                 guest_phone: order.guest_phone || '',
                                 lines: lines,
+                                menu_items: order.menu_items || [],
+                                menu_categories: order.menu_categories || [],
                                 status_group: statusGroup,
+                                date_str: localDateStr,
                                 wait_minutes: waitMinutes,
-                                time_str: order.time_str || (dateValue ? dateValue.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''),
+                                time_str: localTimeStr,
                                 total_items: Number.isFinite(order.total_items) ? order.total_items : lines.reduce((sum, line) => sum + Number(line.qty || 0), 0),
                             };
                         });
@@ -728,13 +1029,132 @@
                         return '$' + Number(value || 0).toFixed(2);
                     }
 
+                    function findOrder(orderId) {
+                        return ordersData.find(order =&gt; Number(order.id) === Number(orderId));
+                    }
+
+                    function findOrderLine(order, lineId) {
+                        if (!order) {
+                            return null;
+                        }
+                        return (order.lines || []).find(line =&gt; Number(line.id) === Number(lineId));
+                    }
+
+                    function getChangeCategories(order) {
+                        const categories = (order &amp;&amp; order.menu_categories) || [];
+                        if (categories.length) {
+                            return categories;
+                        }
+                        const fallback = {};
+                        ((order &amp;&amp; order.menu_items) || []).forEach(item =&gt; {
+                            const categoryId = item.category_id || 0;
+                            if (!fallback[categoryId]) {
+                                fallback[categoryId] = {
+                                    id: categoryId,
+                                    name: item.category_name || 'Menu',
+                                    items: [],
+                                };
+                            }
+                            fallback[categoryId].items.push(item);
+                        });
+                        return Object.values(fallback);
+                    }
+
+                    function closeChangeDialog() {
+                        const dialog = byId('rs-change-dialog');
+                        if (dialog) {
+                            dialog.remove();
+                        }
+                        changeDialogState = null;
+                    }
+
+                    function openChangeDialog(orderId, lineId) {
+                        const order = findOrder(orderId);
+                        const line = findOrderLine(order, lineId);
+                        if (!order || !line || !order.can_edit_items) {
+                            return;
+                        }
+                        const categories = getChangeCategories(order).filter(category =&gt; (category.items || []).length);
+                        if (!categories.length) {
+                            lastErrorMessage = 'No menu items are configured for this outlet.';
+                            updateUI();
+                            return;
+                        }
+                        const matchingItem = ((order.menu_items || []).find(item =&gt; Number(item.id) === Number(line.menu_item_id))) ||
+                            ((order.menu_items || []).find(item =&gt; Number(item.product_id) === Number(line.product_id))) ||
+                            categories[0].items[0];
+                        changeDialogState = {
+                            orderId: Number(orderId),
+                            lineId: Number(lineId),
+                            categoryId: matchingItem ? Number(matchingItem.category_id) : Number(categories[0].id),
+                            menuItemId: matchingItem ? Number(matchingItem.id) : Number(categories[0].items[0].id),
+                            quantity: Number(line.qty || 1),
+                        };
+                        renderChangeDialog();
+                    }
+
+                    function renderChangeDialog() {
+                        if (!changeDialogState) {
+                            return;
+                        }
+                        const order = findOrder(changeDialogState.orderId);
+                        const line = findOrderLine(order, changeDialogState.lineId);
+                        const categories = getChangeCategories(order).filter(category =&gt; (category.items || []).length);
+                        if (!order || !line || !order.can_edit_items || !categories.length) {
+                            closeChangeDialog();
+                            return;
+                        }
+                        const activeCategory = categories.find(category =&gt; Number(category.id) === Number(changeDialogState.categoryId)) || categories[0];
+                        changeDialogState.categoryId = Number(activeCategory.id);
+                        if (!activeCategory.items.some(item =&gt; Number(item.id) === Number(changeDialogState.menuItemId))) {
+                            changeDialogState.menuItemId = Number(activeCategory.items[0].id);
+                        }
+                        const categoryButtons = categories.map(category =&gt;
+                            '&lt;button type="button" class="rs-change-cat ' + (Number(category.id) === Number(activeCategory.id) ? 'active' : '') + '" data-change-category="' + category.id + '"&gt;' +
+                                escapeHtml(category.name) +
+                            '&lt;/button&gt;'
+                        ).join('');
+                        const productCards = activeCategory.items.map(item =&gt;
+                            '&lt;button type="button" class="rs-change-product ' + (Number(item.id) === Number(changeDialogState.menuItemId) ? 'active' : '') + '" data-change-item="' + item.id + '"&gt;' +
+                                '&lt;div class="rs-change-product-name"&gt;' + escapeHtml(item.name) + '&lt;/div&gt;' +
+                                '&lt;div class="rs-change-product-price"&gt;' + money(item.price) + '&lt;/div&gt;' +
+                                (item.description ? '&lt;div class="rs-change-product-desc"&gt;' + escapeHtml(item.description) + '&lt;/div&gt;' : '') +
+                            '&lt;/button&gt;'
+                        ).join('');
+                        const html =
+                            '&lt;div class="rs-change-backdrop" id="rs-change-dialog" data-change-backdrop="1"&gt;' +
+                                '&lt;div class="rs-change-modal" role="dialog" aria-modal="true" aria-label="Change ordered item"&gt;' +
+                                    '&lt;div class="rs-change-head"&gt;' +
+                                        '&lt;div&gt;' +
+                                            '&lt;div class="rs-change-title"&gt;Change Item&lt;/div&gt;' +
+                                            '&lt;div class="rs-change-subtitle"&gt;Replace ' + escapeHtml(line.name) + ' in order ' + escapeHtml(order.number || order.name) + '&lt;/div&gt;' +
+                                        '&lt;/div&gt;' +
+                                        '&lt;button type="button" class="rs-change-close" data-change-close="1"&gt;X&lt;/button&gt;' +
+                                    '&lt;/div&gt;' +
+                                    '&lt;div class="rs-change-body"&gt;' +
+                                        '&lt;div class="rs-change-cats"&gt;' + categoryButtons + '&lt;/div&gt;' +
+                                        '&lt;div class="rs-change-products"&gt;' + productCards + '&lt;/div&gt;' +
+                                    '&lt;/div&gt;' +
+                                    '&lt;div class="rs-change-footer"&gt;' +
+                                        '&lt;label class="rs-change-qty"&gt;Qty &lt;input type="number" min="1" step="1" value="' + escapeHtml(changeDialogState.quantity || 1) + '" data-change-qty="1"/&gt;&lt;/label&gt;' +
+                                        '&lt;button type="button" class="rs-change-confirm" data-change-confirm="1"' + (changeDialogState.menuItemId ? '' : ' disabled="disabled"') + '&gt;Confirm Change&lt;/button&gt;' +
+                                    '&lt;/div&gt;' +
+                                '&lt;/div&gt;' +
+                            '&lt;/div&gt;';
+                        const existingDialog = byId('rs-change-dialog');
+                        if (existingDialog) {
+                            existingDialog.remove();
+                        }
+                        document.body.insertAdjacentHTML('beforeend', html);
+                    }
+
                     function statusLabel(order) {
                         const labels = {
                             awaiting_confirmation: 'New Order',
-                            waiting: 'Sent to POS',
+                            waiting: 'Sent to Kitchen',
                             preparing: 'Cooking',
                             ready: 'Ready to Deliver',
-                            delivered: 'Delivered',
+                            delivered: 'Kitchen Completed',
                             completed: 'Completed',
                         };
                         return labels[order.status_group] || order.state_label || order.status_group || '';
@@ -797,6 +1217,89 @@
                         const opacityStyle = (enabled &amp;&amp; !isActionInProgress) ? '' : ' style="opacity: 0.5;"';
                         return '&lt;button class="rs-action-btn ' + cssClass + '" type="button"' + disabledAttr + opacityStyle +
                             ' data-order-id="' + order.id + '" data-order-action="' + action + '"&gt;' + label + '&lt;/button&gt;';
+                    }
+
+                    function renderOrderLines(order) {
+                        const canEdit = !!order.can_edit_items;
+                        let linesHtml = order.lines.length ? '' : '&lt;div class="rs-item-row"&gt;&lt;div&gt;&lt;/div&gt;&lt;div class="rs-item-name"&gt;No items found&lt;/div&gt;&lt;/div&gt;';
+                        order.lines.forEach(line =&gt; {
+                            const qty = Number(line.qty || 0);
+                            const note = line.note ? '&lt;div class="rs-item-note"&gt;' + escapeHtml(line.note) + '&lt;/div&gt;' : '';
+                            if (canEdit) {
+                                linesHtml += '&lt;div class="rs-item-row is-editable" data-line-id="' + line.id + '"&gt;' +
+                                    '&lt;div class="rs-item-qty"&gt;' + escapeHtml(qty) + '&lt;/div&gt;' +
+                                    '&lt;div&gt;' +
+                                        '&lt;div class="rs-item-name"&gt;' + escapeHtml(line.name) + '&lt;/div&gt;' +
+                                        note +
+                                    '&lt;/div&gt;' +
+                                    '&lt;div class="rs-item-edit"&gt;' +
+                                        '&lt;button type="button" class="rs-line-btn" data-line-edit="dec" data-order-id="' + order.id + '" data-line-id="' + line.id + '" data-qty="' + qty + '"&gt;-&lt;/button&gt;' +
+                                        '&lt;button type="button" class="rs-line-btn is-change" data-line-edit="change" data-order-id="' + order.id + '" data-line-id="' + line.id + '" title="Change item" aria-label="Change item"&gt;&#8644;&lt;/button&gt;' +
+                                    '&lt;/div&gt;' +
+                                '&lt;/div&gt;';
+                            } else {
+                                linesHtml += '&lt;div class="rs-item-row"&gt;' +
+                                    '&lt;div class="rs-item-qty"&gt;' + escapeHtml(qty) + '&lt;/div&gt;' +
+                                    '&lt;div&gt;' +
+                                        '&lt;div class="rs-item-name"&gt;' + escapeHtml(line.name) + '&lt;/div&gt;' +
+                                        note +
+                                    '&lt;/div&gt;' +
+                                '&lt;/div&gt;';
+                            }
+                        });
+
+                        if (!canEdit) {
+                            return linesHtml;
+                        }
+
+                        const options = (order.menu_items || []).map(item =&gt;
+                            '&lt;option value="' + item.id + '"&gt;' + escapeHtml(item.name) + ' - ' + money(item.price) + '&lt;/option&gt;'
+                        ).join('');
+                        if (!options) {
+                            return linesHtml + '&lt;div class="rs-add-item-row"&gt;&lt;div class="rs-item-note"&gt;No menu items are configured for this outlet.&lt;/div&gt;&lt;/div&gt;';
+                        }
+                        return linesHtml +
+                            '&lt;div class="rs-add-item-row"&gt;' +
+                                '&lt;select data-add-menu-item="' + order.id + '"&gt;' + options + '&lt;/select&gt;' +
+                                '&lt;input type="number" min="1" step="1" value="1" data-add-qty="' + order.id + '"/&gt;' +
+                                '&lt;button type="button" class="rs-line-btn" data-line-edit="add" data-order-id="' + order.id + '"&gt;Add&lt;/button&gt;' +
+                            '&lt;/div&gt;';
+                    }
+
+                    async function executeLineEdit(orderId, operation, payload) {
+                        if (!canRenderMonitor() || isActionInProgress) return;
+                        isActionInProgress = true;
+                        lastErrorMessage = '';
+                        try {
+                            const response = await fetch('/room-service/order-display/edit-line/json', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Csrftoken': csrfToken,
+                                },
+                                body: JSON.stringify({
+                                    jsonrpc: '2.0',
+                                    method: 'call',
+                                    params: Object.assign({
+                                        order_id: orderId,
+                                        operation: operation,
+                                    }, payload || {})
+                                })
+                            });
+                            const data = await response.json();
+                            if (data &amp;&amp; data.result &amp;&amp; data.result.success) {
+                                await fetchUpdatedOrders();
+                            } else {
+                                lastErrorMessage = (data &amp;&amp; data.result &amp;&amp; data.result.error) || (data &amp;&amp; data.error &amp;&amp; data.error.message) || 'Unable to update ordered items.';
+                                updateUI();
+                            }
+                        } catch (e) {
+                            console.error("Line edit error:", e);
+                            lastErrorMessage = e.message || 'Network error occurred.';
+                            updateUI();
+                        } finally {
+                            isActionInProgress = false;
+                        }
                     }
 
                     async function executeOrderAction(orderId, actionName) {
@@ -878,17 +1381,7 @@
                             return;
                         }
 
-                        let linesHtml = order.lines.length ? '' : '&lt;div class="rs-item-row"&gt;&lt;div&gt;&lt;/div&gt;&lt;div class="rs-item-name"&gt;No items found&lt;/div&gt;&lt;/div&gt;';
-                        order.lines.forEach(line =&gt; {
-                            const note = line.note ? '&lt;div class="rs-item-note"&gt;' + escapeHtml(line.note) + '&lt;/div&gt;' : '';
-                            linesHtml += '&lt;div class="rs-item-row"&gt;' +
-                                '&lt;div class="rs-item-qty"&gt;' + escapeHtml(line.qty) + '&lt;/div&gt;' +
-                                '&lt;div&gt;' +
-                                    '&lt;div class="rs-item-name"&gt;' + escapeHtml(line.name) + '&lt;/div&gt;' +
-                                    note +
-                                '&lt;/div&gt;' +
-                            '&lt;/div&gt;';
-                        });
+                        const linesHtml = renderOrderLines(order);
 
                         let noteHtml = '';
                         if (order.note) {
@@ -908,12 +1401,15 @@
                         const acceptEnabled = order.state === 'draft';
                         const preparingEnabled = ['sent_pos', 'pos_failed'].includes(order.state);
                         const readyEnabled = order.state === 'kitchen_preparing';
-                        const completeEnabled = order.state === 'kitchen_ready';
+                        const completeEnabled = ['kitchen_ready', 'delivered', 'guest_confirmed'].includes(order.state);
+                        const completeLabel = order.state === 'kitchen_ready'
+                            ? 'Completed'
+                            : (order.state === 'guest_confirmed' ? 'Retry Post Bill' : 'Post Bill to Room');
                         const actionsHtml =
                             actionButton(order, 'accept', 'Accept', acceptEnabled, 'rs-action-accept') +
                             actionButton(order, 'preparing', 'Start Cooking', preparingEnabled, 'rs-action-preparing') +
                             actionButton(order, 'ready', 'Ready to Deliver', readyEnabled, 'rs-action-ready') +
-                            actionButton(order, 'complete', 'Complete', completeEnabled, 'rs-action-complete');
+                            actionButton(order, 'complete', completeLabel, completeEnabled, 'rs-action-complete');
                         const actionBlock = actionsHtml ?
                             '&lt;div class="rs-actions"&gt;' + actionsHtml + '&lt;/div&gt;' :
                             '&lt;div class="rs-status-note"&gt;' + escapeHtml(statusLabel(order)) + '&lt;/div&gt;';
@@ -1053,6 +1549,30 @@
                     const currentOrderPane = byId('current-order-pane');
                     if (currentOrderPane) {
                         currentOrderPane.addEventListener('click', event =&gt; {
+                            const lineEditButton = event.target.closest('[data-line-edit][data-order-id]');
+                            if (lineEditButton) {
+                                const orderId = Number(lineEditButton.dataset.orderId);
+                                const edit = lineEditButton.dataset.lineEdit;
+                                if (edit === 'add') {
+                                    const menuSelect = currentOrderPane.querySelector('[data-add-menu-item="' + orderId + '"]');
+                                    const qtyInput = currentOrderPane.querySelector('[data-add-qty="' + orderId + '"]');
+                                    executeLineEdit(orderId, 'add', {
+                                        menu_item_id: Number(menuSelect ? menuSelect.value : 0),
+                                        quantity: Number(qtyInput ? qtyInput.value : 1),
+                                    });
+                                    return;
+                                }
+                                const lineId = Number(lineEditButton.dataset.lineId || 0);
+                                const qty = Number(lineEditButton.dataset.qty || 0);
+                                if (edit === 'dec') {
+                                    executeLineEdit(orderId, 'update_qty', { line_id: lineId, quantity: qty - 1 });
+                                    return;
+                                }
+                                if (edit === 'change') {
+                                    openChangeDialog(orderId, lineId);
+                                    return;
+                                }
+                            }
                             const actionButton = event.target.closest('[data-order-action][data-order-id]');
                             if (actionButton) {
                                 executeOrderAction(Number(actionButton.dataset.orderId), actionButton.dataset.orderAction);
@@ -1064,6 +1584,44 @@
                             }
                         });
                     }
+
+                    document.addEventListener('click', event =&gt; {
+                        const dialog = byId('rs-change-dialog');
+                        if (!dialog || !changeDialogState) {
+                            return;
+                        }
+                        if (event.target.closest('[data-change-close]') || event.target === dialog) {
+                            closeChangeDialog();
+                            return;
+                        }
+                        const qtyInput = dialog.querySelector('[data-change-qty]');
+                        if (qtyInput) {
+                            changeDialogState.quantity = Number(qtyInput.value || changeDialogState.quantity || 1);
+                        }
+                        const categoryButton = event.target.closest('[data-change-category]');
+                        if (categoryButton) {
+                            changeDialogState.categoryId = Number(categoryButton.dataset.changeCategory);
+                            renderChangeDialog();
+                            return;
+                        }
+                        const itemButton = event.target.closest('[data-change-item]');
+                        if (itemButton) {
+                            changeDialogState.menuItemId = Number(itemButton.dataset.changeItem);
+                            renderChangeDialog();
+                            return;
+                        }
+                        const confirmButton = event.target.closest('[data-change-confirm]');
+                        if (confirmButton) {
+                            const payload = {
+                                line_id: changeDialogState.lineId,
+                                menu_item_id: changeDialogState.menuItemId,
+                                quantity: Number(qtyInput ? qtyInput.value : changeDialogState.quantity || 1),
+                            };
+                            const orderId = changeDialogState.orderId;
+                            closeChangeDialog();
+                            executeLineEdit(orderId, 'change', payload);
+                        }
+                    });
 
                     const searchInput = byId('rs-search');
                     if (searchInput) {
@@ -1237,8 +1795,8 @@
                         }
                         setConnectionStatus('live');
                         
-                        // Start polling every 5 seconds
-                        pollingTimer = setInterval(fetchUpdatedOrders, 5000);
+                        // Keep the monitor in sync without requiring a manual reload.
+                        pollingTimer = setInterval(fetchUpdatedOrders, 1000);
                     })();
                 </script>
             </body>
@@ -2013,7 +2571,7 @@
                             </div>
                             <div class="mo-step-wrap" data-states="sent_pos">
                                 <div class="mo-step-dot">&#128236;</div>
-                                <div class="mo-step-label">Sent to POS</div>
+                                <div class="mo-step-label">Sent to Kitchen</div>
                             </div>
                             <div class="mo-step-wrap" data-states="kitchen_preparing">
                                 <div class="mo-step-dot">&#127859;</div>
@@ -2199,7 +2757,7 @@
                             }
                         }catch(e){console.error('Status check failed:',e);}
                     }
-                    setInterval(checkStatus,5000);
+                    setInterval(checkStatus,1000);
                 })();
                 </script>
             </body>
@@ -2403,7 +2961,7 @@
                             </div>
                             <div class="st-step-wrap" data-states="sent_pos">
                                 <div class="st-step-dot">&#128236;</div>
-                                <div class="st-step-label">Sent to POS</div>
+                                <div class="st-step-label">Sent to Kitchen</div>
                             </div>
                             <div class="st-step-wrap" data-states="kitchen_preparing">
                                 <div class="st-step-dot">&#127859;</div>
@@ -2571,7 +3129,7 @@
                     /* Init on page load */
                     applyState(lastState, document.getElementById('rso-state-label').textContent.trim());
 
-                    /* ── poll for status updates every 5 s ── */
+                    /* ── poll for status updates every second ── */
                     async function checkStatus(){
                         try{
                             var resp = await fetch('/room-service/order/'+accessToken+'/status/json',{
@@ -2613,7 +3171,7 @@
                             }
                         }catch(e){console.error('Status check failed:',e);}
                     }
-                    setInterval(checkStatus, 5000);
+                    setInterval(checkStatus, 1000);
                 })();
                 </script>
             </body>
@@ -3510,7 +4068,7 @@
 
                     renderFilters();
                     updateAll();
-                    setInterval(refreshRoomStatus, 8000);
+                    setInterval(refreshRoomStatus, 1000);
                 </script>
             </body>
         </html>

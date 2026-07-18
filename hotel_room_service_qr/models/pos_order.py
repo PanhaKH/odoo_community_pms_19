@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
+from odoo.tools import float_is_zero
 
 class RestaurantTable(models.Model):
     _inherit = 'restaurant.table'
@@ -94,7 +95,7 @@ class PosOrder(models.Model):
 
     @api.model
     def get_details(self, shop_id, *args, **kwargs):
-        """Reconcile Room Service links before the Kitchen Display reads its counters."""
+        """Compatibility hook for the legacy kitchen screen, if installed."""
         room_orders = self.env['hotel.room.service.order'].sudo().search([
             ('pos_order_id.config_id', '=', shop_id),
             ('state', 'in', [
@@ -103,7 +104,10 @@ class PosOrder(models.Model):
             ]),
         ])
         room_orders._reconcile_pos_kitchen_status()
-        return super().get_details(shop_id, *args, **kwargs)
+        get_details = getattr(super(), 'get_details', None)
+        if get_details:
+            return get_details(shop_id, *args, **kwargs)
+        return {"orders": [], "order_lines": []}
 
     @api.model
     def sync_from_ui(self, orders):
@@ -158,14 +162,14 @@ class PosOrder(models.Model):
 
                         auto_send_to_kitchen = bool(is_paid)
 
-                        # Create the Room Service Order. Paid self-orders should go straight to POS/Kitchen;
+                        # Create the Room Service Order. Paid self-orders can go straight to kitchen queue;
                         # unpaid orders still wait for staff confirmation.
                         rs_order = self.env['hotel.room.service.order'].sudo().create({
                             'token_id': token_rec.id,
                             'reservation_id': reservation.id,
                             'outlet_id': outlet.id if outlet else False,
                             'pos_order_id': pos_order.id,
-                            'state': 'kitchen_preparing' if auto_send_to_kitchen else 'draft',
+                            'state': 'sent_pos' if auto_send_to_kitchen else 'draft',
                             'payment_method': pay_method,
                             'line_ids': [
                                 (0, 0, {
@@ -323,12 +327,19 @@ class HotelRoomServiceOrder(models.Model):
 
     def _get_pos_kitchen_status_from_room_service_state(self):
         self.ensure_one()
-        if self.state in ['confirmed', 'sent_pos', 'pos_failed', 'kitchen_preparing']:
+        if self.state in ['sent_pos', 'pos_failed']:
+            return 'draft'
+        if self.state == 'kitchen_preparing':
             return 'draft'
         if self.state == 'kitchen_ready':
             return 'waiting'
         if self.state in ['delivered', 'guest_confirmed', 'folio_posted', 'paid_pos', 'closed']:
-            if self.state in ['folio_posted', 'paid_pos', 'closed'] and self.pos_order_id:
+            if (
+                self.state in ['folio_posted', 'paid_pos', 'closed']
+                and self.pos_order_id
+                and 'kitchen.screen' in self.env.registry.models
+                and 'order_status' in self.pos_order_id.lines._fields
+            ):
                 kitchen = self.env['kitchen.screen'].sudo().search([
                     ('pos_config_id', '=', self.pos_order_id.config_id.id)
                 ], limit=1)
@@ -358,86 +369,256 @@ class HotelRoomServiceOrder(models.Model):
         for order in self:
             pos_order = order.pos_order_id.sudo()
             if not pos_order or 'order_status' not in pos_order._fields:
+                order._sync_eh_kds_status_from_room_service()
                 continue
-            kitchen_status = order._get_pos_kitchen_status_from_room_service_state()
-            if not kitchen_status:
-                continue
-            vals = {'order_status': kitchen_status}
-            if 'is_cooking' in pos_order._fields:
-                vals['is_cooking'] = kitchen_status != 'cancel'
-            kitchen = self.env['kitchen.screen'].sudo().search([
-                ('pos_config_id', '=', pos_order.config_id.id)
-            ], limit=1)
-            kitchen_lines = pos_order.lines
-            if kitchen:
-                if kitchen.pos_categ_ids:
-                    kitchen_lines = kitchen_lines.filtered(
-                        lambda line: line.product_id.pos_categ_ids and any(
-                            category.id in kitchen.pos_categ_ids.ids
-                            for category in line.product_id.pos_categ_ids
-                        )
-                    )
-                else:
-                    # A kitchen without category restrictions handles all lines.
-                    kitchen_lines = pos_order.lines
-                if kitchen_status not in ['cancel', 'ready'] and not kitchen_lines:
+            else:
+                kitchen_status = order._get_pos_kitchen_status_from_room_service_state()
+                if not kitchen_status:
+                    order._sync_eh_kds_status_from_room_service()
                     continue
-            order_vals = {
-                field_name: value
-                for field_name, value in vals.items()
-                if pos_order[field_name] != value
-            }
-            if order_vals:
-                pos_order.with_context(room_service_skip_rs_sync=True).write(order_vals)
-            line_vals = {'order_status': kitchen_status}
-            if 'is_cooking' in pos_order.lines._fields:
-                line_vals['is_cooking'] = kitchen_status != 'cancel'
-            line_changed = False
-            if kitchen_lines:
-                for line in kitchen_lines:
-                    changed_line_vals = {
-                        field_name: value
-                        for field_name, value in line_vals.items()
-                        if line[field_name] != value
-                    }
-                    if changed_line_vals:
-                        line.with_context(room_service_skip_rs_sync=True).write(changed_line_vals)
-                        line_changed = True
-            if line_changed and not order_vals:
-                self.env['bus.bus']._sendone(
-                    f'pos_order_created_{pos_order.config_id.id}',
-                    'notification',
-                    {
-                        'res_model': 'pos.order',
-                        'message': 'pos_order_updated',
-                        'order_id': pos_order.id,
-                        'config_id': pos_order.config_id.id,
-                    },
-                )
+                vals = {'order_status': kitchen_status}
+                if 'is_cooking' in pos_order._fields:
+                    vals['is_cooking'] = kitchen_status != 'cancel'
+                kitchen = self.env['kitchen.screen'].sudo().search([
+                    ('pos_config_id', '=', pos_order.config_id.id)
+                ], limit=1) if 'kitchen.screen' in self.env.registry.models else False
+                kitchen_lines = pos_order.lines
+                if kitchen:
+                    if kitchen.pos_categ_ids:
+                        kitchen_lines = kitchen_lines.filtered(
+                            lambda line: line.product_id.pos_categ_ids and any(
+                                category.id in kitchen.pos_categ_ids.ids
+                                for category in line.product_id.pos_categ_ids
+                            )
+                        )
+                    else:
+                        # A kitchen without category restrictions handles all lines.
+                        kitchen_lines = pos_order.lines
+                    if kitchen_status not in ['cancel', 'ready'] and not kitchen_lines:
+                        order._sync_eh_kds_status_from_room_service()
+                        continue
+                order_vals = {
+                    field_name: value
+                    for field_name, value in vals.items()
+                    if pos_order[field_name] != value
+                }
+                if order_vals:
+                    pos_order.with_context(room_service_skip_rs_sync=True).write(order_vals)
+                line_vals = {'order_status': kitchen_status}
+                if 'is_cooking' in pos_order.lines._fields:
+                    line_vals['is_cooking'] = kitchen_status != 'cancel'
+                line_changed = False
+                if kitchen_lines:
+                    for line in kitchen_lines:
+                        changed_line_vals = {
+                            field_name: value
+                            for field_name, value in line_vals.items()
+                            if line[field_name] != value
+                        }
+                        if changed_line_vals:
+                            line.with_context(room_service_skip_rs_sync=True).write(changed_line_vals)
+                            line_changed = True
+                if line_changed and not order_vals:
+                    self.env['bus.bus']._sendone(
+                        f'pos_order_created_{pos_order.config_id.id}',
+                        'notification',
+                        {
+                            'res_model': 'pos.order',
+                            'message': 'pos_order_updated',
+                            'order_id': pos_order.id,
+                            'config_id': pos_order.config_id.id,
+                        },
+                    )
+            order._sync_eh_kds_status_from_room_service()
+
+    def _eh_kds_models_available(self):
+        return all(model in self.env.registry.models for model in (
+            'eh.kds.board',
+            'eh.kds.ticket',
+            'eh.kds.ticket.item',
+            'eh.kds.card',
+        ))
+
+    def _eh_kds_visible_states(self):
+        return [
+            'sent_pos', 'pos_failed', 'kitchen_preparing',
+            'kitchen_ready', 'delivered', 'guest_confirmed', 'folio_posted',
+            'paid_pos', 'closed',
+        ]
+
+    def _eh_kds_ticket_key(self):
+        self.ensure_one()
+        return 'room_service:%s' % self.id
+
+    def _eh_kds_ticket_ref(self):
+        self.ensure_one()
+        return self.pos_reference or self.name or str(self.id)
+
+    def _ensure_eh_kds_ticket(self):
+        self.ensure_one()
+        if not self._eh_kds_models_available():
+            return self.env['hotel.room.service.order']
+        if self.state not in self._eh_kds_visible_states():
+            return self.env['eh.kds.ticket'].sudo()
+
+        Ticket = self.env['eh.kds.ticket'].sudo()
+        Item = self.env['eh.kds.ticket.item'].sudo()
+        Card = self.env['eh.kds.card'].sudo()
+        Board = self.env['eh.kds.board'].sudo()
+
+        if self.pos_order_id:
+            self.pos_order_id.sudo()._eh_kds_intake()
+            ticket = Ticket.search([('pos_order_id', '=', self.pos_order_id.id)], limit=1)
+            if ticket and ticket.ticket_ref != self._eh_kds_ticket_ref():
+                ticket.ticket_ref = self._eh_kds_ticket_ref()
+            return ticket
+
+        if not Board.search_count([('active', '=', True)]):
+            return Ticket
+
+        ticket = Ticket.search([('internal_note', '=', self._eh_kds_ticket_key())], limit=1)
+        if not ticket:
+            ticket = Ticket.create({
+                'ticket_ref': self._eh_kds_ticket_ref(),
+                'customer_note': self.guest_note or False,
+                'internal_note': self._eh_kds_ticket_key(),
+            })
+        touched = Board.browse()
+        config = self.outlet_id.pos_config_id
+        for line in self.line_ids:
+            line_key = '%s:%s' % (self._eh_kds_ticket_key(), line.id)
+            item = ticket.item_ids.filtered(lambda candidate, key=line_key: candidate.pos_order_line_uuid == key)[:1]
+            known = (item.quantity - item.cancelled) if item else 0.0
+            delta = line.quantity - known
+            if delta > 0:
+                if not item:
+                    item = Item.create({
+                        'ticket_id': ticket.id,
+                        'product_id': line.product_id.id,
+                        'quantity': line.quantity,
+                        'pos_order_line_uuid': line_key,
+                        'customer_note': line.note or False,
+                    })
+                    attr_value_ids = line.product_id.product_template_attribute_value_ids.ids
+                    for board, lane in Board._route_item(config, line.product_id, attr_value_ids):
+                        card = Card.create({'item_id': item.id, 'lane_id': lane.id})
+                        card._log('placed', to_lane=lane, push=False)
+                        touched |= board
+                else:
+                    item.quantity = line.quantity
+            elif delta < 0 and item:
+                item.cancelled = min(item.quantity, item.cancelled - delta)
+                for card in item.card_ids.filtered(lambda candidate: candidate.status != 'voided'):
+                    card._log('voided', push=False)
+                    touched |= card.board_id
+        for board in touched:
+            board._kds_push(
+                board.access_token,
+                'kds.ticket',
+                {'ticket_id': ticket.id, 'ticket_ref': ticket.ticket_ref, 'event': 'room_service_intake'},
+            )
+            board._kds_push(board.access_token, 'kds.status', {'ticket_ref': ticket.ticket_ref})
+        return ticket
+
+    def _eh_kds_target_index(self, board):
+        self.ensure_one()
+        lanes = list(board.lane_ids)
+        if not lanes:
+            return False
+        last = len(lanes) - 1
+        if self.state in ['sent_pos', 'pos_failed']:
+            return 0
+        if self.state == 'kitchen_preparing':
+            return min(1, last)
+        if self.state == 'kitchen_ready':
+            return max(last - 1, 0)
+        if self.state in ['delivered', 'guest_confirmed', 'folio_posted', 'paid_pos', 'closed']:
+            return last
+        return False
+
+    def _sync_eh_kds_status_from_room_service(self):
+        if self.env.context.get('room_service_skip_eh_kds_sync'):
+            return True
+        for order in self:
+            if not order._eh_kds_models_available():
+                continue
+            ticket = order._ensure_eh_kds_ticket()
+            if not ticket:
+                continue
+            cards = ticket.item_ids.card_ids.filtered(lambda card: card.status != 'voided')
+            if order.state == 'cancelled':
+                cards.with_context(room_service_skip_kds_to_rs_sync=True).void(reason='Room Service cancelled')
+                continue
+            for board in cards.board_id:
+                target = order._eh_kds_target_index(board)
+                if target is False:
+                    continue
+                board_cards = cards.filtered(lambda card, current_board=board: card.board_id == current_board)
+                board_cards.with_context(room_service_skip_kds_to_rs_sync=True).move_to(target)
+        return True
 
     def _reconcile_pos_kitchen_status(self):
         """Repair drift and align Room Service stages with Kitchen Display stages."""
         for order in self:
             order._sync_pos_kitchen_status_from_room_service()
             pos_order = order.pos_order_id.sudo()
+        return True
+
+    def _get_room_charge_payment_method_for_pos(self, pos_order):
+        PaymentMethod = self.env['pos.payment.method'].sudo()
+        methods = pos_order.config_id.payment_method_ids
+        room_charge = methods.filtered(lambda method: method.is_room_charge)[:1]
+        if room_charge:
+            return room_charge
+        return PaymentMethod.search([
+            ('is_room_charge', '=', True),
+            ('id', 'in', methods.ids),
+        ], limit=1)
+
+    def _sync_pos_status_after_room_bill_posted(self):
+        """Mark the linked POS ticket paid after the folio charge succeeds."""
+        Payment = self.env['pos.payment'].sudo()
+        for order in self:
+            pos_order = order.pos_order_id.sudo()
             if (
-                pos_order
-                and order.state in ['confirmed', 'sent_pos']
-                and not pos_order.is_room_service_pending
-                and pos_order.is_cooking
-                and pos_order.order_status == 'draft'
+                not pos_order
+                or order.pms_sync_state != 'posted'
+                or pos_order.state in ['paid', 'done', 'cancel']
             ):
-                # Once the order is visible in Kitchen Display's Cooking column, expose
-                # the same stage in the Room Service monitor.
-                order.with_context(room_service_skip_pos_kitchen_sync=True).write({
-                    'state': 'kitchen_preparing',
+                continue
+
+            currency = pos_order.currency_id
+            amount_due = currency.round(pos_order.amount_total - pos_order.amount_paid)
+            if not float_is_zero(amount_due, precision_rounding=currency.rounding):
+                payment_method = order._get_room_charge_payment_method_for_pos(pos_order)
+                if not payment_method:
+                    order._log_adapter("pos", "failed", _("Unable to mark POS order paid: no Room Charge payment method is configured on the POS outlet."))
+                    continue
+                Payment.create({
+                    'pos_order_id': pos_order.id,
+                    'payment_method_id': payment_method.id,
+                    'amount': amount_due,
+                    'payment_date': fields.Datetime.now(),
                 })
+                pos_order._compute_prices()
+
+            pos_order.with_context(room_service_skip_rs_sync=True).action_pos_order_paid()
+            order._log_adapter("pos", "success", _("Linked POS order marked paid after the room folio charge was posted."))
+            try:
+                pos_order.config_id.sudo().notify_synchronisation(
+                    pos_order.session_id.id,
+                    self.env.context.get('device_identifier', 0),
+                    {'pos.order': [pos_order.id], 'pos.payment': pos_order.payment_ids.ids}
+                )
+            except Exception:
+                pass
         return True
 
     def _post_to_pms_folio(self):
         res = super()._post_to_pms_folio()
         for order in self:
             if order.pms_sync_state == 'posted':
+                order._sync_pos_status_after_room_bill_posted()
                 folio_name = order.pms_folio_id.name if order.pms_folio_id else str(order.pms_folio_id.id)
                 order.message_post(body=_("Room Service Order bill posted to Room Folio (Folio: %s) successfully.") % folio_name)
         return res
@@ -493,19 +674,17 @@ class HotelRoomServiceOrder(models.Model):
                     self.env.context.get('device_identifier', 0),
                     {'pos.order': [pos_order.id]}
                 )
-                # The accepted POS order is immediately visible in the Kitchen
-                # Display's Cooking stage, so expose the same state everywhere.
                 ref = pos_order.name if pos_order.name != '/' else pos_order.floating_order_name
-                order.write({'state': 'kitchen_preparing', 'pos_reference': ref})
-                order._log_adapter("system", "success", _("Self-order confirmed by staff and sent to POS as draft order (active on screen)."))
+                order.write({'state': 'sent_pos', 'pos_reference': ref})
+                order._log_adapter("system", "success", _("Self-order accepted by staff and sent to the kitchen queue."))
             else:
                 if order.state == 'draft':
                     order.write({'state': 'confirmed'})
                 if order.outlet_id.auto_create_pos_order:
                     order.action_send_to_pos()
                 else:
-                    order.write({'state': 'kitchen_preparing'})
-                    order._log_adapter("system", "success", _("Room Service order accepted for kitchen preparation without POS draft order."))
+                    order.write({'state': 'sent_pos'})
+                    order._log_adapter("system", "success", _("Room Service order accepted for the kitchen queue without POS draft order."))
         return True
 
     def action_cancel_before_pos(self):
@@ -513,6 +692,85 @@ class HotelRoomServiceOrder(models.Model):
         for order in self:
             if order.pos_order_id and order.pos_order_id.state == 'draft':
                 order.pos_order_id.sudo().write({'state': 'cancel'})
-                if hasattr(order.pos_order_id, 'order_status'):
+                if 'order_status' in order.pos_order_id._fields:
                     order.pos_order_id.sudo().write({'order_status': 'cancel'})
         return res
+
+
+class EhKdsCard(models.Model):
+    _inherit = 'eh.kds.card'
+
+    def move_to(self, index, kind=None):
+        res = super().move_to(index, kind=kind)
+        if not self.env.context.get('room_service_skip_kds_to_rs_sync'):
+            self._sync_room_service_from_eh_kds()
+        return res
+
+    def void(self, reason=None):
+        res = super().void(reason=reason)
+        if not self.env.context.get('room_service_skip_kds_to_rs_sync'):
+            self._sync_room_service_from_eh_kds(cancelled=True)
+        return res
+
+    def _room_service_from_ticket(self, ticket):
+        RoomService = self.env['hotel.room.service.order'].sudo()
+        if ticket.pos_order_id:
+            order = RoomService.search([('pos_order_id', '=', ticket.pos_order_id.id)], limit=1)
+            if order:
+                return order
+        marker = ticket.internal_note or ''
+        if marker.startswith('room_service:'):
+            try:
+                order = RoomService.browse(int(marker.split(':', 1)[1]))
+            except (TypeError, ValueError):
+                return RoomService
+            return order if order.exists() else RoomService
+        return RoomService
+
+    def _room_service_state_from_ticket(self, ticket, cancelled=False):
+        if cancelled:
+            return 'cancelled'
+        cards = ticket.item_ids.card_ids.filtered(lambda card: card.status != 'voided')
+        if not cards:
+            return False
+        stage_rank = 0
+        for board in cards.board_id:
+            lanes = list(board.lane_ids)
+            if not lanes:
+                continue
+            last = len(lanes) - 1
+            ready = max(last - 1, 0)
+            indexes = [lanes.index(card.lane_id) for card in cards.filtered(lambda card: card.board_id == board) if card.lane_id in lanes]
+            if not indexes:
+                continue
+            if all(index >= last for index in indexes):
+                stage_rank = max(stage_rank, 3)
+            elif all(index >= ready for index in indexes):
+                stage_rank = max(stage_rank, 2)
+            elif any(index >= 1 for index in indexes):
+                stage_rank = max(stage_rank, 1)
+        return {
+            0: 'sent_pos',
+            1: 'kitchen_preparing',
+            2: 'kitchen_ready',
+            # Kitchen completion is not a Room Service completion.
+            # Room Service keeps its current state until staff completes and posts the bill.
+            3: False,
+        }.get(stage_rank)
+
+    def _sync_room_service_from_eh_kds(self, cancelled=False):
+        for ticket in self.ticket_id:
+            order = self._room_service_from_ticket(ticket)
+            if not order or order.state in ['closed', 'folio_posted', 'paid_pos']:
+                continue
+            new_state = self._room_service_state_from_ticket(ticket, cancelled=cancelled)
+            if not new_state or order.state == new_state:
+                continue
+            vals = {'state': new_state}
+            if new_state == 'cancelled':
+                vals['closed_at'] = fields.Datetime.now()
+            order.with_context(
+                room_service_skip_pos_kitchen_sync=True,
+                room_service_skip_eh_kds_sync=True,
+            ).write(vals)
+        return True

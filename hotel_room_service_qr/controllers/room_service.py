@@ -1,31 +1,47 @@
 import json
 import zipfile
-from datetime import timedelta
 from io import BytesIO
 
-import pytz
-
 from odoo import http, fields
-from odoo.addons.pos_kitchen_screen_odoo.controllers.status_display import (
-    PosKitchenStatusDisplay,
-)
 from odoo.http import content_disposition, request
 
 
-class HotelRoomServiceKitchenStatusDisplay(PosKitchenStatusDisplay):
-    """Keep the public status board on the Kitchen Display's order source."""
+class HotelRoomServiceKitchenStatusDisplay(http.Controller):
+    """Compatibility endpoints backed by the eh_pos_kds Kitchen Display."""
 
-    @http.route()
+    @http.route("/pos/kitchen/status", type="http", auth="public", website=True)
+    def kitchen_status_display(self, pos_config_id=None, **kwargs):
+        board = self._get_kds_board(pos_config_id)
+        if board:
+            return request.redirect("/eh_kds/status/%s" % board.access_token)
+        return request.not_found()
+
+    @http.route("/pos/kitchen/status/data", type="http", auth="public", csrf=False)
     def kitchen_status_display_data(self, pos_config_id=None, **kwargs):
-        return super().kitchen_status_display_data(pos_config_id=pos_config_id, **kwargs)
+        payload = self._get_status_payload(self._safe_int(pos_config_id))
+        return request.make_response(
+            json.dumps(payload),
+            headers=[("Content-Type", "application/json")],
+        )
+
+    def _safe_int(self, value):
+        try:
+            return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    def _get_kds_board(self, pos_config_id=None):
+        Board = request.env["eh.kds.board"].sudo()
+        domain = [("active", "=", True)]
+        if pos_config_id:
+            board = Board.search(domain + [("pos_config_ids", "in", [pos_config_id])], limit=1)
+            if board:
+                return board
+        return Board.search(domain, order="sequence, id", limit=1)
 
     def _get_status_payload(self, config_id):
-        Kitchen = request.env["kitchen.screen"].sudo()
-        kitchen = Kitchen.search([("pos_config_id", "=", config_id)], limit=1)
-        if not kitchen:
-            kitchen = Kitchen.search([], limit=1)
-            config_id = kitchen.pos_config_id.id if kitchen else 0
-        if not kitchen:
+        board = self._get_kds_board(config_id)
+        if not board:
             return {
                 "kitchen": {},
                 "almost_ready": [],
@@ -34,34 +50,19 @@ class HotelRoomServiceKitchenStatusDisplay(PosKitchenStatusDisplay):
                 "last_updated": fields.Datetime.now().isoformat(),
             }
 
-        # get_details() is the canonical Kitchen Display query.  The Room Service
-        # extension reconciles linked orders there before returning them, so the
-        # public board cannot drift from the Kitchen Display or include pending
-        # Room Service orders.
-        details = request.env["pos.order"].sudo().get_details(config_id)
-        visible_order_ids = [
-            value.get("id")
-            for value in details.get("orders", [])
-            if value.get("id")
-        ]
-        orders = request.env["pos.order"].sudo().browse(visible_order_ids).exists()
-        orders = orders.sorted(key=lambda order: (order.date_order, order.id))
-
-        almost_ready = []
-        ready = []
-        for order in orders:
-            item = self._serialize_order(order)
-            if order.order_status == "waiting":
-                ready.append(item)
-            elif order.order_status == "draft":
-                almost_ready.append(item)
+        request.env["hotel.room.service.order"].sudo().search([
+            ("state", "in", HotelRoomServiceQrController.DISPLAY_STATES),
+        ])._reconcile_pos_kitchen_status()
+        data = board._kds_status_data()
+        almost_ready = [self._serialize_kds_status_item(item, "preparing") for item in data.get("preparing", [])]
+        ready = [self._serialize_kds_status_item(item, "ready") for item in data.get("ready", [])]
 
         return {
             "kitchen": {
-                "id": kitchen.id,
-                "name": kitchen.sequence,
-                "pos_config_id": kitchen.pos_config_id.id,
-                "pos_name": kitchen.pos_config_id.name,
+                "id": board.id,
+                "name": board.name,
+                "pos_config_id": config_id or 0,
+                "pos_name": board.name,
             },
             "almost_ready": almost_ready[:30],
             "ready": ready[:30],
@@ -72,30 +73,16 @@ class HotelRoomServiceKitchenStatusDisplay(PosKitchenStatusDisplay):
             "last_updated": fields.Datetime.now().isoformat(),
         }
 
-    def _serialize_order(self, order):
-        """Odoo 19 restaurant tables use table_number, not the removed name."""
-        user_tz = pytz.timezone(request.env.user.tz or "UTC")
-        local_dt = pytz.utc.localize(order.date_order).astimezone(user_tz)
-        wait = fields.Datetime.now() - order.date_order
-        wait_minutes = max(0, int(wait.total_seconds() // 60))
-        eta = local_dt + timedelta(minutes=int(order.avg_prepare_time or 0))
-        table = order.table_id
-        table_label = ""
-        if table:
-            table_label = (
-                (table.room_id.name if "room_id" in table._fields and table.room_id else "")
-                or table.display_name
-                or str(table.table_number)
-            )
+    def _serialize_kds_status_item(self, item, status):
         return {
-            "id": order.id,
-            "name": order.name or order.pos_reference or str(order.id),
-            "customer": order.partner_id.name or "",
-            "table": table_label,
-            "status": order.order_status,
-            "time": local_dt.strftime("%H:%M"),
-            "eta": eta.strftime("%H:%M"),
-            "wait_minutes": wait_minutes,
+            "id": item.get("ticket_id"),
+            "name": item.get("ref") or str(item.get("ticket_id") or ""),
+            "customer": "",
+            "table": "",
+            "status": status,
+            "time": "",
+            "eta": "",
+            "wait_minutes": 0,
         }
 
 
@@ -132,6 +119,32 @@ class HotelRoomServiceQrController(http.Controller):
             "ready": len(orders.filtered(lambda order: order.state == "kitchen_ready")),
             "completed": len(orders.filtered(lambda order: order.state in ["delivered", "guest_confirmed", "folio_posted", "paid_pos", "closed"])),
         }
+
+    def _get_monitor_menu_payload(self, outlet):
+        menu_items = request.env["hotel.room.service.menu.item"].sudo().search([
+            ("active", "=", True),
+            ("outlet_id", "=", outlet.id),
+        ], order="category_id, sequence, name")
+        menu_payload = []
+        categories_by_id = {}
+        for item in menu_items:
+            item_payload = {
+                "id": item.id,
+                "product_id": item.product_id.id,
+                "name": item.name or item.product_id.display_name,
+                "price": item.price,
+                "description": item.description or "",
+                "category_id": item.category_id.id,
+                "category_name": item.category_id.name,
+            }
+            menu_payload.append(item_payload)
+            category_payload = categories_by_id.setdefault(item.category_id.id, {
+                "id": item.category_id.id,
+                "name": item.category_id.name,
+                "items": [],
+            })
+            category_payload["items"].append(item_payload)
+        return menu_payload, list(categories_by_id.values())
 
     def _reconcile_monitor_kitchen_orders(self):
         orders = request.env["hotel.room.service.order"].sudo().search([
@@ -233,12 +246,16 @@ class HotelRoomServiceQrController(http.Controller):
             for line in order.line_ids:
                 total_items += line.quantity
                 lines.append({
+                    'id': line.id,
+                    'menu_item_id': line.menu_item_id.id,
+                    'product_id': line.product_id.id,
                     'name': line.product_id.display_name or line.name,
                     'qty': line.quantity,
                     'price_unit': line.price_unit,
                     'subtotal': line.subtotal,
                     'note': line.note or '',
                 })
+            menu_items, menu_categories = self._get_monitor_menu_payload(order.outlet_id)
             wait_minutes = 0
             if order.create_date:
                 wait_minutes = max(0, int((now - order.create_date).total_seconds() // 60))
@@ -252,12 +269,16 @@ class HotelRoomServiceQrController(http.Controller):
                 'state': order.state,
                 'state_label': state_labels.get(order.state, order.state),
                 'status_group': self._get_monitor_status_group(order.state),
+                'date_utc': (order.create_date.isoformat() + 'Z') if order.create_date else '',
                 'date_str': order.create_date.strftime("%Y-%m-%d %H:%M") if order.create_date else '',
                 'time_str': order.create_date.strftime("%I:%M %p") if order.create_date else '',
                 'wait_minutes': wait_minutes,
                 'total_items': total_items,
                 'total': order.total_amount,
                 'lines': lines,
+                'can_edit_items': order.state == 'draft',
+                'menu_items': menu_items,
+                'menu_categories': menu_categories,
                 'note': order.guest_note or '',
                 'payment': order.payment_method,
             })
@@ -317,7 +338,7 @@ class HotelRoomServiceQrController(http.Controller):
         steps = [
             ("placed", "Order Placed"),
             ("confirmed", "Confirmed"),
-            ("sent_pos", "Sent to POS"),
+            ("sent_pos", "Sent to Kitchen"),
             ("cooking", "Cooking"),
             ("ready", "Ready to Deliver"),
             ("delivered", "Delivered"),
@@ -551,8 +572,6 @@ class HotelRoomServiceQrController(http.Controller):
         elif action_name == "ready":
             order.action_kitchen_ready()
         elif action_name == "complete":
-            if order.state != "delivered":
-                order.action_delivered()
             order.action_guest_confirm_completed()
         return request.redirect("/room-service/order-display")
 
@@ -575,12 +594,16 @@ class HotelRoomServiceQrController(http.Controller):
             for line in order.line_ids:
                 total_items += line.quantity
                 lines.append({
+                    'id': line.id,
+                    'menu_item_id': line.menu_item_id.id,
+                    'product_id': line.product_id.id,
                     'name': line.product_id.display_name or line.name,
                     'qty': line.quantity,
                     'price_unit': line.price_unit,
                     'subtotal': line.subtotal,
                     'note': line.note or '',
                 })
+            menu_items, menu_categories = self._get_monitor_menu_payload(order.outlet_id)
             wait_minutes = 0
             if order.create_date:
                 wait_minutes = max(0, int((now - order.create_date).total_seconds() // 60))
@@ -594,12 +617,16 @@ class HotelRoomServiceQrController(http.Controller):
                 'state': order.state,
                 'state_label': state_labels.get(order.state, order.state),
                 'status_group': self._get_monitor_status_group(order.state),
+                'date_utc': (order.create_date.isoformat() + 'Z') if order.create_date else '',
                 'date_str': order.create_date.strftime("%Y-%m-%d %H:%M") if order.create_date else '',
                 'time_str': order.create_date.strftime("%I:%M %p") if order.create_date else '',
                 'wait_minutes': wait_minutes,
                 'total_items': total_items,
                 'total': order.total_amount,
                 'lines': lines,
+                'can_edit_items': order.state == 'draft',
+                'menu_items': menu_items,
+                'menu_categories': menu_categories,
                 'note': order.guest_note or '',
                 'payment': order.payment_method,
             })
@@ -620,6 +647,72 @@ class HotelRoomServiceQrController(http.Controller):
             "closed_sessions": closed_sessions,
         }
 
+    @http.route("/room-service/order-display/edit-line/json", type="jsonrpc", auth="user", methods=["POST"], csrf=True)
+    def room_service_monitor_edit_line_json(self, order_id, operation, line_id=None, menu_item_id=None, quantity=None, **post):
+        order = request.env["hotel.room.service.order"].sudo().browse(int(order_id or 0)).exists()
+        if not order:
+            return {"success": False, "error": "Order not found."}
+        if order.state != "draft":
+            return {"success": False, "error": "Order items can only be edited before the order is accepted."}
+
+        try:
+            Line = request.env["hotel.room.service.order.line"].sudo()
+            if operation == "update_qty":
+                line = Line.browse(int(line_id or 0)).exists()
+                if not line or line.order_id.id != order.id:
+                    return {"success": False, "error": "Order line not found."}
+                qty = float(quantity or 0)
+                if qty <= 0:
+                    line.unlink()
+                else:
+                    line.write({"quantity": qty})
+            elif operation == "remove":
+                line = Line.browse(int(line_id or 0)).exists()
+                if not line or line.order_id.id != order.id:
+                    return {"success": False, "error": "Order line not found."}
+                line.unlink()
+            elif operation == "add":
+                menu_item = request.env["hotel.room.service.menu.item"].sudo().browse(int(menu_item_id or 0)).exists()
+                if not menu_item or not menu_item.active or menu_item.outlet_id.id != order.outlet_id.id:
+                    return {"success": False, "error": "Menu item not found for this outlet."}
+                qty = float(quantity or 1)
+                if qty <= 0:
+                    return {"success": False, "error": "Quantity must be greater than zero."}
+                existing = order.line_ids.filtered(lambda line: line.menu_item_id.id == menu_item.id)[:1]
+                if existing:
+                    existing.write({"quantity": existing.quantity + qty})
+                else:
+                    Line.create({
+                        "order_id": order.id,
+                        "menu_item_id": menu_item.id,
+                        "product_id": menu_item.product_id.id,
+                        "name": menu_item.name or menu_item.product_id.display_name,
+                        "quantity": qty,
+                        "price_unit": menu_item.price,
+                    })
+            elif operation == "change":
+                line = Line.browse(int(line_id or 0)).exists()
+                if not line or line.order_id.id != order.id:
+                    return {"success": False, "error": "Order line not found."}
+                menu_item = request.env["hotel.room.service.menu.item"].sudo().browse(int(menu_item_id or 0)).exists()
+                if not menu_item or not menu_item.active or menu_item.outlet_id.id != order.outlet_id.id:
+                    return {"success": False, "error": "Menu item not found for this outlet."}
+                qty = float(quantity or line.quantity or 1)
+                if qty <= 0:
+                    return {"success": False, "error": "Quantity must be greater than zero."}
+                line.write({
+                    "menu_item_id": menu_item.id,
+                    "product_id": menu_item.product_id.id,
+                    "name": menu_item.name or menu_item.product_id.display_name,
+                    "quantity": qty,
+                    "price_unit": menu_item.price,
+                })
+            else:
+                return {"success": False, "error": "Unsupported edit operation."}
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     @http.route("/room-service/order-display/action/json", type="jsonrpc", auth="user", methods=["POST"], csrf=True)
     def room_service_monitor_action_json(self, order_id, action_name, **post):
         order = request.env["hotel.room.service.order"].sudo().browse(order_id).exists()
@@ -633,8 +726,6 @@ class HotelRoomServiceQrController(http.Controller):
             elif action_name == "ready":
                 order.action_kitchen_ready()
             elif action_name == "complete":
-                if order.state != "delivered":
-                    order.action_delivered()
                 order.action_guest_confirm_completed()
             return {"success": True}
         except Exception as e:

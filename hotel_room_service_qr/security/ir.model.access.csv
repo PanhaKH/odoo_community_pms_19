@@ -10,8 +10,8 @@ access_room_service_item_manager,room.service.item manager,model_hotel_room_serv
 access_room_service_order_user,room.service.order user,model_hotel_room_service_order,base.group_user,1,1,0,0
 access_room_service_order_manager,room.service.order manager,model_hotel_room_service_order,hotel_management.group_hotel_manager,1,1,1,1
 access_room_service_line_user,room.service.line user,model_hotel_room_service_order_line,base.group_user,1,0,0,0
+access_room_service_line_front_office,room.service.line front office,model_hotel_room_service_order_line,hotel_management.group_hotel_front_office,1,1,1,1
 access_room_service_line_manager,room.service.line manager,model_hotel_room_service_order_line,hotel_management.group_hotel_manager,1,1,1,1
 access_room_service_log_user,room.service.log user,model_hotel_room_service_integration_log,base.group_user,1,0,0,0
 access_room_service_log_manager,room.service.log manager,model_hotel_room_service_integration_log,hotel_management.group_hotel_manager,1,1,1,1
 access_room_service_report_wizard_manager,room.service.report.wizard manager,model_hotel_room_service_report_wizard,hotel_management.group_hotel_manager,1,1,1,1
-

@@ -1,0 +1,83 @@
+// ERP Heritage KDS design tokens. Shared by the board and the status screen.
+// Dark premium aesthetic, mint accent, DM Sans body, DM Mono numerals.
+:root {
+    --eh-kds-bg: #080C0A;
+    --eh-kds-surface: #101814;
+    --eh-kds-surface-2: #16211B;
+    --eh-kds-text: #F5F5F5;
+    --eh-kds-text-muted: #9AA8A0;
+    --eh-kds-accent-mint: #7BCEA0;
+    --eh-kds-ok: #34D399;
+    --eh-kds-warn: #F5B547;
+    --eh-kds-coral: #FB8A6B;
+    --eh-kds-danger: #EF5B5B;
+    --eh-kds-border: #233029;
+    --eh-kds-font: "DM Sans", system-ui, -apple-system, sans-serif;
+    --eh-kds-font-mono: "DM Mono", ui-monospace, monospace;
+}
+
+// Shared base used by both the kitchen board and the order status screen so the
+// brand mark and page chrome render the same on either page.
+.o_eh_kds_page {
+    margin: 0;
+    background: var(--eh-kds-bg);
+    color: var(--eh-kds-text);
+    font-family: var(--eh-kds-font);
+    min-height: 100vh;
+}
+
+.o_eh_kds_brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 10px 22px;
+    background:
+        radial-gradient(circle at 7% 0%, rgba(52, 211, 153, 0.12), transparent 30%),
+        linear-gradient(90deg, #08120f 0%, #071018 55%, #050b12 100%);
+    border-bottom: 1px solid rgba(45, 212, 191, 0.16);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 18px 40px rgba(0, 0, 0, 0.22);
+
+    .o_eh_kds_brand_logo { display: none; }
+    .o_eh_kds_brand_icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        filter: drop-shadow(0 0 14px rgba(45, 212, 191, 0.28));
+
+        svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    }
+    .o_eh_kds_brand_name {
+        font-size: 19px;
+        font-weight: 800;
+        letter-spacing: 0;
+        color: #F8FAFC;
+        line-height: 1;
+    }
+}
+
+.o_eh_kds_empty { color: var(--eh-kds-text-muted); font-size: 13px; margin: 0; }
+
+// Sanctioned brand relocation (Pro add-on writes the brand position). Default
+// "bar" keeps the standard full-width mark; "corner" floats a compact mark. The
+// mark always shows, per the licence.
+.o_eh_kds_brand--corner {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    z-index: 50;
+    border: 1px solid var(--eh-kds-border);
+    border-radius: 999px;
+    padding: 6px 12px;
+    background: var(--eh-kds-surface);
+    opacity: 0.92;
+
+    .o_eh_kds_brand_icon { width: 24px; height: 24px; }
+    .o_eh_kds_brand_name { font-size: 12px; }
+}
